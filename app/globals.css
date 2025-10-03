@@ -2,81 +2,104 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* NOVO SISTEMA DE CORES BASEADO NO LOGO AZUL E PRETO */
+    --background: 0 0% 100%; /* Branco puro */
+    --foreground: 0 0% 0%; /* Preto puro */
+    --card: 0 0% 100%; /* Branco puro */
+    --card-foreground: 0 0% 0%; /* Preto puro */
+    --popover: 0 0% 100%; /* Branco puro */
+    --popover-foreground: 0 0% 0%; /* Preto puro */
+    
+    /* COR PRINCIPAL: AZUL DO LOGO */
+    --primary: 217 91% 45%; /* Azul mais escuro do logo */
+    --primary-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* COR SECUNDARIA: PRETO DO LOGO */
+    --secondary: 0 0% 15%; /* Preto suave */
+    --secondary-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* CORES DE APOIO */
+    --muted: 0 0% 96%; /* Cinza muito claro */
+    --muted-foreground: 0 0% 45%; /* Cinza medio */
+    --accent: 217 91% 96%; /* Azul muito claro para acentos */
+    --accent-foreground: 217 91% 25%; /* Azul escuro para texto */
+    
+    /* CORES DE ESTADO */
+    --destructive: 0 84% 60%; /* Vermelho para acoes destrutivas */
+    --destructive-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* CORES DE SUCESSO: AZUL VARIANTE */
+    --success: 217 91% 50%; /* Azul para sucesso */
+    --success-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* CORES DE AVISO */
+    --warning: 45 93% 58%; /* Amarelo para avisos */
+    --warning-foreground: 0 0% 0%; /* Preto para contraste */
+    
+    /* ELEMENTOS DE INTERFACE */
+    --border: 0 0% 90%; /* Cinza claro para bordas */
+    --input: 0 0% 96%; /* Cinza muito claro para inputs */
+    --ring: 217 91% 60%; /* Azul para focus rings */
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* CORES ESPECIAIS DO TRACKDOC */
+    --trackdoc-blue: 217 91% 45%; /* Azul principal mais escuro */
+    --trackdoc-blue-light: 217 91% 92%; /* Azul muito claro */
+    --trackdoc-blue-dark: 217 91% 30%; /* Azul escuro mais profundo */
+    --trackdoc-black: 0 0% 0%; /* Preto do logo */
+    --trackdoc-gray: 0 0% 50%; /* Cinza neutro */
+    --trackdoc-gray-light: 0 0% 96%; /* Cinza claro */
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* MODO ESCURO BASEADO NO LOGO AZUL E PRETO */
+    --background: 0 0% 8%; /* Preto profundo */
+    --foreground: 0 0% 100%; /* Branco puro */
+    --card: 0 0% 12%; /* Preto suave para cards */
+    --card-foreground: 0 0% 100%; /* Branco para contraste */
+    --popover: 0 0% 12%; /* Preto suave para popovers */
+    --popover-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* AZUL PRINCIPAL NO MODO ESCURO */
+    --primary: 217 91% 65%; /* Azul mais claro no escuro */
+    --primary-foreground: 0 0% 0%; /* Preto para contraste */
+    
+    /* PRETO SECUNDRIO NO MODO ESCURO */
+    --secondary: 0 0% 20%; /* Preto mais claro */
+    --secondary-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* CORES DE APOIO NO MODO ESCURO */
+    --muted: 0 0% 15%; /* Cinza escuro */
+    --muted-foreground: 0 0% 65%; /* Cinza mdio */
+    --accent: 217 91% 18%; /* Azul escuro para acentos */
+    --accent-foreground: 217 91% 85%; /* Azul claro para texto */
+    
+    /* CORES DE ESTADO NO MODO ESCURO */
+    --destructive: 0 62% 55%; /* Vermelho ajustado para escuro */
+    --destructive-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* CORES DE SUCESSO NO MODO ESCURO */
+    --success: 217 91% 55%; /* Azul ajustado para escuro */
+    --success-foreground: 0 0% 100%; /* Branco para contraste */
+    
+    /* CORES DE AVISO NO MODO ESCURO */
+    --warning: 45 93% 65%; /* Amarelo ajustado para escuro */
+    --warning-foreground: 0 0% 0%; /* Preto para contraste */
+    
+    /* ELEMENTOS DE INTERFACE NO MODO ESCURO */
+    --border: 0 0% 25%; /* Cinza escuro para bordas */
+    --input: 0 0% 15%; /* Cinza escuro para inputs */
+    --ring: 217 91% 65%; /* Azul para focus rings */
+    
+    /* CORES ESPECIAIS DO TRACKDOC NO MODO ESCURO */
+    --trackdoc-blue: 217 91% 55%; /* Azul principal ajustado */
+    --trackdoc-blue-light: 217 91% 15%; /* Azul escuro para acentos */
+    --trackdoc-blue-dark: 217 91% 35%; /* Azul médio */
+    --trackdoc-black: 0 0% 100%; /* Branco (inverso do logo) */
+    --trackdoc-gray: 0 0% 65%; /* Cinza mdio */
+    --trackdoc-gray-light: 0 0% 15%; /* Cinza escuro */
   }
 }
 
@@ -87,4 +110,185 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* REACT FLOW STYLES - NOVO DESIGN AZUL E PRETO */
+.react-flow__node {
+  font-family: inherit;
+}
+
+.react-flow__node-default {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  color: hsl(var(--card-foreground));
+}
+
+.react-flow__node-default.selected {
+  border-color: hsl(var(--trackdoc-blue));
+  box-shadow: 0 0 0 2px hsla(var(--trackdoc-blue) / 0.2);
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: hsl(var(--trackdoc-blue));
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+/* GRADIENTS PERSONALIZADOS DO TRACKDOC */
+.gradient-trackdoc-primary {
+  background: linear-gradient(135deg, hsl(var(--trackdoc-blue)) 0%, hsl(var(--trackdoc-blue-dark)) 100%);
+}
+
+.gradient-trackdoc-secondary {
+  background: linear-gradient(135deg, hsl(var(--trackdoc-black)) 0%, hsl(var(--secondary)) 100%);
+}
+
+.gradient-trackdoc-accent {
+  background: linear-gradient(135deg, hsl(var(--trackdoc-blue-light)) 0%, hsl(var(--trackdoc-blue)) 100%);
+}
+
+/* SHADOWS PERSONALIZADAS */
+.shadow-trackdoc {
+  box-shadow: 0 4px 6px -1px hsla(var(--trackdoc-blue) / 0.1), 0 2px 4px -1px hsla(var(--trackdoc-blue) / 0.06);
+}
+
+.shadow-trackdoc-lg {
+  box-shadow: 0 10px 15px -3px hsla(var(--trackdoc-blue) / 0.1), 0 4px 6px -2px hsla(var(--trackdoc-blue) / 0.05);
+}
+
+/* ANIMAES PERSONALIZADAS */
+@keyframes trackdoc-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-trackdoc-pulse {
+  animation: trackdoc-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* REMOVER EFEITOS ESCUROS DOS BOTÕES */
+button:active,
+button:focus,
+.btn:active,
+.btn:focus {
+  background-color: inherit !important;
+  color: inherit !important;
+  border-color: inherit !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* SOBRESCREVER ESTADOS ESCUROS DO TAILWIND */
+button[data-state="active"],
+button[data-state="pressed"],
+button:active:not(:disabled),
+button:focus:not(:disabled) {
+  background-color: inherit !important;
+  color: inherit !important;
+  border-color: inherit !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.react-flow__handle-connecting {
+  background: #10b981;
+}
+
+.react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #1d4ed8;
+  stroke-width: 3;
+}
+
+.react-flow__controls {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  background: white;
+  border: none;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.react-flow__controls-button:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.react-flow__minimap {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.react-flow__attribution {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 10px;
+  color: #6b7280;
+}
+
+/* Custom node styles */
+.department-node {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+}
+
+/* Estilo Apple para cards do dashboard */
+.apple-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.apple-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.apple-card-icon {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.apple-card:hover .apple-card-icon {
+  transform: scale(1.1);
+}
+
+.user-node {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.approval-node {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.notification-node {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+}
+
+.condition-node {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
 }

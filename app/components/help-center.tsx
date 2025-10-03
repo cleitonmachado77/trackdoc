@@ -17,12 +17,14 @@ export default function HelpCenter() {
   const [ticketMessage, setTicketMessage] = useState("")
 
   const categories = [
-    { id: "all", label: "Todos", count: 45 },
-    { id: "getting-started", label: "Primeiros Passos", count: 12 },
-    { id: "documents", label: "Documentos", count: 15 },
-    { id: "approvals", label: "Aprovações", count: 8 },
-    { id: "admin", label: "Administração", count: 6 },
-    { id: "ai", label: "IA e Automação", count: 4 },
+    { id: "all", label: "Todos", count: 52 },
+    { id: "getting-started", label: "Primeiros Passos", count: 8 },
+    { id: "documents", label: "Documentos", count: 12 },
+    { id: "workflows", label: "Workflows", count: 10 },
+    { id: "signatures", label: "Assinaturas", count: 8 },
+    { id: "approvals", label: "Aprovações", count: 6 },
+    { id: "admin", label: "Administração", count: 5 },
+    { id: "notifications", label: "Notificações", count: 3 },
   ]
 
   const faqItems = [
@@ -30,87 +32,159 @@ export default function HelpCenter() {
       category: "getting-started",
       question: "Como faço para começar a usar o TrackDoc?",
       answer:
-        "Para começar, faça login com suas credenciais e acesse o Dashboard. Lá você encontrará um tour guiado que o ajudará a conhecer as principais funcionalidades da plataforma.",
+        "Para começar, faça login com suas credenciais e acesse o Dashboard. Lá você encontrará um tour guiado que o ajudará a conhecer as principais funcionalidades da plataforma. Use as 'Ações Rápidas' no sidebar para acessar funcionalidades principais.",
     },
     {
       category: "documents",
       question: "Como posso fazer upload de documentos?",
       answer:
-        "Vá para a seção 'Documentos' e clique no botão 'Novo Documento'. Você pode fazer upload de arquivos PDF, DOC, DOCX e outros formatos suportados. O sistema automaticamente extrairá metadados e aplicará tags relevantes.",
+        "Vá para a seção 'Documentos' e clique no botão 'Novo Documento' nas Ações Rápidas. Você pode fazer upload de arquivos PDF, DOC, DOCX e outros formatos suportados. O sistema automaticamente extrairá metadados e aplicará tags relevantes.",
+    },
+    {
+      category: "workflows",
+      question: "Como funciona o sistema de workflows?",
+      answer:
+        "O TrackDoc possui um sistema robusto de workflows que permite criar fluxos de aprovação personalizados. Você pode configurar etapas sequenciais, definir aprovadores por departamento e criar processos de assinatura múltipla. Acesse 'Gerenciamento de Processos' para criar e gerenciar workflows.",
+    },
+    {
+      category: "signatures",
+      question: "Como funciona a assinatura digital?",
+      answer:
+        "O sistema oferece assinatura digital individual e múltipla. Para assinatura individual, acesse 'Assinatura Digital' nas Ações Rápidas. Para assinatura múltipla, o sistema detecta automaticamente quando um departamento possui múltiplos usuários e cria um processo de aprovação coletiva.",
+    },
+    {
+      category: "signatures",
+      question: "O que é assinatura múltipla?",
+      answer:
+        "A assinatura múltipla é um processo onde todos os usuários de um departamento devem aprovar um documento antes que ele seja considerado assinado. O sistema detecta automaticamente departamentos com múltiplos usuários e cria solicitações de aprovação individuais para cada membro.",
     },
     {
       category: "approvals",
       question: "Como funciona o processo de aprovação?",
       answer:
-        "Documentos podem ser enviados para aprovação através do workflow configurado. Os aprovadores receberão notificações e poderão revisar, aprovar ou rejeitar documentos diretamente na plataforma.",
+        "Documentos podem ser enviados para aprovação através do workflow configurado. Os aprovadores receberão notificações em tempo real e poderão revisar, aprovar ou rejeitar documentos diretamente na plataforma. Use 'Revisar Aprovações' nas Ações Rápidas para acessar pendências.",
     },
     {
-      category: "ai",
-      question: "Como usar a IA para criar documentos?",
+      category: "workflows",
+      question: "Como criar um novo workflow?",
       answer:
-        "Acesse a seção 'Criar com IA' no menu lateral. Escolha o tipo de documento, defina os parâmetros desejados e a IA gerará um documento profissional baseado nas suas especificações.",
+        "Acesse 'Gerenciamento de Processos' e clique em 'Criar Processo'. Configure as etapas do workflow, defina os departamentos responsáveis e configure as regras de aprovação. O sistema suporta workflows complexos com múltiplas etapas e aprovações condicionais.",
     },
     {
       category: "admin",
       question: "Como gerenciar usuários e permissões?",
       answer:
-        "Na seção 'Administração', você pode adicionar novos usuários, definir roles e permissões, gerenciar departamentos e configurar workflows de aprovação.",
+        "Na seção 'Administração', você pode adicionar novos usuários, definir roles e permissões, gerenciar departamentos e configurar workflows de aprovação. O sistema possui controle granular de acesso baseado em departamentos e funções.",
     },
     {
       category: "documents",
       question: "Posso colaborar em documentos com outros usuários?",
       answer:
-        "Sim! Você pode compartilhar documentos com outros usuários, definir permissões de visualização ou edição, e acompanhar todas as alterações através do histórico de versões.",
+        "Sim! Você pode compartilhar documentos com outros usuários, definir permissões de visualização ou edição, e acompanhar todas as alterações através do histórico de versões. O sistema mantém um log completo de todas as ações realizadas.",
+    },
+    {
+      category: "notifications",
+      question: "Como funciona o sistema de notificações?",
+      answer:
+        "O sistema possui notificações em tempo real para aprovações pendentes, assinaturas solicitadas e atualizações de workflow. As notificações aparecem no sino de notificações no topo da interface e também são enviadas por email quando configurado.",
+    },
+    {
+      category: "signatures",
+      question: "Como verificar a autenticidade de uma assinatura?",
+      answer:
+        "Cada assinatura digital possui um código de verificação único e um hash criptográfico. Use a funcionalidade 'Verificar Assinatura' para validar a autenticidade de documentos assinados. O sistema também mantém um carimbo de tempo digital para cada assinatura.",
+    },
+    {
+      category: "workflows",
+      question: "Posso reverter uma etapa do workflow?",
+      answer:
+        "Sim, o sistema permite reverter etapas do workflow quando necessário. Acesse os detalhes do processo e use a opção 'Reverter Etapa' para voltar a uma etapa anterior. Esta funcionalidade é útil para correções e ajustes no processo.",
     },
   ]
 
   const tutorials = [
     {
       title: "Introdução ao TrackDoc",
-      description: "Aprenda os conceitos básicos da plataforma",
+      description: "Aprenda os conceitos básicos da plataforma e navegação",
       duration: "5 min",
       type: "video",
       difficulty: "Iniciante",
     },
     {
       title: "Gerenciamento de Documentos",
-      description: "Como organizar e categorizar seus documentos",
+      description: "Como fazer upload, organizar e categorizar documentos",
       duration: "8 min",
       type: "video",
       difficulty: "Iniciante",
     },
     {
-      title: "Configurando Workflows de Aprovação",
-      description: "Guia completo para configurar processos de aprovação",
+      title: "Criando Workflows de Aprovação",
+      description: "Guia completo para configurar processos de aprovação personalizados",
       duration: "12 min",
       type: "video",
       difficulty: "Intermediário",
     },
     {
-      title: "Usando IA para Criação de Documentos",
-      description: "Maximize sua produtividade com ferramentas de IA",
+      title: "Assinatura Digital Individual",
+      description: "Como assinar documentos digitalmente com segurança",
+      duration: "6 min",
+      type: "video",
+      difficulty: "Iniciante",
+    },
+    {
+      title: "Assinatura Múltipla por Departamento",
+      description: "Configurando e executando assinaturas coletivas",
       duration: "10 min",
       type: "video",
       difficulty: "Intermediário",
+    },
+    {
+      title: "Sistema de Notificações",
+      description: "Entendendo e gerenciando notificações em tempo real",
+      duration: "4 min",
+      type: "video",
+      difficulty: "Iniciante",
+    },
+    {
+      title: "Verificação de Assinaturas",
+      description: "Como verificar a autenticidade de documentos assinados",
+      duration: "5 min",
+      type: "video",
+      difficulty: "Iniciante",
+    },
+    {
+      title: "Administração de Usuários",
+      description: "Gerenciando usuários, departamentos e permissões",
+      duration: "8 min",
+      type: "video",
+      difficulty: "Avançado",
     },
   ]
 
   const supportTickets = [
     {
       id: "#TK-001",
-      subject: "Problema com upload de arquivo",
+      subject: "Configuração de assinatura múltipla",
       status: "Em andamento",
       priority: "Alta",
       created: "2024-01-15",
-      agent: "Maria Santos",
+      agent: "Equipe Técnica",
     },
     {
       id: "#TK-002",
-      subject: "Dúvida sobre permissões",
+      subject: "Dúvida sobre workflows de aprovação",
       status: "Resolvido",
       priority: "Média",
       created: "2024-01-14",
-      agent: "João Costa",
+      agent: "Suporte TrackDoc",
+    },
+    {
+      id: "#TK-003",
+      subject: "Problema com notificações",
+      status: "Resolvido",
+      priority: "Baixa",
+      created: "2024-01-13",
+      agent: "Suporte TrackDoc",
     },
   ]
 
@@ -187,6 +261,42 @@ export default function HelpCenter() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Funcionalidades Principais */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Funcionalidades Principais do TrackDoc</CardTitle>
+          <CardDescription>Conheça as principais funcionalidades disponíveis na plataforma</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-blue-600 mb-2">📄 Gerenciamento de Documentos</h4>
+              <p className="text-sm text-gray-600">Upload, organização e categorização de documentos com metadados automáticos.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-green-600 mb-2">🔄 Workflows de Aprovação</h4>
+              <p className="text-sm text-gray-600">Criação de fluxos personalizados com etapas sequenciais e aprovações condicionais.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-purple-600 mb-2">✍️ Assinatura Digital</h4>
+              <p className="text-sm text-gray-600">Assinatura individual e múltipla com verificação criptográfica e carimbo de tempo.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-orange-600 mb-2">👥 Assinatura Múltipla</h4>
+              <p className="text-sm text-gray-600">Processo de aprovação coletiva por departamento com detecção automática.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-red-600 mb-2">🔔 Notificações em Tempo Real</h4>
+              <p className="text-sm text-gray-600">Sistema de notificações para aprovações, assinaturas e atualizações de workflow.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-indigo-600 mb-2">🔐 Verificação de Assinaturas</h4>
+              <p className="text-sm text-gray-600">Validação de autenticidade com códigos de verificação únicos e hash criptográfico.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Main Content */}
       <Tabs defaultValue="faq" className="space-y-6">
@@ -352,8 +462,8 @@ export default function HelpCenter() {
                   <Phone className="h-6 w-6 text-blue-600" />
                 </div>
                 <h3 className="font-semibold mb-2">Telefone</h3>
-                <p className="text-gray-600 text-sm mb-3">Suporte por telefone das 8h às 18h</p>
-                <p className="font-medium">+55 (11) 9999-9999</p>
+                <p className="text-gray-600 text-sm mb-3">Suporte técnico das 8h às 18h</p>
+                <p className="font-medium">+55 (11) 4002-8922</p>
               </CardContent>
             </Card>
 
@@ -364,7 +474,7 @@ export default function HelpCenter() {
                 </div>
                 <h3 className="font-semibold mb-2">Email</h3>
                 <p className="text-gray-600 text-sm mb-3">Resposta em até 24 horas</p>
-                <p className="font-medium">suporte@trackdoc.com</p>
+                <p className="font-medium">suporte@trackdoc.com.br</p>
               </CardContent>
             </Card>
 

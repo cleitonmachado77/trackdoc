@@ -1,13 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
@@ -19,20 +17,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useRouter } from "next/navigation"
+// import { useRouter } from "next/navigation" // Temporariamente removido
 import { createDocumentType, updateDocumentType, deleteDocumentType } from "@/app/admin/actions"
+import DocumentTypeForm from "./document-type-form"
 import {
   Tag,
-  CheckCircle,
-  Clock,
   FileText,
   Search,
   Plus,
   MoreHorizontal,
   Edit,
   Trash2,
-  SwitchCameraIcon as Switch,
-  TextIcon as Textarea,
   LayoutGrid,
   List,
 } from "lucide-react"
@@ -41,9 +36,8 @@ import {
 type Status = "active" | "inactive"
 
 interface DocumentType {
-  id: number
+  id: string
   name: string
-  description: string | null
   prefix: string
   color: string
   requiredFields: string[]
@@ -55,75 +49,70 @@ interface DocumentType {
 }
 
 /* ---------- CONSTANTES ---------- */
+// 🎨 Opções de cores baseadas no novo design
 const colorOptions = [
-  { value: "blue", label: "Azul", class: "bg-blue-100 text-blue-800" },
-  { value: "green", label: "Verde", class: "bg-green-100 text-green-800" },
-  { value: "yellow", label: "Amarelo", class: "bg-yellow-100 text-yellow-800" },
-  { value: "purple", label: "Roxo", class: "bg-purple-100 text-purple-800" },
-  { value: "red", label: "Vermelho", class: "bg-red-100 text-red-800" },
-  { value: "gray", label: "Cinza", class: "bg-gray-100 text-gray-800" },
-  { value: "orange", label: "Laranja", class: "bg-orange-100 text-orange-800" },
-  { value: "teal", label: "Verde-azulado", class: "bg-teal-100 text-teal-800" },
-  { value: "cyan", label: "Ciano", class: "bg-cyan-100 text-cyan-800" },
-  { value: "lime", label: "Verde-limão", class: "bg-lime-100 text-lime-800" },
+  { value: "trackdoc-blue", label: "Azul Principal", class: "bg-trackdoc-blue/20 text-trackdoc-blue" },
+  { value: "trackdoc-blue-dark", label: "Azul Escuro", class: "bg-trackdoc-blue-dark/20 text-trackdoc-blue-dark" },
+  { value: "trackdoc-blue-light", label: "Azul Claro", class: "bg-trackdoc-blue-light/20 text-trackdoc-blue" },
+  { value: "trackdoc-black", label: "Preto", class: "bg-trackdoc-black/20 text-trackdoc-black" },
+  { value: "trackdoc-gray", label: "Cinza", class: "bg-trackdoc-gray/20 text-trackdoc-gray" },
+  { value: "trackdoc-gray-light", label: "Cinza Claro", class: "bg-trackdoc-gray-light/20 text-trackdoc-gray" },
+  { value: "success", label: "Sucesso", class: "bg-success/20 text-success" },
+  { value: "warning", label: "Aviso", class: "bg-warning/20 text-warning" },
+  { value: "destructive", label: "Erro", class: "bg-destructive/20 text-destructive" },
 ]
 
 const statusColors: Record<Status, string> = {
-  active: "bg-green-100 text-green-800",
-  inactive: "bg-red-100 text-red-800",
+  active: "bg-success/20 text-success",
+  inactive: "bg-destructive/20 text-destructive",
 }
 
-const availableFields = [
-  { key: "title", label: "Título" },
-  { key: "author", label: "Autor" },
-  { key: "version", label: "Versão" },
-  { key: "sector", label: "Setor" },
-  { key: "category", label: "Categoria" },
-  { key: "description", label: "Descrição" },
-  { key: "tags", label: "Tags" },
-  { key: "date", label: "Data" },
-  { key: "period", label: "Período" },
-  { key: "participants", label: "Participantes" },
-  { key: "decisions", label: "Decisões" },
-  { key: "steps", label: "Etapas" },
-]
+
 
 /* ---------- PROPS ---------- */
 interface DocumentTypeManagementProps {
   initialDocumentTypes: DocumentType[]
+  totalDocuments: number
 }
 
 /* ---------- COMPONENTE PRINCIPAL ---------- */
-export default function DocumentTypeManagement({ initialDocumentTypes = [] }: DocumentTypeManagementProps) {
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
+export default function DocumentTypeManagement({ initialDocumentTypes = [], totalDocuments = 0 }: DocumentTypeManagementProps) {
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<DocumentType | null>(null)
   const [showTypeModal, setShowTypeModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [typeToDelete, setTypeToDelete] = useState<DocumentType | null>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const router = useRouter()
+  // const router = useRouter() // Temporariamente removido
 
-  // Atualiza o estado local quando initialDocumentTypes muda (após revalidação do servidor)
+  // Usar estado local para gerenciar os tipos de documento
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
+  
+  // Atualizar o estado local quando as props mudarem
   useEffect(() => {
-    // Only update if the arrays are actually different
-    if (JSON.stringify(documentTypes) !== JSON.stringify(initialDocumentTypes)) {
-      setDocumentTypes(initialDocumentTypes)
-    }
-  }, [initialDocumentTypes, documentTypes])
+    setDocumentTypes(initialDocumentTypes)
+  }, [initialDocumentTypes])
 
   /* --------- DERIVADOS --------- */
   const filteredTypes = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
 
   const stats = {
     total: documentTypes.length,
-    active: documentTypes.filter((t) => t.status === "active").length,
-    inactive: documentTypes.filter((t) => t.status === "inactive").length,
-    totalDocuments: documentTypes.reduce((sum, t) => sum + (t.documentsCount ?? 0), 0),
+    totalDocuments: totalDocuments,
   }
+
+
 
   /* --------- HANDLERS --------- */
   const handleSaveDocumentType = async (typeData: Partial<DocumentType>) => {
+    // Se não há dados válidos, apenas fechar o modal (cancelamento)
+    if (!typeData.name || Object.keys(typeData).length === 0) {
+      setShowTypeModal(false)
+      setSelectedType(null)
+      return
+    }
+
     let result
     if (typeData.id) {
       result = await updateDocumentType(typeData.id, typeData)
@@ -132,9 +121,44 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
     }
 
     if (result.success) {
-      router.refresh() // Revalida o cache e busca os dados atualizados do servidor
       setShowTypeModal(false)
       setSelectedType(null)
+      
+      // Atualizar os dados localmente em vez de recarregar a página
+      if (result.data) {
+        // Se for uma criação, adicionar à lista
+        if (!typeData.id) {
+          const newType: DocumentType = {
+            id: result.data.id,
+            name: result.data.name,
+            prefix: result.data.prefix,
+            color: result.data.color,
+            requiredFields: result.data.requiredFields,
+            approvalRequired: result.data.approvalRequired,
+            retentionPeriod: result.data.retentionPeriod,
+            status: result.data.status,
+            template: result.data.template,
+            documentsCount: 0
+          }
+          // Atualizar a lista local
+          setDocumentTypes(prevTypes => [...prevTypes, newType])
+          // Limpar busca para mostrar o novo tipo
+          setSearchTerm('')
+        } else {
+          // Se for uma edição, atualizar na lista
+          setDocumentTypes(prevTypes => 
+            prevTypes.map(type => 
+              type.id === typeData.id ? { ...type, ...typeData } : type
+            )
+          )
+          // Limpar busca para mostrar as mudanças
+          setSearchTerm('')
+        }
+      }
+      
+      // Mostrar feedback de sucesso
+      console.log("Tipo de documento salvo com sucesso!")
+      // TODO: Implementar toast de sucesso aqui
     } else {
       console.error("Falha ao salvar tipo de documento:", result.error)
       // TODO: Adicionar feedback de erro para o usuário
@@ -146,9 +170,17 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
 
     const result = await deleteDocumentType(typeToDelete.id)
     if (result.success) {
-      router.refresh() // Revalida o cache e busca os dados atualizados do servidor
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
+      
+      // Atualizar a lista local em vez de recarregar a página
+      setDocumentTypes(prevTypes => prevTypes.filter(type => type.id !== typeToDelete.id))
+      // Limpar busca para mostrar as mudanças
+      setSearchTerm('')
+      
+      // Mostrar feedback de sucesso
+      console.log("Tipo de documento deletado com sucesso!")
+      // TODO: Implementar toast de sucesso aqui
     } else {
       console.error("Falha ao deletar tipo de documento:", result.error)
       // TODO: Adicionar feedback de erro para o usuário
@@ -159,7 +191,7 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tipos de Documento</CardTitle>
@@ -167,26 +199,6 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tipos Ativos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tipos Inativos</CardTitle>
-            <Clock className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
           </CardContent>
         </Card>
 
@@ -242,12 +254,15 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
                     Novo Tipo
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>{selectedType ? "Editar Tipo de Documento" : "Novo Tipo de Documento"}</DialogTitle>
-                  </DialogHeader>
-                  <DocumentTypeForm documentType={selectedType} onSave={handleSaveDocumentType} />
-                </DialogContent>
+                                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                   <DialogHeader>
+                     <DialogTitle>{selectedType ? "Editar Tipo de Documento" : "Novo Tipo de Documento"}</DialogTitle>
+                     <DialogDescription>
+                       {selectedType ? "Edite as informações do tipo de documento." : "Crie um novo tipo de documento para organizar seus documentos."}
+                     </DialogDescription>
+                   </DialogHeader>
+                   <DocumentTypeForm documentType={selectedType} onSave={handleSaveDocumentType} />
+                 </DialogContent>
               </Dialog>
             </div>
           </div>
@@ -310,23 +325,10 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">{type.description}</p>
+                             <CardContent>
+                 <div className="space-y-4">
 
-                  <div>
-                    <p className="text-sm font-medium mb-2">Campos Obrigatórios:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {type.requiredFields?.map((fieldKey) => {
-                        const field = availableFields.find((f) => f.key === fieldKey)
-                        return (
-                          <Badge key={fieldKey} variant="outline" className="text-xs">
-                            {field ? field.label : fieldKey}
-                          </Badge>
-                        )
-                      })}
-                    </div>
-                  </div>
+
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -373,15 +375,14 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
                             {type.status === "active" ? "Ativo" : "Inativo"}
                           </Badge>
                         </div>
-                        <div className="flex items-center space-x-6 text-sm text-gray-500 mt-1">
-                          <span>Prefixo: {type.prefix}</span>
-                          <span>{type.documentsCount} documentos</span>
-                          <span>Retenção: {type.retentionPeriod} meses</span>
-                          <span className={type.approvalRequired ? "text-green-600" : "text-gray-500"}>
-                            {type.approvalRequired ? "Aprovação obrigatória" : "Sem aprovação"}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">{type.description}</p>
+                                                 <div className="flex items-center space-x-6 text-sm text-gray-500 mt-1">
+                           <span>Prefixo: {type.prefix}</span>
+                           <span>{type.documentsCount} documentos</span>
+                           <span>Retenção: {type.retentionPeriod} meses</span>
+                           <span className={type.approvalRequired ? "text-green-600" : "text-gray-500"}>
+                             {type.approvalRequired ? "Aprovação obrigatória" : "Sem aprovação"}
+                           </span>
+                         </div>
                       </div>
                     </div>
                     <DropdownMenu>
@@ -441,142 +442,4 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [] }: Do
   )
 }
 
-/* ---------- COMPONENTE DE FORMULÁRIO ---------- */
-interface DocumentTypeFormProps {
-  documentType: DocumentType | null
-  onSave: (data: Partial<DocumentType>) => void
-}
 
-function DocumentTypeForm({ documentType, onSave }: DocumentTypeFormProps) {
-  const [formData, setFormData] = useState<Partial<DocumentType>>({
-    name: documentType?.name || "",
-    description: documentType?.description || "",
-    prefix: documentType?.prefix || "",
-    color: documentType?.color || "blue",
-    requiredFields: documentType?.requiredFields || ["title", "author"],
-    approvalRequired: documentType?.approvalRequired || false,
-    retentionPeriod: documentType?.retentionPeriod || 24,
-    status: documentType?.status || "active",
-    template: documentType?.template || null,
-    ...(documentType && { id: documentType.id }), // Adiciona o ID se for edição
-  })
-
-  const toggleRequiredField = (fieldKey: string) => {
-    setFormData((prev) => {
-      const currentFields = prev.requiredFields || []
-      return {
-        ...prev,
-        requiredFields: currentFields.includes(fieldKey)
-          ? currentFields.filter((f) => f !== fieldKey)
-          : [...currentFields, fieldKey],
-      }
-    })
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nome do Tipo</Label>
-          <Input
-            id="name"
-            value={formData.name || ""}
-            onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Ex: Política"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="prefix">Prefixo</Label>
-          <Input
-            id="prefix"
-            value={formData.prefix || ""}
-            onChange={(e) => setFormData((prev) => ({ ...prev, prefix: e.target.value.toUpperCase() }))}
-            placeholder="Ex: POL"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Descrição</Label>
-        <Textarea
-          id="description"
-          value={formData.description || ""}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder="Descreva o propósito deste tipo de documento"
-          rows={3}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="color">Cor</Label>
-          <Select
-            value={formData.color || "blue"}
-            onValueChange={(value) => setFormData((prev) => ({ ...prev, color: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {colorOptions.map((color) => (
-                <SelectItem key={color.value} value={color.value}>
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-4 h-4 rounded ${color.class}`}></div>
-                    <span>{color.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="retention">Período de Retenção (meses)</Label>
-          <Input
-            id="retention"
-            type="number"
-            value={formData.retentionPeriod || 0}
-            onChange={(e) => setFormData((prev) => ({ ...prev, retentionPeriod: Number.parseInt(e.target.value) }))}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <Label>Campos Obrigatórios</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {availableFields.map((field) => (
-            <div key={field.key} className="flex items-center space-x-2">
-              <Switch
-                checked={formData.requiredFields?.includes(field.key) || false}
-                onCheckedChange={() => toggleRequiredField(field.key)}
-              />
-              <Label className="text-sm">{field.label}</Label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          checked={formData.approvalRequired || false}
-          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, approvalRequired: checked }))}
-        />
-        <Label>Aprovação obrigatória</Label>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          checked={formData.status === "active"}
-          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))}
-        />
-        <Label>Tipo ativo</Label>
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline" onClick={() => onSave(formData)}>
-          Cancelar
-        </Button>
-        <Button onClick={() => onSave(formData)}>Salvar Tipo</Button>
-      </div>
-    </div>
-  )
-}

@@ -27,7 +27,8 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createBrowserClient } from "@supabase/ssr"
+import { useDocumentTypes } from "@/hooks/use-document-types"
 
 interface DocumentModalProps {
   open: boolean
@@ -91,7 +92,10 @@ const fileTypes = [
 ]
 
 export default function DocumentModal({ open, onOpenChange, document, mode = "create", onSave }: DocumentModalProps) {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   const [formData, setFormData] = useState({
     number: "",
@@ -117,9 +121,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileWasRemoved, setFileWasRemoved] = useState(false)
   const [availableSectors, setAvailableSectors] = useState<{ name: string; shortName: string }[]>([])
-  const [availableDocumentTypes, setAvailableDocumentTypes] = useState<
-    { id: number; name: string; prefix: string; status: string }[]
-  >([])
+  const { documentTypes: availableDocumentTypes, loading: documentTypesLoading } = useDocumentTypes()
   const [availableCategories, setAvailableCategories] = useState<
     { id: number; name: string; description: string; color: string; status: string }[]
   >([])
@@ -147,16 +149,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
           )
         }
 
-        // Fetch Document Types
-        const { data: documentTypesData, error: documentTypesError } = await supabase
-          .from("document_types")
-          .select("id, name, prefix, status")
-          .eq("status", "active")
-        if (documentTypesError) {
-          console.error("Erro ao buscar tipos de documento:", documentTypesError)
-        } else {
-          setAvailableDocumentTypes(documentTypesData)
-        }
+
 
         // Fetch Categories
         const { data: categoriesData, error: categoriesError } = await supabase
@@ -224,7 +217,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
 
   useEffect(() => {
     if ((isCreate || (isEdit && formData.status === "draft")) && formData.type && availableDocumentTypes.length > 0) {
-      const mockExistingDocuments = []
+      const mockExistingDocuments: any[] = []
 
       const newNumber = getNextDocumentNumber(formData.type, availableDocumentTypes, mockExistingDocuments)
       setFormData((prev) => ({ ...prev, number: newNumber }))

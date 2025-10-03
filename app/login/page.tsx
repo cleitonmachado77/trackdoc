@@ -11,9 +11,12 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/contexts/auth-context"
+import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { signIn, resetPassword, user } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -58,29 +61,22 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Simular chamada de API
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const { error } = await signIn(formData.email, formData.password)
 
-      // Verificar credenciais (simulado)
-      if (formData.email === "admin@trackdoc.com" && formData.password === "123456") {
-        setSuccess("Login realizado com sucesso!")
-
-        // Salvar dados de autenticação (simulado)
-        localStorage.setItem("isAuthenticated", "true")
-        localStorage.setItem("userEmail", formData.email)
-        localStorage.setItem("userName", "João Silva")
-        localStorage.setItem("userRole", "Administrador")
-
-        if (formData.rememberMe) {
-          localStorage.setItem("rememberMe", "true")
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          setError("Email ou senha incorretos")
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Email não confirmado. Verifique sua caixa de entrada e clique no link de confirmação.")
+        } else {
+          setError(error.message)
         }
-
-        // Redirecionar para o dashboard
-        setTimeout(() => {
-          router.push("/")
-        }, 1000)
       } else {
-        setError("Email ou senha incorretos")
+        setSuccess("Login realizado com sucesso!")
+        
+        // Redirecionar diretamente para o dashboard após login bem-sucedido
+        console.log('Login bem-sucedido, redirecionando para dashboard...')
+        router.push("/")
       }
     } catch (err) {
       setError("Erro interno do servidor. Tente novamente.")
@@ -89,28 +85,49 @@ export default function LoginPage() {
     }
   }
 
-  const handleForgotPassword = () => {
-    // Implementar lógica de recuperação de senha
-    alert("Funcionalidade de recuperação de senha será implementada em breve.")
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError("Digite seu email para recuperar a senha")
+      return
+    }
+
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const { error } = await resetPassword(formData.email)
+      
+      if (error) {
+        setError(error.message)
+      } else {
+        setSuccess("Email de recuperação enviado! Verifique sua caixa de entrada.")
+      }
+    } catch (err) {
+      setError("Erro ao enviar email de recuperação")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-50 to-blue-300 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo e Header */}
+        {/* 🎨 Logo e Header - Novo Design */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
-            <FileText className="h-8 w-8 text-white" />
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/logo-vertical-preto.png" 
+              alt="TrackDoc Logo" 
+              className="h-28 w-auto object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">TrackDoc</h1>
-          <p className="text-gray-600">Gestão de Documentos</p>
         </div>
 
-        {/* Card de Login */}
-        <Card className="shadow-xl border-0">
+        {/* 🎨 Card de Login - Novo Design */}
+        <Card className="shadow-xl border-0 bg-white/98 backdrop-blur-md ring-1 ring-blue-100/50">
           <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-bold text-center">Entrar na sua conta</CardTitle>
-            <CardDescription className="text-center">Digite suas credenciais para acessar o sistema</CardDescription>
+            <CardTitle className="text-2xl font-bold text-center text-trackdoc-black">Entrar na sua conta</CardTitle>
+            <CardDescription className="text-center text-trackdoc-gray">Digite suas credenciais para acessar o sistema</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -210,17 +227,14 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Credenciais de Demonstração */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm font-medium text-gray-700 mb-2">Credenciais de demonstração:</p>
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>
-                  <strong>Email:</strong> admin@trackdoc.com
-                </p>
-                <p>
-                  <strong>Senha:</strong> 123456
-                </p>
-              </div>
+            {/* Link para Registro */}
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Não tem uma conta?{" "}
+                <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+                  Crie uma conta gratuita
+                </Link>
+              </p>
             </div>
           </CardContent>
         </Card>

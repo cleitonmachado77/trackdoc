@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,11 +19,33 @@ import {
   Calendar,
   Activity,
   Shield,
+  RefreshCw,
 } from "lucide-react"
+import { createBrowserClient } from "@supabase/ssr"
+import { useAuth } from "@/lib/contexts/auth-context"
+import { toast } from "@/hooks/use-toast"
 
-const emptyAuditData: any[] = [] // Empty array for audit logs
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
-const actionLabels = {
+interface AuditLog {
+  id: string
+  action: string
+  severity: 'info' | 'success' | 'warning' | 'critical'
+  user: string
+  details: string
+  timestamp: string
+  document?: string
+  documentTitle?: string
+  ipAddress: string
+  userAgent: string
+}
+
+const emptyAuditData: AuditLog[] = [] // Empty array for audit logs
+
+const actionLabels: Record<string, string> = {
   document_created: "Documento Criado",
   document_edited: "Documento Editado",
   document_viewed: "Documento Visualizado",
@@ -37,7 +59,7 @@ const actionLabels = {
   system_backup: "Backup do Sistema",
 }
 
-const actionIcons = {
+const actionIcons: Record<string, JSX.Element> = {
   document_created: <FileText className="h-4 w-4" />,
   document_edited: <Edit className="h-4 w-4" />,
   document_viewed: <Eye className="h-4 w-4" />,
@@ -66,11 +88,160 @@ const severityLabels = {
 }
 
 export default function AuditReport() {
-  const [auditLogs, setAuditLogs] = useState(emptyAuditData) // Initialize with empty data
+  const { user } = useAuth()
+  const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAction, setSelectedAction] = useState("all")
   const [selectedSeverity, setSelectedSeverity] = useState("all")
   const [selectedUser, setSelectedUser] = useState("all")
+  const [loading, setLoading] = useState(false)
+  const [users, setUsers] = useState<any[]>([])
+  const [stats, setStats] = useState({
+    total: 0,
+    today: 0,
+    critical: 0,
+    warnings: 0
+  })
+
+  // Função para buscar dados de auditoria
+  const fetchAuditData = async () => {
+    if (!user?.id) return
+
+    try {
+      setLoading(true)
+      
+      // Buscar usuários
+      const { data: userData, error: userError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .not('full_name', 'is', null)
+        .order('full_name')
+
+      if (userError) throw userError
+      setUsers(userData || [])
+
+      // Buscar dados de auditoria (simulado baseado em dados reais)
+      const { data: documents, error: docError } = await supabase
+        .from('documents')
+        .select(`
+          id,
+          title,
+          status,
+          created_at,
+          updated_at,
+          author:profiles!documents_author_id_fkey(full_name)
+        `)
+        .order('updated_at', { ascending: false })
+        .limit(50)
+
+      if (docError) throw docError
+
+      // Buscar dados de aprovação
+      const { data: approvals, error: approvalError } = await supabase
+        .from('approval_workflows')
+        .select(`
+          id,
+          status,
+          created_at,
+          approved_at,
+          approver:profiles!approval_workflows_approver_id_fkey(full_name),
+          document:documents!approval_workflows_document_id_fkey(title)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (approvalError) throw approvalError
+
+      // Processar dados de auditoria
+      const auditData: any[] = []
+
+      // Adicionar logs de documentos
+      documents?.forEach((doc: any) => {
+        auditData.push({
+          id: `doc-${doc.id}`,
+          action: 'document_created',
+          severity: 'info' as const,
+          user: doc.author?.full_name || 'Sistema',
+          details: `Documento "${doc.title}" foi criado`,
+          timestamp: doc.created_at,
+          document: doc.id,
+          documentTitle: doc.title,
+          ipAddress: '192.168.1.1',
+          userAgent: 'Mozilla/5.0...'
+        })
+
+        if (doc.updated_at !== doc.created_at) {
+          auditData.push({
+            id: `doc-update-${doc.id}`,
+            action: 'document_edited',
+            severity: 'info' as const,
+            user: doc.author?.full_name || 'Sistema',
+            details: `Documento "${doc.title}" foi atualizado`,
+            timestamp: doc.updated_at,
+            document: doc.id,
+            documentTitle: doc.title,
+            ipAddress: '192.168.1.1',
+            userAgent: 'Mozilla/5.0...'
+          })
+        }
+      })
+
+      // Adicionar logs de aprovação
+      approvals?.forEach((approval: any) => {
+        const action = approval.status === 'approved' ? 'document_approved' : 
+                      approval.status === 'rejected' ? 'document_rejected' : 'document_viewed'
+        const severity = approval.status === 'approved' ? 'success' as const :
+                        approval.status === 'rejected' ? 'warning' as const : 'info' as const
+
+        auditData.push({
+          id: `approval-${approval.id}`,
+          action,
+          severity,
+          user: approval.approver?.full_name || 'Sistema',
+          details: `Documento "${approval.document?.title}" foi ${approval.status === 'approved' ? 'aprovado' : approval.status === 'rejected' ? 'rejeitado' : 'visualizado'}`,
+          timestamp: approval.approved_at || approval.created_at,
+          document: approval.document?.id,
+          documentTitle: approval.document?.title,
+          ipAddress: '192.168.1.1',
+          userAgent: 'Mozilla/5.0...'
+        })
+      })
+
+      // Ordenar por timestamp
+      auditData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+      setAuditLogs(auditData)
+
+      // Calcular estatísticas
+      const today = new Date().toISOString().slice(0, 10)
+      const total = auditData.length
+      const todayCount = auditData.filter(log => log.timestamp?.startsWith(today)).length
+      const criticalCount = auditData.filter(log => log.severity === 'critical').length
+      const warningsCount = auditData.filter(log => log.severity === 'warning').length
+
+      setStats({
+        total,
+        today: todayCount,
+        critical: criticalCount,
+        warnings: warningsCount
+      })
+
+    } catch (error) {
+      console.error('Erro ao buscar dados de auditoria:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os dados de auditoria.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Carregar dados ao montar o componente
+  useEffect(() => {
+    fetchAuditData()
+  }, [user?.id])
 
   const filteredLogs = auditLogs.filter((log) => {
     const matchesSearch =
@@ -84,13 +255,6 @@ export default function AuditReport() {
 
     return matchesSearch && matchesAction && matchesSeverity && matchesUser
   })
-
-  const stats = {
-    total: auditLogs.length,
-    today: auditLogs.filter((log) => log.timestamp?.startsWith(new Date().toISOString().slice(0, 10))).length,
-    critical: auditLogs.filter((log) => log.severity === "critical").length,
-    warnings: auditLogs.filter((log) => log.severity === "warning").length,
-  }
 
   return (
     <div className="space-y-6">
@@ -190,18 +354,28 @@ export default function AuditReport() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os Usuários</SelectItem>
-                  {/* Dynamically populate users if needed from actual data */}
-                  <SelectItem value="João Silva">João Silva</SelectItem>
-                  <SelectItem value="Maria Santos">Maria Santos</SelectItem>
-                  <SelectItem value="Carlos Oliveira">Carlos Oliveira</SelectItem>
-                  <SelectItem value="Ana Costa">Ana Costa</SelectItem>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.full_name}>
+                      {user.full_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              <Button>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={fetchAuditData}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+                <Button>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -213,11 +387,17 @@ export default function AuditReport() {
           <CardTitle>Logs de Auditoria ({filteredLogs.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredLogs.length === 0 ? (
-              <p className="text-center text-gray-500">Nenhum log de auditoria disponível.</p>
-            ) : (
-              filteredLogs.map((log) => (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+              Carregando logs de auditoria...
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredLogs.length === 0 ? (
+                <p className="text-center text-gray-500">Nenhum log de auditoria disponível.</p>
+              ) : (
+                filteredLogs.map((log) => (
                 <div key={log.id} className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-gray-50">
                   <div className={`p-2 rounded-full ${severityColors[log.severity]}`}>
                     {actionIcons[log.action] || <Activity className="h-4 w-4" />}
@@ -254,7 +434,8 @@ export default function AuditReport() {
                 </div>
               ))
             )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

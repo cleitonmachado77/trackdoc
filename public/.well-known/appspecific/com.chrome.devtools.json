@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "name": "TrackDoc DevTools",
+  "description": "Configuração do Chrome DevTools para TrackDoc",
+  "features": {
+    "network": true,
+    "console": true,
+    "elements": true,
+    "sources": true,
+    "performance": true,
+    "memory": true,
+    "application": true,
+    "security": true
+  },
+  "settings": {
+    "theme": "auto",
+    "language": "pt-BR"
+  }
+}

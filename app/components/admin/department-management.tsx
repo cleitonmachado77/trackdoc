@@ -1,17 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useToast } from "@/hooks/use-toast"
+import { useDepartments, type Department } from "@/hooks/use-departments"
+import { useUsers, type User } from "@/hooks/use-users"
+import { DepartmentEmployeesModal } from "./department-employees-modal"
 import {
   Plus,
   Search,
@@ -25,8 +29,9 @@ import {
   Clock,
   Grid3X3,
   List,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react"
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,159 +43,272 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 
-import { mockDepartments as initialMockDepartments } from "@/data/mock-departments"
-
-const colorOptions = [
-  { value: "#3b82f6", label: "Azul", class: "bg-blue-500" },
-  { value: "#10b981", label: "Verde", class: "bg-emerald-500" },
-  { value: "#f59e0b", label: "Amarelo", class: "bg-amber-500" },
-  { value: "#8b5cf6", label: "Roxo", class: "bg-violet-500" },
-  { value: "#ef4444", label: "Vermelho", class: "bg-red-500" },
-  { value: "#06b6d4", label: "Ciano", class: "bg-cyan-500" },
-  { value: "#84cc16", label: "Lima", class: "bg-lime-500" },
-  { value: "#f97316", label: "Laranja", class: "bg-orange-500" },
-  { value: "#ec4899", label: "Rosa", class: "bg-pink-500" },
-  { value: "#6b7280", label: "Cinza", class: "bg-gray-500" },
-]
-
-const statusColors = {
-  active: "bg-green-100 text-green-800",
-  inactive: "bg-red-100 text-red-800",
+// Definições de tipos
+interface DepartmentFormData {
+  name: string
+  description: string
+  manager_id: string
+  status: "active" | "inactive"
 }
 
+interface DepartmentStats {
+  total: number
+  active: number
+  inactive: number
+  totalEmployees: number
+  totalDocuments: number
+}
+
+type ViewMode = "grid" | "list"
+type StatusFilter = "all" | "active" | "inactive"
+
+// Constantes
+const STATUS_COLORS = {
+  active: "bg-green-100 text-green-800 border-green-200",
+  inactive: "bg-red-100 text-red-800 border-red-200",
+} as const
+
+const STATUS_LABELS = {
+  active: "Ativo",
+  inactive: "Inativo",
+} as const
+
+const DEPARTMENT_COLOR = "#3b82f6" // Azul padrão para departamentos
+
+// Componente principal
 export default function DepartmentManagement() {
-  const [departments, setDepartments] = useState(initialMockDepartments)
+  const { toast } = useToast()
+  const { 
+    departments, 
+    loading: departmentsLoading, 
+    error: departmentsError, 
+    createDepartment, 
+    updateDepartment, 
+    deleteDepartment, 
+    refetch 
+  } = useDepartments()
+  const { users, loading: usersLoading } = useUsers()
+  
+  // Estados locais
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedDepartment, setSelectedDepartment] = useState(null)
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null)
   const [showDepartmentModal, setShowDepartmentModal] = useState(false)
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [viewMode, setViewMode] = useState("grid") // "grid" ou "list"
-
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
+  const [viewMode, setViewMode] = useState<ViewMode>("grid")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [departmentToDelete, setDepartmentToDelete] = useState(null)
+  const [departmentToDelete, setDepartmentToDelete] = useState<Department | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const filteredDepartments = departments.filter((dept) => {
-    const matchesSearch =
-      dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dept.shortName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dept.manager.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || dept.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  // Departamentos filtrados (memoizado para performance)
+  const filteredDepartments = useMemo(() => {
+    return departments.filter((dept) => {
+      const matchesSearch =
+        dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dept.manager_name || "").toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === "all" || dept.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [departments, searchTerm, statusFilter])
 
-  const stats = {
+  // Estatísticas (memoizadas para performance)
+  const stats: DepartmentStats = useMemo(() => ({
     total: departments.length,
     active: departments.filter((d) => d.status === "active").length,
     inactive: departments.filter((d) => d.status === "inactive").length,
-    totalEmployees: departments.reduce((sum, d) => sum + d.employeeCount, 0),
-    totalDocuments: departments.reduce((sum, d) => sum + d.documentsCount, 0),
-  }
+    totalEmployees: departments.reduce((sum, d) => sum + (d.user_count || 0), 0),
+    totalDocuments: departments.reduce((sum, d) => sum + (d.document_count || 0), 0),
+  }), [departments])
 
-  const handleSaveDepartment = (departmentData) => {
-    if (selectedDepartment) {
-      // Editar departamento existente
-      setDepartments((deps) => deps.map((d) => (d.id === selectedDepartment.id ? { ...d, ...departmentData } : d)))
-    } else {
-      // Criar novo departamento
-      const newDepartment = {
-        ...departmentData,
-        id: Date.now(),
-        employeeCount: 0,
-        documentsCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-      }
-      setDepartments((deps) => [...deps, newDepartment])
+  // Handlers
+  const handleSaveDepartment = useCallback(async (departmentData: DepartmentFormData) => {
+    if (!departmentData.manager_id) {
+      toast({
+        title: "Gerente obrigatório",
+        description: "É necessário selecionar um gerente para o departamento.",
+        variant: "destructive",
+      })
+      return
     }
-    setShowDepartmentModal(false)
+
+    setIsSubmitting(true)
+    try {
+      if (selectedDepartment) {
+        await updateDepartment(selectedDepartment.id, {
+          name: departmentData.name,
+          description: departmentData.description,
+          manager_id: departmentData.manager_id,
+          status: departmentData.status,
+        })
+        toast({
+          title: "Departamento atualizado",
+          description: "O departamento foi atualizado com sucesso.",
+        })
+      } else {
+        await createDepartment({
+          name: departmentData.name,
+          description: departmentData.description,
+          manager_id: departmentData.manager_id,
+          status: departmentData.status,
+        })
+        toast({
+          title: "Departamento criado",
+          description: "O departamento foi criado com sucesso.",
+        })
+      }
+      
+      setShowDepartmentModal(false)
+      setSelectedDepartment(null)
+    } catch (error: unknown) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao salvar o departamento.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [selectedDepartment, updateDepartment, createDepartment, toast])
+
+  const handleDeleteDepartment = useCallback(async () => {
+    if (!departmentToDelete) return
+
+    try {
+      await deleteDepartment(departmentToDelete.id)
+      toast({
+        title: "Departamento excluído",
+        description: "O departamento foi excluído com sucesso.",
+      })
+      setShowDeleteConfirm(false)
+      setDepartmentToDelete(null)
+    } catch (error: unknown) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir o departamento.",
+        variant: "destructive",
+      })
+    }
+  }, [departmentToDelete, deleteDepartment, toast])
+
+  const handleEditDepartment = useCallback((department: Department) => {
+    setSelectedDepartment(department)
+    setShowDepartmentModal(true)
+  }, [])
+
+  const handleNewDepartment = useCallback(() => {
     setSelectedDepartment(null)
+    setShowDepartmentModal(true)
+  }, [])
+
+  const handleDeleteRequest = useCallback((department: Department) => {
+    setDepartmentToDelete(department)
+    setShowDeleteConfirm(true)
+  }, [])
+
+  // Estados de loading e erro
+  if (departmentsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <span className="ml-3 text-gray-600 font-medium">Carregando departamentos...</span>
+      </div>
+    )
   }
 
-  const handleDeleteDepartment = () => {
-    setDepartments((deps) => deps.filter((d) => d.id !== departmentToDelete.id))
-    setShowDeleteConfirm(false)
-    setDepartmentToDelete(null)
+  if (departmentsError) {
+    return (
+      <div className="text-center py-12">
+        <div className="mx-auto mb-4 p-3 w-fit rounded-full bg-red-50">
+          <AlertTriangle className="h-8 w-8 text-red-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar departamentos</h3>
+        <p className="text-red-600 mb-6">{departmentsError}</p>
+        <Button onClick={refetch} className="bg-blue-600 hover:bg-blue-700">
+          Tentar novamente
+        </Button>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card>
+      {/* Cards de Estatísticas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-gray-600">Total</CardTitle>
+            <Building2 className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">Departamentos</p>
+            <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+            <p className="text-xs text-gray-500">Departamentos</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ativos</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Ativos</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-muted-foreground">Em operação</p>
+            <div className="text-2xl font-bold text-green-700">{stats.active}</div>
+            <p className="text-xs text-gray-500">Em operação</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inativos</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Inativos</CardTitle>
             <Clock className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">Desativados</p>
+            <div className="text-2xl font-bold text-red-700">{stats.inactive}</div>
+            <p className="text-xs text-gray-500">Desativados</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Funcionários</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Funcionários</CardTitle>
             <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalEmployees}</div>
-            <p className="text-xs text-muted-foreground">Total geral</p>
+            <div className="text-2xl font-bold text-blue-700">{stats.totalEmployees}</div>
+            <p className="text-xs text-gray-500">Total geral</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Documentos</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Documentos</CardTitle>
             <FileText className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDocuments}</div>
-            <p className="text-xs text-muted-foreground">Criados</p>
+            <div className="text-2xl font-bold text-purple-700">{stats.totalDocuments}</div>
+            <p className="text-xs text-gray-500">Criados</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Actions Bar */}
+      {/* Barra de Ações */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <div className="flex gap-4 flex-1">
+          <div className="flex flex-col lg:flex-row gap-4 justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 flex-1">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Buscar departamentos..."
+                  placeholder="Buscar por nome ou gerente..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilter)}>
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Todos os Status</SelectItem>
                   <SelectItem value="active">Ativos</SelectItem>
                   <SelectItem value="inactive">Inativos</SelectItem>
                 </SelectContent>
@@ -214,231 +332,78 @@ export default function DepartmentManagement() {
                 </Button>
               </div>
             </div>
-            <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
-              <DialogTrigger asChild>
-                <Button onClick={() => setSelectedDepartment(null)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Departamento
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>{selectedDepartment ? "Editar Departamento" : "Novo Departamento"}</DialogTitle>
-                </DialogHeader>
-                <DepartmentForm
-                  department={selectedDepartment}
-                  onSave={handleSaveDepartment}
-                  onCancel={() => {
-                    setShowDepartmentModal(false)
-                    setSelectedDepartment(null)
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
+            <Button onClick={handleNewDepartment} className="w-full lg:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Departamento
+            </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Conteúdo Principal */}
       {viewMode === "list" ? (
-        /* Lista de Departamentos */
-        <Card>
-          <CardContent className="p-0">
-            {filteredDepartments.length === 0 ? (
-              <div className="text-center py-8">
-                <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">Nenhum departamento encontrado.</p>
-              </div>
-            ) : (
-              <div className="divide-y">
-                {filteredDepartments.map((department) => (
-                  <div key={department.id} className="p-6 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                          style={{ backgroundColor: department.color }}
-                        >
-                          {department.shortName.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-1">
-                            <h3 className="text-lg font-semibold">{department.name}</h3>
-                            <Badge className={statusColors[department.status]}>
-                              {department.status === "active" ? "Ativo" : "Inativo"}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">{department.description}</p>
-                          <div className="flex items-center space-x-6 text-sm text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {department.manager
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span>{department.manager}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Users className="h-4 w-4" />
-                              <span>{department.employeeCount} funcionários</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <FileText className="h-4 w-4" />
-                              <span>{department.documentsCount} documentos</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedDepartment(department)
-                              setShowDepartmentModal(true)
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => {
-                              setDepartmentToDelete(department)
-                              setShowDeleteConfirm(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <DepartmentsListView 
+          departments={filteredDepartments}
+          onEdit={handleEditDepartment}
+          onDelete={handleDeleteRequest}
+        />
       ) : (
-        /* Grid de Departamentos */
-        <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6">
-          {filteredDepartments.length === 0 ? (
-            <Card className="lg:col-span-3">
-              <CardContent className="text-center py-8">
-                <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">Nenhum departamento encontrado.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredDepartments.map((department) => (
-              <Card key={department.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                        style={{ backgroundColor: department.color }}
-                      >
-                        {department.shortName.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">{department.name}</CardTitle>
-                        <p className="text-sm text-gray-500">{department.shortName}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={statusColors[department.status]}>
-                        {department.status === "active" ? "Ativo" : "Inativo"}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedDepartment(department)
-                              setShowDepartmentModal(true)
-                            }}
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => {
-                              setDepartmentToDelete(department)
-                              setShowDeleteConfirm(true)
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600">{department.description}</p>
-                    {/* Manager Info */}
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-xs">
-                          {department.manager
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium">{department.manager}</p>
-                        <p className="text-xs text-gray-500">Gerente</p>
-                      </div>
-                    </div>
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <p className="text-lg font-bold text-blue-600">{department.employeeCount}</p>
-                        <p className="text-xs text-gray-500">Funcionários</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-green-600">{department.documentsCount}</p>
-                        <p className="text-xs text-gray-500">Documentos</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+        <DepartmentsGridView 
+          departments={filteredDepartments}
+          onEdit={handleEditDepartment}
+          onDelete={handleDeleteRequest}
+        />
       )}
 
-      {/* AlertDialog */}
+      {/* Modal de formulário */}
+      <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDepartment ? "Editar Departamento" : "Novo Departamento"}
+            </DialogTitle>
+          </DialogHeader>
+          <DepartmentForm
+            department={selectedDepartment}
+            users={users}
+            usersLoading={usersLoading}
+            onSave={handleSaveDepartment}
+            onCancel={() => {
+              setShowDepartmentModal(false)
+              setSelectedDepartment(null)
+            }}
+            isSubmitting={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação para exclusão */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza que deseja excluir este departamento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso removerá permanentemente o departamento{" "}
-              <span className="font-semibold">{departmentToDelete?.name}</span> e todos os seus dados associados.
-            </AlertDialogDescription>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Tem certeza que deseja excluir o departamento{" "}
+                <span className="font-semibold">"{departmentToDelete?.name || 'Desconhecido'}"</span>?
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Esta ação não pode ser desfeita e removerá permanentemente:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                <li>O departamento e suas configurações</li>
+                <li>Vínculos com funcionários</li>
+                <li>Histórico de associações</li>
+              </ul>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDepartment} className="bg-red-600 hover:bg-red-700">
-              Excluir
+            <AlertDialogAction 
+              onClick={handleDeleteDepartment} 
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir departamento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -447,96 +412,451 @@ export default function DepartmentManagement() {
   )
 }
 
-function DepartmentForm({ department, onSave, onCancel }) {
-  const [formData, setFormData] = useState({
-    name: department?.name || "",
-    shortName: department?.shortName || "",
-    description: department?.description || "",
-    manager: department?.manager || "",
-    color: department?.color || "#3b82f6",
-    status: department?.status || "active",
-  })
+// Interfaces para props dos componentes
+interface DepartmentsViewProps {
+  departments: Department[]
+  onEdit: (dept: Department) => void
+  onDelete: (dept: Department) => void
+}
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onSave(formData)
+// Componente para visualização em lista
+function DepartmentsListView({ departments, onEdit, onDelete }: DepartmentsViewProps) {
+  if (departments.length === 0) {
+    return <EmptyDepartmentsState />
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Nome do Departamento</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-            placeholder="Ex: Tecnologia da Informação"
-            required
-          />
+    <Card>
+      <CardContent className="p-0">
+        <div className="divide-y">
+          {departments.map((department) => (
+            <div key={department.id} className="p-6 hover:bg-gray-50 transition-colors">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-4 flex-1 min-w-0">
+                  <DepartmentAvatar name={department.name} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        {department.name}
+                      </h3>
+                      <DepartmentStatusBadge status={department.status} />
+                    </div>
+                    
+                    {department.description && (
+                      <p 
+                        className="text-sm text-gray-600 mb-3 leading-relaxed overflow-hidden"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}
+                      >
+                        {department.description}
+                      </p>
+                    )}
+                    
+                    <DepartmentInfo department={department} />
+                  </div>
+                </div>
+                
+                <DepartmentActions 
+                  department={department}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="shortName">Nome Abreviado</Label>
-          <Input
-            id="shortName"
-            value={formData.shortName}
-            onChange={(e) => setFormData((prev) => ({ ...prev, shortName: e.target.value }))}
-            placeholder="Ex: TI"
-            required
-          />
+      </CardContent>
+    </Card>
+  )
+}
+
+// Componente para visualização em grid
+function DepartmentsGridView({ departments, onEdit, onDelete }: DepartmentsViewProps) {
+  if (departments.length === 0) {
+    return <EmptyDepartmentsState />
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {departments.map((department) => (
+        <Card key={department.id} className="hover:shadow-lg transition-shadow h-full flex flex-col">
+          <CardHeader className="pb-4">
+            <div className="flex items-center space-x-3 mb-3">
+              <DepartmentAvatar name={department.name} />
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                  {department.name}
+                </CardTitle>
+                <DepartmentStatusBadge status={department.status} />
+              </div>
+            </div>
+            
+            {department.description && (
+              <p 
+                className="text-sm text-gray-600 leading-relaxed overflow-hidden"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical'
+                }}
+              >
+                {department.description}
+              </p>
+            )}
+          </CardHeader>
+          
+          <CardContent className="flex-1 flex flex-col justify-between space-y-4">
+            <DepartmentManagerInfo department={department} />
+            <DepartmentStatsGrid department={department} />
+            <DepartmentActions 
+              department={department}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              layout="card"
+            />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+// Subcomponentes reutilizáveis
+function DepartmentAvatar({ name }: { name: string }) {
+  const initials = name.substring(0, 2).toUpperCase()
+  return (
+    <div
+      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0"
+      style={{ backgroundColor: DEPARTMENT_COLOR }}
+    >
+      {initials}
+    </div>
+  )
+}
+
+function DepartmentStatusBadge({ status }: { status: "active" | "inactive" }) {
+  return (
+    <Badge className={`${STATUS_COLORS[status]} text-xs font-medium mt-1`}>
+      {STATUS_LABELS[status]}
+    </Badge>
+  )
+}
+
+function DepartmentInfo({ department }: { department: Department }) {
+  const managerName = department.manager_name
+  
+  return (
+    <div className="flex items-center space-x-6 text-sm text-gray-500">
+      {managerName && (
+        <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
+          <Avatar className="h-5 w-5">
+            <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
+              {managerName.split(" ").map((n) => n[0]).join("").substring(0, 2)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-blue-700 font-medium truncate">{managerName}</span>
+        </div>
+      )}
+      <div className="flex items-center space-x-1 text-gray-600">
+        <Users className="h-4 w-4" />
+        <span className="font-medium">{department.user_count || 0} funcionários</span>
+      </div>
+      <div className="flex items-center space-x-1 text-gray-600">
+        <FileText className="h-4 w-4" />
+        <span className="font-medium">{department.document_count || 0} documentos</span>
+      </div>
+    </div>
+  )
+}
+
+function DepartmentManagerInfo({ department }: { department: Department }) {
+  const managerName = department.manager_name
+  
+  if (!managerName) {
+    return (
+      <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+        <div>
+          <p className="text-sm font-medium text-yellow-800">Sem gerente atribuído</p>
+          <p className="text-xs text-yellow-600">Este departamento precisa de um gerente</p>
         </div>
       </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+      <Avatar className="h-9 w-9 ring-2 ring-white">
+        <AvatarFallback className="text-xs font-medium bg-blue-100 text-blue-700">
+          {managerName.split(" ").map((n) => n[0]).join("").substring(0, 2)}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-gray-900 truncate">{managerName}</p>
+        <p className="text-xs text-blue-600 font-medium">Gerente</p>
+      </div>
+    </div>
+  )
+}
+
+function DepartmentStatsGrid({ department }: { department: Department }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+        <p className="text-xl font-bold text-blue-600">{department.user_count || 0}</p>
+        <p className="text-xs text-gray-600 font-medium">Funcionários</p>
+      </div>
+      <div className="text-center p-3 bg-green-50 rounded-lg border border-green-100">
+        <p className="text-xl font-bold text-green-600">{department.document_count || 0}</p>
+        <p className="text-xs text-gray-600 font-medium">Documentos</p>
+      </div>
+    </div>
+  )
+}
+
+interface DepartmentActionsProps {
+  department: Department
+  onEdit: (dept: Department) => void
+  onDelete: (dept: Department) => void
+  layout?: "default" | "card"
+}
+
+function DepartmentActions({ 
+  department, 
+  onEdit, 
+  onDelete,
+  layout = "default"
+}: DepartmentActionsProps) {
+  const isCardLayout = layout === "card"
+  
+  return (
+    <div className={`flex items-center ${isCardLayout ? 'justify-between pt-2 border-t border-gray-100' : 'space-x-2 flex-shrink-0 ml-4'}`}>
+      <DepartmentEmployeesModal
+        departmentId={department.id}
+        departmentName={department.name}
+        trigger={
+          <Button variant="outline" size="sm" className="text-xs">
+            <Users className="h-3 w-3 mr-1" />
+            Funcionários
+          </Button>
+        }
+      />
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onEdit(department)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Editar
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-red-600 focus:text-red-600"
+            onClick={() => onDelete(department)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Excluir
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
+function EmptyDepartmentsState() {
+  return (
+    <Card>
+      <CardContent className="text-center py-12">
+        <div className="mx-auto mb-4 p-3 w-fit rounded-full bg-gray-50">
+          <Building2 className="h-8 w-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum departamento encontrado</h3>
+        <p className="text-gray-500 mb-4">
+          Não há departamentos que correspondam aos seus critérios de busca.
+        </p>
+        <p className="text-sm text-gray-400">
+          Tente ajustar os filtros ou criar um novo departamento.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Interface para props do formulário
+interface DepartmentFormProps {
+  department: Department | null
+  users: User[]
+  usersLoading: boolean
+  onSave: (data: DepartmentFormData) => void
+  onCancel: () => void
+  isSubmitting: boolean
+}
+
+// Componente de formulário separado
+function DepartmentForm({ 
+  department, 
+  users, 
+  usersLoading, 
+  onSave, 
+  onCancel, 
+  isSubmitting 
+}: DepartmentFormProps) {
+  const [formData, setFormData] = useState<DepartmentFormData>({
+    name: "",
+    description: "",
+    manager_id: "",
+    status: "active",
+  })
+
+  // Atualizar form data quando department mudar
+  useEffect(() => {
+    if (department) {
+      setFormData({
+        name: department.name || "",
+        description: department.description || "",
+        manager_id: department.manager_id || "",
+        status: department.status || "active",
+      })
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        manager_id: "",
+        status: "active",
+      })
+    }
+  }, [department])
+
+  const handleInputChange = useCallback((field: keyof DepartmentFormData) => 
+    (value: string | boolean) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: field === 'status' ? (value ? 'active' : 'inactive') : value
+      }))
+    }, []
+  )
+
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    onSave(formData)
+  }, [formData, onSave])
+
+  const isFormValid = formData.name.trim() && formData.manager_id
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-2">
+        <Label htmlFor="name">Nome do Departamento *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => handleInputChange('name')(e.target.value)}
+          placeholder="Ex: Tecnologia da Informação"
+          required
+          maxLength={100}
+        />
+        {formData.name.length > 80 && (
+          <p className="text-xs text-yellow-600">
+            {formData.name.length}/100 caracteres
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="description">Descrição</Label>
         <Textarea
           id="description"
           value={formData.description}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+          onChange={(e) => handleInputChange('description')(e.target.value)}
           placeholder="Descreva as responsabilidades e função do departamento"
           rows={3}
+          maxLength={500}
         />
+        {formData.description.length > 400 && (
+          <p className="text-xs text-yellow-600">
+            {formData.description.length}/500 caracteres
+          </p>
+        )}
       </div>
+
       <div className="space-y-2">
-        <Label htmlFor="manager">Gerente</Label>
-        <Input
-          id="manager"
-          value={formData.manager}
-          onChange={(e) => setFormData((prev) => ({ ...prev, manager: e.target.value }))}
-          placeholder="Nome do gerente"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="color">Cor do Departamento</Label>
-          <Select value={formData.color} onValueChange={(value) => setFormData((prev) => ({ ...prev, color: value }))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {colorOptions.map((color) => (
-                <SelectItem key={color.value} value={color.value}>
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-4 h-4 rounded ${color.class}`}></div>
-                    <span>{color.label}</span>
+        <Label htmlFor="manager">Gerente *</Label>
+        <Select 
+          value={formData.manager_id} 
+          onValueChange={handleInputChange('manager_id')}
+          disabled={usersLoading}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={usersLoading ? "Carregando..." : "Selecione um gerente"} />
+          </SelectTrigger>
+          <SelectContent>
+            {usersLoading ? (
+              <SelectItem value="loading" disabled>
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Carregando usuários...</span>
+                </div>
+              </SelectItem>
+            ) : users.length > 0 ? (
+              users.map((user: User) => (
+                <SelectItem key={user.id} value={user.id}>
+                  <div className="flex flex-col">
+                    <span>{user.full_name}</span>
+                    <span className="text-xs text-gray-500">{user.email}</span>
                   </div>
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={formData.status === "active"}
-            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))}
-          />
-          <Label>Departamento ativo</Label>
-        </div>
+              ))
+            ) : (
+              <SelectItem value="no-users" disabled>
+                Nenhum usuário disponível
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        
+        {!formData.manager_id && (
+          <div className="flex items-start space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-amber-800">
+              <p className="font-medium">Gerente obrigatório</p>
+              <p className="mt-1">É necessário atribuir um gerente ao departamento.</p>
+            </div>
+          </div>
+        )}
       </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={formData.status === "active"}
+          onCheckedChange={handleInputChange('status')}
+          disabled={isSubmitting}
+        />
+        <Label className="text-sm">Departamento ativo</Label>
+      </div>
+
       <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel} 
+          disabled={isSubmitting}
+        >
           Cancelar
         </Button>
-        <Button type="submit">Salvar Departamento</Button>
+        <Button 
+          type="submit" 
+          disabled={isSubmitting || !isFormValid}
+          className="min-w-[120px]"
+        >
+          {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {department ? "Atualizar" : "Criar"} Departamento
+        </Button>
       </div>
     </form>
   )

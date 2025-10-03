@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Users,
   Plus,
@@ -24,6 +25,10 @@ import {
   UserCheck,
   UserX,
   CheckCircle,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Building2,
 } from "lucide-react"
 
 import {
@@ -36,6 +41,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useAuth } from "@/lib/contexts/auth-context"
+import { createBrowserClient } from '@supabase/ssr'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+
+interface SystemUser {
+  id: string
+  full_name: string
+  email: string
+  role: 'user' | 'admin' | 'manager' | 'viewer'
+  status: 'active' | 'inactive' | 'suspended'
+  registration_type: 'individual' | 'entity_admin' | 'entity_user'
+  entity_id?: string
+  entity_role?: 'user' | 'admin' | 'manager' | 'viewer'
+  created_at: string
+  last_login?: string
+  entity_name?: string
+}
 
 // Função para gerar iniciais do nome completo
 const getInitials = (fullName: string) => {
@@ -46,25 +72,43 @@ const getInitials = (fullName: string) => {
   return (names[0][0] + names[names.length - 1][0]).toUpperCase()
 }
 
-// Dados fictícios removidos para testes em produção
-const mockUsers = []
-
 const roleColors = {
-  Administrador: "bg-red-100 text-red-800",
-  Gerente: "bg-blue-100 text-blue-800",
-  Aprovador: "bg-green-100 text-green-800",
-  Usuário: "bg-gray-100 text-gray-800",
+  admin: "bg-red-100 text-red-800",
+  manager: "bg-blue-100 text-blue-800",
+  user: "bg-green-100 text-green-800",
+  viewer: "bg-gray-100 text-gray-800",
 }
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
   inactive: "bg-red-100 text-red-800",
+  suspended: "bg-yellow-100 text-yellow-800",
+}
+
+const registrationTypeColors = {
+  individual: "bg-purple-100 text-purple-800",
+  entity_admin: "bg-orange-100 text-orange-800",
+  entity_user: "bg-blue-100 text-blue-800",
+}
+
+const roleLabels = {
+  admin: "Administrador",
+  manager: "Gerente",
+  user: "Usuário",
+  viewer: "Visualizador",
+}
+
+const registrationTypeLabels = {
+  individual: "Individual",
+  entity_admin: "Admin Entidade",
+  entity_user: "Usuário Entidade",
 }
 
 export default function UserManagement() {
-  const [users, setUsers] = useState(mockUsers)
+  const { user } = useAuth()
+  const [users, setUsers] = useState<SystemUser[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null)
   const [showUserModal, setShowUserModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -72,510 +116,498 @@ export default function UserManagement() {
   const [emailSent, setEmailSent] = useState(false)
   const [newUserEmail, setNewUserEmail] = useState("")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [userToDelete, setUserToDelete] = useState(null)
+  const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
 
-  const handleSaveUser = (userData) => {
-    if (userData.id) {
-      // Editar usuário existente
-      setUsers((prevUsers) => prevUsers.map((user) => (user.id === userData.id ? { ...user, ...userData } : user)))
-    } else {
-      // Criar novo usuário
-      const newUser = {
-        id: Date.now(), // ID temporário
-        ...userData,
-        lastLogin: new Date().toLocaleDateString("pt-BR"), // Data de login fictícia
-      }
-      setUsers((prevUsers) => [...prevUsers, newUser])
+  const fetchUsers = async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          email,
+          role,
+          status,
+          registration_type,
+          entity_id,
+          entity_role,
+          created_at,
+          last_login,
+          entities(name)
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      // Processar dados para incluir nome da entidade
+      const processedUsers = data?.map(user => ({
+        ...user,
+        entity_name: (user.entities as any)?.name || null
+      })) || []
+
+      setUsers(processedUsers)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
+    } finally {
+      setLoading(false)
     }
-    setShowUserModal(false)
-    setSelectedUser(null)
   }
 
-  const handleDeleteUser = () => {
-    setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userToDelete.id))
-    setShowDeleteConfirm(false)
-    setUserToDelete(null)
+  const handleSaveUser = async (userData: SystemUser) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: userData.full_name,
+          role: userData.role,
+          status: userData.status,
+          entity_role: userData.entity_role
+        })
+        .eq('id', userData.id)
+
+      if (error) throw error
+
+      setUsers(prev => prev.map(user => 
+        user.id === userData.id 
+          ? { ...user, ...userData }
+          : user
+      ))
+      
+      setSuccess('Usuário atualizado com sucesso!')
+      setShowUserModal(false)
+      setSelectedUser(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar usuário')
+    }
   }
 
-  const filteredUsers = users.filter(
-    (user) =>
-      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.department && user.department.toLowerCase().includes(searchTerm.toLowerCase())),
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return
+
+    try {
+      // Marcar usuário como inativo em vez de deletar
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          status: 'suspended',
+          entity_id: null,
+          registration_type: 'individual'
+        })
+        .eq('id', userToDelete.id)
+
+      if (error) throw error
+
+      setUsers(prev => prev.map(user => 
+        user.id === userToDelete.id 
+          ? { ...user, status: 'suspended', entity_id: undefined, registration_type: 'individual' }
+          : user
+      ))
+      
+      setShowDeleteConfirm(false)
+      setUserToDelete(null)
+      setSuccess('Usuário suspenso com sucesso!')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao suspender usuário')
+    }
+  }
+
+  const sendEmailToUser = async (userEmail: string, subject: string, message: string) => {
+    try {
+      setEmailSending(true)
+      
+      // Aqui você implementaria a lógica de envio de email
+      // Por enquanto, vamos simular o envio
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      
+      setEmailSent(true)
+      setShowEmailModal(false)
+      setNewUserEmail("")
+      
+      setTimeout(() => {
+        setEmailSent(false)
+      }, 3000)
+    } catch (err) {
+      setError('Erro ao enviar email')
+    } finally {
+      setEmailSending(false)
+    }
+  }
+
+  const filteredUsers = users.filter(user =>
+    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.entity_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const stats = {
     total: users.length,
-    active: users.filter((u) => u.status === "active").length,
-    inactive: users.filter((u) => u.status === "inactive").length,
-    admins: users.filter((u) => u.role === "Administrador").length,
+    active: users.filter(user => user.status === 'active').length,
+    admins: users.filter(user => user.role === 'admin').length,
+    entityUsers: users.filter(user => user.registration_type !== 'individual').length,
+    individualUsers: users.filter(user => user.registration_type === 'individual').length,
   }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  // Limpar mensagens após 5 segundos
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(""), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [success])
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(""), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [error])
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gerenciar Usuários</h1>
+          <p className="text-gray-600">Gerencie todos os usuários do sistema</p>
+        </div>
+      </div>
+
+      {/* Alertas */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-blue-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-            <UserCheck className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <UserCheck className="h-8 w-8 text-green-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Ativos</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Inativos</CardTitle>
-            <UserX className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.inactive}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Shield className="h-8 w-8 text-red-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Admins</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.admins}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
-            <Shield className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.admins}</div>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <Building2 className="h-8 w-8 text-orange-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Entidades</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.entityUsers}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center">
+              <UserX className="h-8 w-8 text-gray-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Individuais</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.individualUsers}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Actions Bar */}
+      {/* Lista de Usuários */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <div className="flex-1">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>Usuários do Sistema</CardTitle>
+            <div className="flex items-center space-x-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Buscar usuários..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-64"
                 />
               </div>
             </div>
-            <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-              <DialogTrigger asChild>
-                <Button onClick={() => setSelectedUser(null)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Usuário
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{selectedUser ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
-                </DialogHeader>
-                <UserForm user={selectedUser} onSave={handleSaveUser} />
-              </DialogContent>
-            </Dialog>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Users List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuários ({filteredUsers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredUsers.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum usuário encontrado.</p>
-              </div>
-            ) : (
-              filteredUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Nenhum usuário encontrado</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredUsers.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center space-x-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={`/placeholder.svg?height=48&width=48&text=${getInitials(user.name)}`} />
-                      <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                    <Avatar>
+                      <AvatarFallback>{getInitials(user.full_name)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-medium">{user.name}</h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center">
-                          <Mail className="h-3 w-3 mr-1" />
-                          {user.email}
-                        </span>
-                        <span>{user.department}</span>
-                        <span className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          Último login: {user.lastLogin}
-                        </span>
+                      <h3 className="font-medium text-gray-900">{user.full_name}</h3>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge className={roleColors[user.role]}>
+                          {roleLabels[user.role]}
+                        </Badge>
+                        <Badge className={statusColors[user.status]}>
+                          {user.status === 'active' ? 'Ativo' : user.status === 'inactive' ? 'Inativo' : 'Suspenso'}
+                        </Badge>
+                        <Badge className={registrationTypeColors[user.registration_type]}>
+                          {registrationTypeLabels[user.registration_type]}
+                        </Badge>
+                        {user.entity_name && (
+                          <Badge variant="outline">
+                            {user.entity_name}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <Badge className={roleColors[user.role]}>{user.role}</Badge>
-                    <Badge className={statusColors[user.status]}>
-                      {user.status === "active" ? "Ativo" : "Inativo"}
-                    </Badge>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setShowUserModal(true)
-                          }}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setShowPermissionsModal(true)
-                          }}
-                        >
-                          <Shield className="h-4 w-4 mr-2" />
-                          Permissões
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setUserToDelete(user)
-                            setShowDeleteConfirm(true)
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedUser(user)
+                        setShowUserModal(true)
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setNewUserEmail(user.email)
+                        setShowEmailModal(true)
+                      }}
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                    {user.id !== user?.id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUserToDelete(user)
+                          setShowDeleteConfirm(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Permissions Modal */}
-      <Dialog open={showPermissionsModal} onOpenChange={setShowPermissionsModal}>
-        <DialogContent>
+      {/* Modal de Edição de Usuário */}
+      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Gerenciar Permissões - {selectedUser?.name}</DialogTitle>
+            <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>
-          <PermissionsForm user={selectedUser} onSave={() => setShowPermissionsModal(false)} />
+          {selectedUser && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  value={selectedUser.full_name}
+                  onChange={(e) => setSelectedUser({ ...selectedUser, full_name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="role">Cargo</Label>
+                <Select
+                  value={selectedUser.role}
+                  onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') => 
+                    setSelectedUser({ ...selectedUser, role: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Usuário</SelectItem>
+                    <SelectItem value="manager">Gerente</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="viewer">Visualizador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={selectedUser.status}
+                  onValueChange={(value: 'active' | 'inactive' | 'suspended') => 
+                    setSelectedUser({ ...selectedUser, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                    <SelectItem value="suspended">Suspenso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {selectedUser.entity_role && (
+                <div>
+                  <Label htmlFor="entity_role">Cargo na Entidade</Label>
+                  <Select
+                    value={selectedUser.entity_role}
+                    onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') => 
+                      setSelectedUser({ ...selectedUser, entity_role: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">Usuário</SelectItem>
+                      <SelectItem value="manager">Gerente</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="viewer">Visualizador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowUserModal(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={() => handleSaveUser(selectedUser)}>
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
+      {/* Modal de Email */}
+      <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="email">Para</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                placeholder="usuario@empresa.com"
+              />
+            </div>
+            <div>
+              <Label htmlFor="subject">Assunto</Label>
+              <Input
+                id="subject"
+                placeholder="Assunto do email"
+              />
+            </div>
+            <div>
+              <Label htmlFor="message">Mensagem</Label>
+              <Textarea
+                id="message"
+                placeholder="Digite sua mensagem..."
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setShowEmailModal(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => sendEmailToUser(newUserEmail, "Assunto", "Mensagem")}
+                disabled={emailSending}
+              >
+                {emailSending ? 'Enviando...' : 'Enviar Email'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmação de Exclusão */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza que deseja excluir este usuário?</AlertDialogTitle>
+            <AlertDialogTitle>Suspender Usuário</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso removerá permanentemente o usuário{" "}
-              <span className="font-semibold">{userToDelete?.name}</span> e todos os seus dados associados.
+              Tem certeza que deseja suspender {userToDelete?.full_name}? 
+              Esta ação marcará o usuário como suspenso e o removerá de qualquer entidade.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700">
-              Excluir
+            <AlertDialogAction onClick={handleDeleteUser}>
+              Suspender
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  )
-}
-
-function UserForm({ user, onSave }) {
-  const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    role: user?.role || "Usuário",
-    department: user?.department || "",
-    status: user?.status || "active",
-  })
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false)
-  const [emailSending, setEmailSending] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
-
-  const handleSave = async () => {
-    if (!user) {
-      // Novo usuário - mostrar confirmação de email
-      setShowEmailConfirmation(true)
-    } else {
-      // Usuário existente - salvar diretamente
-      onSave(formData) // Chamar o onSave passado
-    }
-  }
-
-  const handleSendEmail = async () => {
-    setEmailSending(true)
-
-    // Simular envio de email
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    setEmailSending(false)
-    setEmailSent(true)
-
-    // Aguardar um pouco e então salvar o usuário
-    setTimeout(() => {
-      onSave(formData) // Chamar o onSave passado com os dados do formulário
-    }, 1500)
-  }
-
-  return (
-    <div className="space-y-4">
-      {!showEmailConfirmation ? (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Ex: João Silva"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                placeholder="usuario@empresa.com"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="role">Função</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Usuário">Usuário</SelectItem>
-                  <SelectItem value="Aprovador">Aprovador</SelectItem>
-                  <SelectItem value="Gerente">Gerente</SelectItem>
-                  <SelectItem value="Administrador">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Departamento</Label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, department: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="TI">TI</SelectItem>
-                  <SelectItem value="RH">RH</SelectItem>
-                  <SelectItem value="Vendas">Vendas</SelectItem>
-                  <SelectItem value="Financeiro">Financeiro</SelectItem>
-                  <SelectItem value="Diretoria">Diretoria</SelectItem>
-                  <SelectItem value="Operações">Operações</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="status"
-              checked={formData.status === "active"}
-              onCheckedChange={(checked) =>
-                setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))
-              }
-            />
-            <Label htmlFor="status">Usuário ativo</Label>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={onSave}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>{user ? "Salvar Alterações" : "Criar Usuário"}</Button>
-          </div>
-        </>
-      ) : (
-        <EmailConfirmationStep
-          userData={formData}
-          emailSending={emailSending}
-          emailSent={emailSent}
-          onSendEmail={handleSendEmail}
-          onCancel={() => setShowEmailConfirmation(false)}
-        />
-      )}
-    </div>
-  )
-}
-
-function EmailConfirmationStep({ userData, emailSending, emailSent, onSendEmail, onCancel }) {
-  return (
-    <div className="space-y-6 text-center">
-      <div className="space-y-4">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-          {emailSent ? (
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          ) : emailSending ? (
-            <Mail className="h-8 w-8 text-blue-600 animate-pulse" />
-          ) : (
-            <Mail className="h-8 w-8 text-blue-600" />
-          )}
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold">
-            {emailSent ? "Email Enviado!" : emailSending ? "Enviando Email..." : "Confirmar Criação de Usuário"}
-          </h3>
-          <p className="text-gray-600 mt-2">
-            {emailSent ? (
-              <>
-                Um email foi enviado para <strong>{userData.email}</strong> com instruções para criar a senha de acesso.
-                <br />O usuário será criado no sistema.
-              </>
-            ) : emailSending ? (
-              "Enviando email com instruções para criação de senha..."
-            ) : (
-              <>
-                Será enviado um email para <strong>{userData.email}</strong> com instruções para que o usuário crie sua
-                própria senha de acesso.
-              </>
-            )}
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h4 className="font-medium mb-2">Resumo do Usuário:</h4>
-        <div className="text-sm text-gray-600 space-y-1">
-          <p>
-            <strong>Nome:</strong> {userData.name}
-          </p>
-          <p>
-            <strong>Email:</strong> {userData.email}
-          </p>
-          <p>
-            <strong>Função:</strong> {userData.role}
-          </p>
-          <p>
-            <strong>Departamento:</strong> {userData.department}
-          </p>
-        </div>
-      </div>
-
-      {!emailSent && !emailSending && (
-        <div className="flex justify-center space-x-2">
-          <Button variant="outline" onClick={onCancel}>
-            Voltar
-          </Button>
-          <Button onClick={onSendEmail}>
-            <Mail className="h-4 w-4 mr-2" />
-            Enviar Email e Criar Usuário
-          </Button>
-        </div>
-      )}
-
-      {emailSending && (
-        <div className="flex items-center justify-center space-x-2 text-blue-600">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          <span>Processando...</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function PermissionsForm({ user, onSave }) {
-  const [permissions, setPermissions] = useState({
-    read: user?.permissions?.includes("read") || false,
-    write: user?.permissions?.includes("write") || false,
-    approve: user?.permissions?.includes("approve") || false,
-    admin: user?.permissions?.includes("admin") || false,
-  })
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Visualizar Documentos</Label>
-            <p className="text-sm text-gray-500">Permite visualizar documentos</p>
-          </div>
-          <Switch
-            checked={permissions.read}
-            onCheckedChange={(checked) => setPermissions((prev) => ({ ...prev, read: checked }))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Criar/Editar Documentos</Label>
-            <p className="text-sm text-gray-500">Permite criar e editar documentos</p>
-          </div>
-          <Switch
-            checked={permissions.write}
-            onCheckedChange={(checked) => setPermissions((prev) => ({ ...prev, write: checked }))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Aprovar Documentos</Label>
-            <p className="text-sm text-gray-500">Permite aprovar ou rejeitar documentos</p>
-          </div>
-          <Switch
-            checked={permissions.approve}
-            onCheckedChange={(checked) => setPermissions((prev) => ({ ...prev, approve: checked }))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Label>Administração</Label>
-            <p className="text-sm text-gray-500">Acesso total ao sistema</p>
-          </div>
-          <Switch
-            checked={permissions.admin}
-            onCheckedChange={(checked) => setPermissions((prev) => ({ ...prev, admin: checked }))}
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button variant="outline" onClick={onSave}>
-          Cancelar
-        </Button>
-        <Button onClick={onSave}>Salvar Permissões</Button>
-      </div>
     </div>
   )
 }

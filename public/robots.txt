@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://trackdoc.com.br/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /test-*/
+
+# Allow landing page and public content
+Allow: /landing
+Allow: /login
+Allow: /register
+Allow: /pricing
+Allow: /help
+Allow: /verify-signature

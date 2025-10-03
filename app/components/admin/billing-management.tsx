@@ -28,112 +28,48 @@ import {
   Clock,
   Trash2,
   Plus,
+  Loader2,
 } from "lucide-react"
-
-// Mock data para demonstração
-const currentPlan = {
-  name: "Plano Empresarial",
-  price: 299.99,
-  currency: "BRL",
-  billing: "monthly",
-  users: 50,
-  storage: "500GB",
-  features: [
-    "Até 50 usuários",
-    "500GB de armazenamento",
-    "Fluxos de aprovação ilimitados",
-    "Relatórios avançados",
-    "Suporte prioritário",
-    "API completa",
-  ],
-  nextBilling: "2024-02-15",
-}
-
-const invoices = [
-  {
-    id: "INV-2024-001",
-    date: "2024-01-15",
-    amount: 299.99,
-    status: "paid",
-    description: "Plano Empresarial - Janeiro 2024",
-    downloadUrl: "#",
-  },
-  {
-    id: "INV-2023-012",
-    date: "2023-12-15",
-    amount: 299.99,
-    status: "paid",
-    description: "Plano Empresarial - Dezembro 2023",
-    downloadUrl: "#",
-  },
-  {
-    id: "INV-2023-011",
-    date: "2023-11-15",
-    amount: 299.99,
-    status: "paid",
-    description: "Plano Empresarial - Novembro 2023",
-    downloadUrl: "#",
-  },
-]
-
-const paymentMethods = [
-  {
-    id: "pm_1",
-    type: "card",
-    brand: "visa",
-    last4: "4242",
-    expiryMonth: 12,
-    expiryYear: 2025,
-    isDefault: true,
-  },
-  {
-    id: "pm_2",
-    type: "card",
-    brand: "mastercard",
-    last4: "8888",
-    expiryMonth: 8,
-    expiryYear: 2026,
-    isDefault: false,
-  },
-]
-
-const availablePlans = [
-  {
-    id: "basic",
-    name: "Plano Básico",
-    price: 99.99,
-    users: 10,
-    storage: "100GB",
-    features: ["Até 10 usuários", "100GB de armazenamento", "Fluxos básicos"],
-  },
-  {
-    id: "professional",
-    name: "Plano Profissional",
-    price: 199.99,
-    users: 25,
-    storage: "250GB",
-    features: ["Até 25 usuários", "250GB de armazenamento", "Fluxos avançados", "Relatórios básicos"],
-  },
-  {
-    id: "enterprise",
-    name: "Plano Empresarial",
-    price: 299.99,
-    users: 50,
-    storage: "500GB",
-    features: [
-      "Até 50 usuários",
-      "500GB de armazenamento",
-      "Fluxos ilimitados",
-      "Relatórios avançados",
-      "Suporte prioritário",
-    ],
-  },
-]
+import { usePlans, type Plan } from "@/hooks/use-plans"
+import { useUserSubscription, useUserInvoices, useUserPaymentMethods } from "@/hooks/use-subscriptions"
+import { useAuth } from "@/lib/contexts/auth-context"
+import { useUserUsage } from "@/hooks/use-database-data"
 
 export default function BillingManagement() {
+  const { user } = useAuth()
   const [showPlanChangeDialog, setShowPlanChangeDialog] = useState(false)
   const [showPaymentMethodDialog, setShowPaymentMethodDialog] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState("")
+  
+  // Hooks para dados reais do Supabase
+  const { plans, loading: plansLoading, error: plansError } = usePlans()
+  const { subscription, loading: subscriptionLoading, error: subscriptionError } = useUserSubscription()
+  const { invoices, loading: invoicesLoading, error: invoicesError } = useUserInvoices()
+  const { paymentMethods, loading: paymentMethodsLoading, error: paymentMethodsError } = useUserPaymentMethods()
+  const { usage } = useUserUsage()
+
+  // Plano atual baseado na assinatura real
+  const currentPlan = subscription ? {
+    name: subscription.plan?.name || 'Plano não encontrado',
+    price_monthly: subscription.plan?.price || 0,
+    max_users: plans.find(p => p.name === subscription.plan?.name)?.max_users || 1,
+    max_storage_gb: plans.find(p => p.name === subscription.plan?.name)?.max_storage_gb || 1,
+    max_documents: plans.find(p => p.name === subscription.plan?.name)?.max_documents || 10,
+    features: subscription.plan?.features || [],
+    is_trial: subscription.status === 'trial',
+    trial_days: subscription.trial_end_date ? Math.ceil((new Date(subscription.trial_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
+    nextBilling: subscription.end_date,
+  } : {
+    name: "Nenhum plano ativo",
+    price_monthly: 0,
+    max_users: 1,
+    max_storage_gb: 1,
+    max_documents: 10,
+    features: ["Acesso limitado", "Entre em contato para mais informações"],
+    is_trial: false,
+    trial_days: 0,
+    nextBilling: new Date().toISOString(),
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -168,6 +104,35 @@ export default function BillingManagement() {
     return <CreditCard className="h-4 w-4" />
   }
 
+  const getUsageByMetric = (metricName: string) => {
+    return usage.find(u => u.metric_name === metricName) || {
+      current_usage: 0,
+      limit_value: currentPlan.max_documents
+    }
+  }
+
+  const documentsUsage = getUsageByMetric('documents')
+  const storageUsage = getUsageByMetric('storage_gb')
+  const usersUsage = getUsageByMetric('users')
+
+  if (subscriptionLoading || plansLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Carregando dados de assinatura...</span>
+      </div>
+    )
+  }
+
+  if (subscriptionError) {
+    return (
+      <div className="text-center py-8 text-red-600">
+        <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+        {subscriptionError}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Plano Atual */}
@@ -185,24 +150,47 @@ export default function BillingManagement() {
               <div>
                 <h3 className="text-lg font-semibold">{currentPlan.name}</h3>
                 <p className="text-2xl font-bold text-blue-600">
-                  R$ {currentPlan.price.toFixed(2)}
+                  R$ {currentPlan.price_monthly?.toFixed(2) || "0.00"}
                   <span className="text-sm font-normal text-gray-500">/mês</span>
                 </p>
+                {currentPlan.is_trial && (
+                  <Badge className="bg-green-100 text-green-800 mt-2">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Trial - {currentPlan.trial_days} dias
+                  </Badge>
+                )}
+                {subscription?.status && (
+                  <Badge className={`mt-2 ${
+                    subscription.status === 'active' ? 'bg-green-100 text-green-800' :
+                    subscription.status === 'trial' ? 'bg-blue-100 text-blue-800' :
+                    subscription.status === 'expired' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {subscription.status === 'active' ? 'Ativo' :
+                     subscription.status === 'trial' ? 'Trial' :
+                     subscription.status === 'expired' ? 'Expirado' :
+                     subscription.status === 'canceled' ? 'Cancelado' : subscription.status}
+                  </Badge>
+                )}
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{currentPlan.users} usuários</span>
+                  <span className="text-sm">Até {currentPlan.max_users} usuários</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{currentPlan.storage} de armazenamento</span>
+                  <span className="text-sm">{currentPlan.max_storage_gb}GB de armazenamento</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm">Até {currentPlan.max_documents} documentos</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">
-                    Próxima cobrança: {new Date(currentPlan.nextBilling).toLocaleDateString("pt-BR")}
+                    Próxima cobrança: {currentPlan.nextBilling ? new Date(currentPlan.nextBilling).toLocaleDateString("pt-BR") : 'Não definida'}
                   </span>
                 </div>
               </div>
@@ -221,29 +209,54 @@ export default function BillingManagement() {
                       <DialogDescription>Escolha o plano que melhor atende às suas necessidades</DialogDescription>
                     </DialogHeader>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                      {availablePlans.map((plan) => (
-                        <Card
-                          key={plan.id}
-                          className={`cursor-pointer transition-colors ${selectedPlan === plan.id ? "ring-2 ring-blue-500" : ""}`}
-                          onClick={() => setSelectedPlan(plan.id)}
-                        >
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">{plan.name}</CardTitle>
-                            <div className="text-2xl font-bold text-blue-600">
-                              R$ {plan.price.toFixed(2)}
-                              <span className="text-sm font-normal text-gray-500">/mês</span>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            {plan.features.map((feature, index) => (
-                              <div key={index} className="flex items-center gap-2">
-                                <CheckCircle className="h-3 w-3 text-green-500" />
-                                <span className="text-xs">{feature}</span>
+                      {plansLoading ? (
+                        <div className="col-span-3 flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                          <span className="ml-2">Carregando planos...</span>
+                        </div>
+                      ) : plansError ? (
+                        <div className="col-span-3 text-center py-8 text-red-600">
+                          <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                          {plansError}
+                        </div>
+                      ) : (
+                        plans.map((plan) => (
+                          <Card
+                            key={plan.id}
+                            className={`cursor-pointer transition-colors ${selectedPlan === plan.id ? "ring-2 ring-blue-500" : ""}`}
+                            onClick={() => setSelectedPlan(plan.id)}
+                          >
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-lg">{plan.name}</CardTitle>
+                              <div className="text-2xl font-bold text-blue-600">
+                                R$ {plan.price_monthly.toFixed(2)}
+                                <span className="text-sm font-normal text-gray-500">/mês</span>
                               </div>
-                            ))}
-                          </CardContent>
-                        </Card>
-                      ))}
+                              {plan.is_trial && (
+                                <Badge className="bg-green-100 text-green-800 w-fit">
+                                  Trial - {plan.trial_days} dias
+                                </Badge>
+                              )}
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                              <div className="text-xs text-gray-600 mb-2">
+                                {plan.description}
+                              </div>
+                              {plan.features?.slice(0, 5).map((feature, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <CheckCircle className="h-3 w-3 text-green-500" />
+                                  <span className="text-xs">{feature}</span>
+                                </div>
+                              ))}
+                              {plan.features && plan.features.length > 5 && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  +{plan.features.length - 5} recursos adicionais
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
                     </div>
                     <div className="flex justify-end gap-2 mt-6">
                       <Button variant="outline" onClick={() => setShowPlanChangeDialog(false)}>
@@ -260,7 +273,7 @@ export default function BillingManagement() {
             <div>
               <h4 className="font-semibold mb-3">Recursos Inclusos</h4>
               <div className="space-y-2">
-                {currentPlan.features.map((feature, index) => (
+                {currentPlan.features?.map((feature, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span className="text-sm">{feature}</span>
@@ -326,41 +339,64 @@ export default function BillingManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {paymentMethods.map((method) => (
-              <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {getCardBrandIcon(method.brand)}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">**** **** **** {method.last4}</span>
-                      {method.isDefault && (
-                        <Badge variant="secondary" className="text-xs">
-                          Padrão
-                        </Badge>
-                      )}
+          {paymentMethodsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Carregando métodos de pagamento...</span>
+            </div>
+          ) : paymentMethodsError ? (
+            <div className="text-center py-8 text-red-600">
+              <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+              {paymentMethodsError}
+            </div>
+          ) : paymentMethods.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <CreditCard className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+              <p>Nenhum método de pagamento cadastrado</p>
+              <p className="text-sm">Adicione um cartão para facilitar os pagamentos</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {paymentMethods.map((method) => (
+                <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {getCardBrandIcon(method.brand || 'card')}
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {method.type === 'card' && method.last_four 
+                            ? `**** **** **** ${method.last_four}`
+                            : method.type === 'pix' 
+                            ? 'PIX'
+                            : 'Transferência Bancária'
+                          }
+                        </span>
+                        {method.is_default && (
+                          <Badge variant="secondary" className="text-xs">
+                            Padrão
+                          </Badge>
+                        )}
+                      </div>
+
                     </div>
-                    <p className="text-sm text-gray-500">
-                      Expira em {method.expiryMonth.toString().padStart(2, "0")}/{method.expiryYear}
-                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!method.is_default && (
+                      <Button variant="outline" size="sm">
+                        Definir como Padrão
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {!method.isDefault && (
-                    <Button variant="outline" size="sm">
-                      Definir como Padrão
-                    </Button>
-                  )}
-                  <Button variant="outline" size="sm">
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -374,29 +410,49 @@ export default function BillingManagement() {
           <CardDescription>Visualize e baixe suas faturas anteriores</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {invoices.map((invoice) => (
-              <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <div className="font-medium">{invoice.id}</div>
-                    <p className="text-sm text-gray-500">{invoice.description}</p>
+          {invoicesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Carregando faturas...</span>
+            </div>
+          ) : invoicesError ? (
+            <div className="text-center py-8 text-red-600">
+              <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+              {invoicesError}
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <DollarSign className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+              <p>Nenhuma fatura encontrada</p>
+              <p className="text-sm">As faturas aparecerão aqui após o primeiro pagamento</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {invoices.map((invoice) => (
+                <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="font-medium">{invoice.id}</div>
+                      <p className="text-sm text-gray-500">{invoice.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium">R$ {invoice.amount.toFixed(2)}</div>
+                      <p className="text-sm text-gray-500">
+                        {new Date(invoice.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-medium">R$ {invoice.amount.toFixed(2)}</div>
-                    <p className="text-sm text-gray-500">{new Date(invoice.date).toLocaleDateString("pt-BR")}</p>
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(invoice.status)}
+                    <Button variant="outline" size="sm">
+                      <Download className="h-3 w-3 mr-1" />
+                      Baixar
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  {getStatusBadge(invoice.status)}
-                  <Button variant="outline" size="sm">
-                    <Download className="h-3 w-3 mr-1" />
-                    Baixar
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -411,30 +467,51 @@ export default function BillingManagement() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Usuários</span>
-                <span className="text-sm text-gray-500">32 / 50</span>
+                <span className="text-sm text-gray-500">
+                  {usersUsage.current_usage} / {currentPlan.max_users}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: "64%" }}></div>
+                <div 
+                  className="bg-blue-600 h-2 rounded-full" 
+                  style={{ 
+                    width: `${Math.min((usersUsage.current_usage / currentPlan.max_users) * 100, 100)}%` 
+                  }}
+                ></div>
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Armazenamento</span>
-                <span className="text-sm text-gray-500">320GB / 500GB</span>
+                <span className="text-sm text-gray-500">
+                  {storageUsage.current_usage.toFixed(1)}GB / {currentPlan.max_storage_gb}GB
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{ width: "64%" }}></div>
+                <div 
+                  className="bg-green-600 h-2 rounded-full" 
+                  style={{ 
+                    width: `${Math.min((storageUsage.current_usage / currentPlan.max_storage_gb) * 100, 100)}%` 
+                  }}
+                ></div>
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Documentos</span>
-                <span className="text-sm text-gray-500">1,247</span>
+                <span className="text-sm text-gray-500">
+                  {documentsUsage.current_usage} / {currentPlan.max_documents}
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-purple-600 h-2 rounded-full" style={{ width: "45%" }}></div>
+                <div 
+                  className="bg-purple-600 h-2 rounded-full" 
+                  style={{ 
+                    width: `${Math.min((documentsUsage.current_usage / currentPlan.max_documents) * 100, 100)}%` 
+                  }}
+                ></div>
               </div>
             </div>
           </div>

@@ -75,8 +75,20 @@ export default function DocumentEditor() {
 
   const currentUser = getCurrentUser()
 
+  interface DocumentHeader {
+    number: string
+    author: string
+    department: string
+    version: string
+    createdDate: string
+    lastModified: string
+    lastRevision: string
+    status: string
+    approvers: string[]
+  }
+
   // Estados para metadados
-  const [documentHeader, setDocumentHeader] = useState({
+  const [documentHeader, setDocumentHeader] = useState<DocumentHeader>({
     number: "",
     author: currentUser.name, // Sempre o usuário logado
     department: currentUser.department, // Departamento do usuário logado
@@ -95,7 +107,7 @@ export default function DocumentEditor() {
   const [tags, setTags] = useState("")
 
   const getApprovers = (docType: string, dept: string) => {
-    const approversByType = {
+    const approversByType: Record<string, string[]> = {
       policy: ["Supervisor do Departamento", "Gerente da Área", "Diretoria"],
       procedure: ["Supervisor do Departamento", "Gerente da Área"],
       manual: ["Supervisor do Departamento", "Gerente da Área"],

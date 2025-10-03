@@ -1,15 +1,17 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
-import AuthGuard from "./components/auth-guard"
-
-const inter = Inter({ subsets: ["latin"] })
+import { AuthProvider } from "@/lib/contexts/auth-context"
+import { AuthWrapper } from "./components/auth-wrapper"
 
 export const metadata: Metadata = {
-  title: "TrackDoc - Sistema de Gestão de Documentos",
-  description: "Plataforma moderna para gestão interna de documentos corporativos",
-    generator: 'v0.app'
+  title: "TrackDoc - Sistema de Gestao de Documentos",
+  description: "Plataforma moderna para gestao interna de documentos corporativos",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -19,8 +21,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className={inter.className}>
-        <AuthGuard>{children}</AuthGuard>
+      <body className="font-sans antialiased">
+        <AuthProvider>
+          <AuthWrapper>
+            {children}
+          </AuthWrapper>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -50,6 +50,13 @@ export default function AIDocumentCreator() {
   })
   const { toast } = useToast()
 
+  interface Template {
+    title: string
+    type: string
+    description: string
+    prompt: string
+  }
+
   const documentTypes = [
     { value: "policy", label: "Política Empresarial", icon: Building },
     { value: "procedure", label: "Procedimento Operacional", icon: FileCheck },
@@ -259,7 +266,7 @@ Este documento será revisado periodicamente para garantir sua relevância e efi
     })
   }
 
-  const applyTemplate = (template) => {
+  const applyTemplate = (template: Template) => {
     setDocumentTitle(template.title)
     setDocumentType(template.type)
     setPrompt(template.prompt)

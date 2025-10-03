@@ -48,21 +48,21 @@ const getFileTypeIcon = (fileType: string) => {
   }
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
   pending: "bg-yellow-100 text-yellow-800",
   approved: "bg-green-100 text-green-800",
   rejected: "bg-red-100 text-red-800",
 }
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   draft: "Rascunho",
   pending: "Em Aprovação",
   approved: "Aprovado",
   rejected: "Rejeitado",
 }
 
-const statusIcons = {
+const statusIcons: Record<string, any> = {
   draft: AlertCircle,
   pending: Clock,
   approved: CheckCircle,
@@ -220,7 +220,7 @@ export default function DocumentPreviewModal({
                   <div>
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Tags</h4>
                     <div className="flex flex-wrap gap-2">
-                      {document.metadata.tags.split(",").map((tag, index) => (
+                      {document.metadata.tags.split(",").map((tag: string, index: number) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {tag.trim()}
                         </Badge>

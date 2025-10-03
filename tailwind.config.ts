@@ -43,6 +43,14 @@ const config: Config = {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+  			success: {
+  				DEFAULT: 'hsl(var(--success))',
+  				foreground: 'hsl(var(--success-foreground))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))',
+  				foreground: 'hsl(var(--warning-foreground))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -52,6 +60,15 @@ const config: Config = {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
+  			},
+  			// 🎨 CORES ESPECIAIS DO TRACKDOC
+  			trackdoc: {
+  				blue: 'hsl(var(--trackdoc-blue))',
+  				'blue-light': 'hsl(var(--trackdoc-blue-light))',
+  				'blue-dark': 'hsl(var(--trackdoc-blue-dark))',
+  				black: 'hsl(var(--trackdoc-black))',
+  				gray: 'hsl(var(--trackdoc-gray))',
+  				'gray-light': 'hsl(var(--trackdoc-gray-light))'
   			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',

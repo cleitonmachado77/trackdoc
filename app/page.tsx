@@ -1,6 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import AccessGuard from "./components/access-guard"
+import AuthGuard from "./components/auth-guard"
+import AdminGuard from "./components/admin-guard"
+import LandingRedirect from "./components/landing-redirect"
+import { AuthProvider } from "@/lib/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,19 +33,36 @@ import {
   Tag,
   ChevronLeft,
   DollarSign,
+  RefreshCw,
+  User,
+  XCircle,
+  PenTool,
+  Bell,
+  Activity,
+  BarChart3,
+  PieChart,
+  Target,
+  Zap,
+  Calendar,
+  Timer,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, AreaChart, Area } from "recharts"
 import Sidebar from "./components/sidebar"
 import DocumentModal from "./components/document-modal"
 import DocumentPreviewModal from "./components/document-preview-modal"
 import ApprovalModal from "./components/approval-modal"
+import ApprovalReviewModal from "./components/approval-review-modal"
+import ApprovalDetailsModal from "./components/approval-details-modal"
 import AuditModal from "./components/audit-modal"
+import FixedQuickSearchModal from "./components/fixed-quick-search-modal"
 import UserManagement from "./components/admin/user-management"
-import WorkflowManagement from "./components/admin/workflow-management"
 import DocumentTypeManagement from "./components/admin/document-type-management"
 import ProductivityReport from "./components/admin/productivity-report"
 import ApprovalTimeReport from "./components/admin/approval-time-report"
@@ -47,17 +70,31 @@ import AuditReport from "./components/admin/audit-report"
 import DepartmentManagement from "./components/admin/department-management"
 import CategoryManagement from "./components/admin/category-management"
 import BillingManagement from "./components/admin/billing-management"
+import BillingStats from "./components/admin/billing-stats"
 import NotificationManagement from "./components/admin/notification-management"
+import UnifiedNotificationsPage from "./components/unified-notifications-page"
 import HelpCenter from "./components/help-center"
 import AIDocumentCreator from "./components/ai-document-creator"
 import DocumentAccessReport from "./components/admin/document-access-report"
 import DocumentCreationSelector from "./components/document-creation-selector"
-import DocumentEditor from "./components/document-editor" // Imported DocumentEditor
+import DocumentList from "./components/document-list"
+import DocumentUploadWithApproval from "./components/document-upload-with-approval"
+import EntityUserManagement from "./components/admin/entity-user-management"
+import ElectronicSignature from "./components/electronic-signature"
+// import DocumentWorkflow from "./components/document-workflow"
+import ChatPage from "./chat/page"
+import MinhaContaPage from "./minha-conta/page"
+import { useDocuments } from "@/hooks/use-documents"
+import { useApprovals } from "@/hooks/use-approvals"
+import { useDepartments } from "@/hooks/use-departments"
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
+import { useCategories } from "@/hooks/use-categories"
+import { useDocumentTypes } from "@/hooks/use-document-types"
+import { useEntityStats } from "@/hooks/use-entity-stats"
+import { useNotifications } from "@/hooks/use-notifications"
+import { useElectronicSignatures } from "@/hooks/use-electronic-signatures"
 
-// Dados fictícios removidos para testes em produção
-const mockDocuments = []
-
-// Função para obter ícone do formato do arquivo
+// Funcao para obter icone do formato do arquivo
 const getFileTypeIcon = (fileType: string) => {
   switch (fileType) {
     case "word":
@@ -73,61 +110,165 @@ const getFileTypeIcon = (fileType: string) => {
   }
 }
 
-// Cores para cada departamento
+// 🎨 Cores para cada departamento - Baseadas no novo design
 const departmentColors = {
-  TI: "#3b82f6",
-  Vendas: "#10b981",
-  RH: "#f59e0b",
-  Financeiro: "#8b5cf6",
-  Diretoria: "#ef4444",
+  TI: "hsl(var(--trackdoc-blue))",
+  Vendas: "hsl(var(--trackdoc-blue-dark))",
+  RH: "hsl(var(--trackdoc-gray))",
+  Financeiro: "hsl(var(--trackdoc-blue-light))",
+  Diretoria: "hsl(var(--trackdoc-black))",
 }
 
+// 🎨 Cores de status - Baseadas no novo design
 const statusColors = {
-  draft: "bg-gray-100 text-gray-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  approved: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
+  draft: "bg-trackdoc-gray-light text-trackdoc-gray",
+  pending: "bg-warning/20 text-warning",
+  pending_approval: "bg-warning/20 text-warning",
+  approved: "bg-success/20 text-success",
+  rejected: "bg-destructive/20 text-destructive",
+  archived: "bg-trackdoc-gray-light text-trackdoc-gray",
 }
 
 const statusLabels = {
   draft: "Rascunho",
-  pending: "Em Aprovação",
+  pending: "Em Aprovacao",
+  pending_approval: "Aguardando Aprovação",
   approved: "Aprovado",
   rejected: "Rejeitado",
+  archived: "Arquivado",
 }
 
-export default function DocumentManagementPlatform() {
-  const [documents, setDocuments] = useState(mockDocuments)
+const DocumentManagementPlatform = memo(function DocumentManagementPlatform() {
+  return (
+    <AuthProvider>
+      <LandingRedirect />
+      <AuthGuard>
+        <AccessGuard requireAuth={true} requireActiveSubscription={true}>
+          <DocumentManagementPlatformContent />
+        </AccessGuard>
+      </AuthGuard>
+    </AuthProvider>
+  )
+})
+
+export default DocumentManagementPlatform
+
+const DocumentManagementPlatformContent = memo(function DocumentManagementPlatformContent() {
+  // Hooks para dados reais
+  const { documents, loading: documentsLoading, error: documentsError, createDocument, updateDocument, deleteDocument, changeDocumentStatus, stats: documentStats } = useDocuments()
+  const { myApprovals, sentApprovals, loading: approvalsLoading } = useApprovals()
+  const { departments } = useDepartments()
+  const { categories } = useCategories()
+  const { documentTypes } = useDocumentTypes()
+  const { stats: entityStats, loading: entityStatsLoading, refreshStats: refreshEntityStats } = useEntityStats()
+  const { stats: notificationStats } = useNotifications()
+  const { signatures, documents: signatureDocuments, loading: signatureLoading } = useElectronicSignatures()
+  const searchParams = useSearchParams()
+  
+  // Processar parâmetro document da URL
+  useEffect(() => {
+    const documentId = searchParams.get('document')
+    if (documentId && documents.length > 0) {
+      console.log('📄 [URL_PARAM] Processando documento da URL:', documentId)
+      const document = documents.find(doc => doc.id === documentId)
+      if (document) {
+        console.log('📄 [URL_PARAM] Documento encontrado, abrindo modal de auditoria')
+        setSelectedDocument(document)
+        setShowAuditModal(true)
+        // Limpar o parâmetro da URL
+        const url = new URL(window.location.href)
+        url.searchParams.delete('document')
+        window.history.replaceState({}, '', url.toString())
+      } else {
+        console.log('📄 [URL_PARAM] Documento não encontrado na lista')
+      }
+    }
+  }, [searchParams, documents])
+  
+  // Atalhos de teclado
+  useKeyboardShortcuts([
+    {
+      key: 'k',
+      ctrlKey: true,
+      callback: () => setShowQuickSearch(true),
+      description: 'Ctrl+K - Abrir busca rápida'
+    },
+    {
+      key: 'k',
+      metaKey: true,
+      callback: () => setShowQuickSearch(true),
+      description: 'Cmd+K - Abrir busca rápida'
+    }
+  ])
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [sectorFilter, setSectorFilter] = useState("all")
-  const [selectedDocument, setSelectedDocument] = useState(null)
+  const [showQuickSearch, setShowQuickSearch] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState<any>(null)
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [showDocumentPreview, setShowDocumentPreview] = useState(false)
   const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [showApprovalReviewModal, setShowApprovalReviewModal] = useState(false)
   const [showAuditModal, setShowAuditModal] = useState(false)
   const [activeView, setActiveView] = useState("dashboard")
+  const [selectedApproval, setSelectedApproval] = useState<any>(null)
+  const [showApprovalDetailsModal, setShowApprovalDetailsModal] = useState(false)
+  const [selectedApprovalForDetails, setSelectedApprovalForDetails] = useState<any>(null)
   const [adminView, setAdminView] = useState("overview")
   const [chartAreaFilter, setChartAreaFilter] = useState("all")
   const [chartTypeFilter, setChartTypeFilter] = useState("all")
-  const [documentModalMode, setDocumentModalMode] = useState("view") // 'view', 'edit', 'new-version'
+  const [documentModalMode, setDocumentModalMode] = useState<"view" | "edit" | "new-version" | "create">("view")
   const [showCreationSelector, setShowCreationSelector] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+
+  // Ler parâmetros de URL para definir a view inicial
+  useEffect(() => {
+    const viewParam = searchParams.get('view')
+    if (viewParam && ['dashboard', 'documents', 'approvals', 'ai-create', 'notifications', 'admin', 'help', 'chat'].includes(viewParam)) {
+      setActiveView(viewParam)
+    }
+    
+    // Verificar se deve abrir o seletor de criação
+    const showCreationSelectorParam = searchParams.get('showCreationSelector')
+    if (showCreationSelectorParam === 'true') {
+      setShowCreationSelector(true)
+      // Remover o parâmetro da URL para evitar que apareça automaticamente ao recarregar
+      const url = new URL(window.location.href)
+      url.searchParams.delete('showCreationSelector')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams])
+
+  // ✅ Verificar redirecionamento do localStorage após operações de departamento
+  useEffect(() => {
+    const redirectToDepartments = localStorage.getItem('redirectToDepartments')
+    if (redirectToDepartments === 'true') {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 [DEBUG] Redirecionamento detectado, abrindo seção de departamentos...')
+      }
+      setActiveView('admin')
+      setAdminView('departments')
+      // ✅ Limpar o flag para evitar redirecionamentos futuros
+      localStorage.removeItem('redirectToDepartments')
+    }
+  }, [])
 
   // Estados para o modal de documentos por categoria
   const [showDocumentListModal, setShowDocumentListModal] = useState(false)
   const [documentListFilter, setDocumentListFilter] = useState("all") // 'all', 'approved', 'pending', 'draft'
   const [documentListTitle, setDocumentListTitle] = useState("")
 
-  // Dados fictícios removidos para testes em produção
-  const monthlyEvolutionData = []
+  // Dados reais calculados a partir das informações do sistema
+  const monthlyEvolutionData: any[] = []
 
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch =
       doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.author.toLowerCase().includes(searchTerm.toLowerCase())
+      (doc.document_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (doc.author?.full_name || '').toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter
-    const matchesSector = sectorFilter === "all" || doc.sector === sectorFilter
+    const matchesSector = sectorFilter === "all" || (doc.department?.name || '') === sectorFilter
 
     return matchesSearch && matchesStatus && matchesSector
   })
@@ -139,8 +280,8 @@ export default function DocumentManagementPlatform() {
     draft: documents.filter((d) => d.status === "draft").length,
   }
 
-  // Função para filtrar documentos por categoria para o modal
-  const getDocumentsByCategory = (category) => {
+  // Funcao para filtrar documentos por categoria para o modal
+  const getDocumentsByCategory = (category: string) => {
     switch (category) {
       case "approved":
         return documents.filter((d) => d.status === "approved")
@@ -153,8 +294,8 @@ export default function DocumentManagementPlatform() {
     }
   }
 
-  // Função para abrir modal com documentos filtrados
-  const handleCardClick = (category) => {
+  // Funcao para abrir modal com documentos filtrados
+  const handleCardClick = (category: string) => {
     setDocumentListFilter(category)
     setDocumentListTitle(
       category === "all"
@@ -170,12 +311,12 @@ export default function DocumentManagementPlatform() {
     setShowDocumentListModal(true)
   }
 
-  const handleDocumentClick = (doc) => {
+  const handleDocumentClick = (doc: any) => {
     setSelectedDocument(doc)
     setShowDocumentPreview(true)
   }
 
-  const handleEditFromPreview = () => {
+  const handleEditFromPreview = (): void => {
     setShowDocumentPreview(false)
     setDocumentModalMode("edit")
     setShowDocumentModal(true)
@@ -186,42 +327,40 @@ export default function DocumentManagementPlatform() {
     setShowAuditModal(true)
   }
 
-  // Função para enviar documento para aprovação
-  const handleSendForApproval = (doc) => {
-    setDocuments((docs) =>
-      docs.map((d) =>
-        d.id === doc.id ? { ...d, status: "pending", updatedAt: new Date().toISOString().split("T")[0] } : d,
-      ),
-    )
+  // Funcao para enviar documento para aprovacao
+  const handleSendForApproval = (doc: any) => {
+    // Esta função foi removida pois não é mais necessária
+    // O sistema agora usa o hook useApprovals para gerenciar aprovações
+    console.log('Função handleSendForApproval removida - use useApprovals hook')
   }
 
-  // Função para criar nova versão
-  const handleCreateNewVersion = (doc) => {
+  // Funcao para criar nova versao
+  const handleCreateNewVersion = (doc: any) => {
     setSelectedDocument(doc)
     setDocumentModalMode("new-version")
     setShowDocumentModal(true)
   }
 
-  // Função para visualizar documento (somente leitura)
-  const handleViewDocument = (doc) => {
+  // Funcao para visualizar documento (somente leitura)
+  const handleViewDocument = (doc: any) => {
     setSelectedDocument(doc)
     setDocumentModalMode("view")
     setShowDocumentModal(true)
   }
 
-  // Função para editar documento
-  const handleEditDocument = (doc) => {
+  // Funcao para editar documento
+  const handleEditDocument = (doc: any) => {
     setSelectedDocument(doc)
     setDocumentModalMode("edit")
     setShowDocumentModal(true)
   }
 
-  const handleDownloadFromPreview = (doc) => {
+  const handleDownloadFromPreview = (doc: any) => {
     if (doc) {
-      const fileTypeInfo = getFileTypeIcon(doc.fileType)
+      const fileTypeInfo = getFileTypeIcon(doc.file_type || '')
       const fileExtension = fileTypeInfo.accept.split(",")[0].replace(".", "")
       const fileName = `${doc.title.replace(/[^a-zA-Z0-9]/g, "_")}.${fileExtension}`
-      const dummyContent = `Conteúdo simulado para o documento: ${doc.title}`
+      const dummyContent = `Conteudo simulado para o documento: ${doc.title}`
       const blob = new Blob([dummyContent], { type: "application/octet-stream" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -235,13 +374,13 @@ export default function DocumentManagementPlatform() {
     }
   }
 
-  // Função para renderizar as opções do dropdown baseado no status
-  const renderDocumentActions = (doc) => {
+  // Funcao para renderizar as opcoes do dropdown baseado no status
+  const renderDocumentActions = (doc: any) => {
     const actions = []
 
     switch (doc.status) {
       case "draft":
-        // Rascunho: Editar, Enviar para Aprovação, Auditoria, Download
+        // Rascunho: Editar, Enviar para Aprovacao, Auditoria, Download
         actions.push(
           <DropdownMenuItem
             key="edit"
@@ -263,13 +402,13 @@ export default function DocumentManagementPlatform() {
             }}
           >
             <Send className="h-4 w-4 mr-2" />
-            Enviar para Aprovação
+            Enviar para Aprovacao
           </DropdownMenuItem>,
         )
         break
 
       case "approved":
-        // Aprovado: Visualizar, Gerar Nova Versão, Auditoria, Download
+        // Aprovado: Visualizar, Gerar Nova Versao, Auditoria, Download
         actions.push(
           <DropdownMenuItem
             key="view"
@@ -291,13 +430,13 @@ export default function DocumentManagementPlatform() {
             }}
           >
             <GitBranch className="h-4 w-4 mr-2" />
-            Gerar Nova Versão
+            Gerar Nova Versao
           </DropdownMenuItem>,
         )
         break
 
       case "pending":
-        // Em Aprovação: Visualizar, Ver Aprovação, Auditoria, Download
+        // Em Aprovacao: Visualizar, Ver Aprovacao, Auditoria, Download
         actions.push(
           <DropdownMenuItem
             key="view"
@@ -320,13 +459,13 @@ export default function DocumentManagementPlatform() {
             }}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
-            Ver Aprovação
+            Ver Aprovacao
           </DropdownMenuItem>,
         )
         break
 
       case "rejected":
-        // Rejeitado: Visualizar, Gerar Nova Versão, Auditoria, Download
+        // Rejeitado: Visualizar, Gerar Nova Versao, Auditoria, Download
         actions.push(
           <DropdownMenuItem
             key="view"
@@ -348,7 +487,7 @@ export default function DocumentManagementPlatform() {
             }}
           >
             <GitBranch className="h-4 w-4 mr-2" />
-            Gerar Nova Versão
+            Gerar Nova Versao
           </DropdownMenuItem>,
         )
         break
@@ -369,7 +508,7 @@ export default function DocumentManagementPlatform() {
         )
     }
 
-    // Auditoria e Download são sempre disponíveis
+    // Auditoria e Download sao sempre disponiveis
     actions.push(
       <DropdownMenuItem
         key="audit"
@@ -407,434 +546,794 @@ export default function DocumentManagementPlatform() {
         return renderDocuments()
       case "approvals":
         return renderApprovals()
-      case "editor": // Added editor case
-        return <DocumentEditor />
       case "ai-create":
         return <AIDocumentCreator />
+      case "electronic-signature":
+        return <ElectronicSignature />
+      // case "document-workflow":
+      //   return <DocumentWorkflow />
       case "notifications":
-        return <NotificationManagement />
+        return <UnifiedNotificationsPage />
+      case "chat":
+        return <ChatPage />
       case "admin":
-        return renderAdmin()
+        return (
+          <AdminGuard>
+            {renderAdmin()}
+          </AdminGuard>
+        )
       case "help":
         return <HelpCenter />
+      case "minha-conta":
+        return <MinhaContaPage />
       default:
         return renderDashboard()
     }
   }
 
-  const renderDashboard = () => (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick("all")}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Documentos</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+  const renderDashboard = () => {
+    // Dados calculados para o dashboard
+    const totalDocuments = documentStats?.total || documents.length
+    const approvedDocuments = documentStats?.approved || documents.filter(d => d.status === 'approved').length
+    const pendingDocuments = documentStats?.pending || documents.filter(d => d.status === 'pending').length
+    const draftDocuments = documentStats?.draft || documents.filter(d => d.status === 'draft').length
+    const rejectionRate = totalDocuments > 0 ? ((documentStats?.rejected || 0) / totalDocuments * 100).toFixed(1) : '0.0'
+    const approvalRate = totalDocuments > 0 ? (approvedDocuments / totalDocuments * 100).toFixed(1) : '0.0'
+    
+    // Estatísticas de assinaturas
+    const totalSignatures = signatures.length
+    const completedSignatures = signatures.filter(s => s.status === 'completed').length
+    const pendingSignatures = signatures.filter(s => s.status === 'pending').length
+    
+    // Estatísticas de aprovações
+    const totalApprovals = myApprovals?.length || 0
+    const pendingApprovals = myApprovals?.filter(a => a.status === 'pending').length || 0
+    const approvedByMe = myApprovals?.filter(a => a.status === 'approved').length || 0
+    
+    // Estatísticas de notificações
+    const totalNotifications = notificationStats?.total_sent || 0
+    const notificationOpenRate = notificationStats?.open_rate || 0
+    
+    // Dados para gráficos
+    const documentsByStatus = [
+      { name: 'Aprovados', value: approvedDocuments, color: 'hsl(var(--trackdoc-blue))' },
+      { name: 'Pendentes', value: pendingDocuments, color: 'hsl(var(--trackdoc-blue-dark))' },
+      { name: 'Rascunhos', value: draftDocuments, color: 'hsl(var(--trackdoc-gray))' },
+      { name: 'Rejeitados', value: documentStats?.rejected || 0, color: 'hsl(var(--destructive))' }
+    ]
+    
+    // Calcular produtividade semanal baseada em dados reais
+    const productivityData = (() => {
+      const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+      const today = new Date()
+      const startOfWeek = new Date(today)
+      startOfWeek.setDate(today.getDate() - today.getDay() + 1) // Segunda-feira
+      
+      return days.map((day, index) => {
+        const dayDate = new Date(startOfWeek)
+        dayDate.setDate(startOfWeek.getDate() + index)
+        const dayStart = new Date(dayDate)
+        dayStart.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(dayDate)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        // Contar documentos criados neste dia
+        const dayDocuments = documents.filter(doc => {
+          const docDate = new Date(doc.created_at)
+          return docDate >= dayStart && docDate <= dayEnd
+        }).length
+        
+        // Contar aprovações neste dia (baseado em documentos aprovados)
+        const dayApprovals = documents.filter(doc => {
+          const docDate = new Date(doc.updated_at)
+          return doc.status === 'approved' && docDate >= dayStart && docDate <= dayEnd
+        }).length
+        
+        // Contar assinaturas neste dia (baseado em assinaturas completadas)
+        const daySignatures = signatures.filter(sig => {
+          const sigDate = new Date(sig.updated_at)
+          return sig.status === 'completed' && sigDate >= dayStart && sigDate <= dayEnd
+        }).length
+        
+        return {
+          name: day,
+          documents: dayDocuments,
+          approvals: dayApprovals,
+          signatures: daySignatures
+        }
+      })
+    })()
+
+    const departmentData = entityStats?.documents_by_category?.map(cat => ({
+      name: cat.category,
+      documents: cat.count,
+      color: cat.color || '#3b82f6'
+    })) || []
+
+    return (
+      <div className="space-y-6">
+        {/* Header com Refresh */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-trackdoc-black">Dashboard Executivo</h1>
+            <p className="text-trackdoc-gray mt-1">Visão geral completa do sistema TrackDoc</p>
+          </div>
+          <Button 
+            onClick={refreshEntityStats} 
+            variant="outline" 
+            size="sm"
+            disabled={entityStatsLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${entityStatsLoading ? 'animate-spin' : ''}`} />
+            Atualizar Dados
+          </Button>
+        </div>
+
+        {/* KPIs Principais */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardHeader className="relative pb-3">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors duration-300">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{totalDocuments}</div>
+                  <div className="text-sm text-gray-500 font-medium">Total de Documentos</div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative pt-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-green-50">
+                    <TrendingUp className="h-3 w-3 text-green-600" />
+                    <span className="text-xs font-semibold text-green-700">+{approvalRate}%</span>
+                  </div>
+                  <span className="text-xs text-gray-500">aprovados</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-amber-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardHeader className="relative pb-3">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-amber-50 group-hover:bg-amber-100 transition-colors duration-300">
+                  <Clock className="h-6 w-6 text-amber-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{pendingApprovals}</div>
+                  <div className="text-sm text-gray-500 font-medium">Aprovações Pendentes</div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative pt-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
+                    <Target className="h-3 w-3 text-gray-600" />
+                    <span className="text-xs font-semibold text-gray-700">{totalApprovals}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">total</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardHeader className="relative pb-3">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-purple-50 group-hover:bg-purple-100 transition-colors duration-300">
+                  <PenTool className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{completedSignatures}</div>
+                  <div className="text-sm text-gray-500 font-medium">Assinaturas Digitais</div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative pt-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
+                    <Timer className="h-3 w-3 text-gray-600" />
+                    <span className="text-xs font-semibold text-gray-700">{pendingSignatures}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">pendentes</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-red-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <CardHeader className="relative pb-3">
+              <div className="flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-red-50 group-hover:bg-red-100 transition-colors duration-300">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{rejectionRate}%</div>
+                  <div className="text-sm text-gray-500 font-medium">Taxa de Rejeição</div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="relative pt-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${parseFloat(rejectionRate) > 10 ? 'bg-red-50' : 'bg-green-50'}`}>
+                    {parseFloat(rejectionRate) > 10 ? (
+                      <ArrowUpRight className="h-3 w-3 text-red-600" />
+                    ) : (
+                      <ArrowDownRight className="h-3 w-3 text-green-600" />
+                    )}
+                    <span className={`text-xs font-semibold ${parseFloat(rejectionRate) > 10 ? 'text-red-700' : 'text-green-700'}`}>
+                      {parseFloat(rejectionRate) > 10 ? "Alto" : "Baixo"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Gráficos Principais */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Produtividade Semanal */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-trackdoc-blue" />
+                Produtividade Semanal
+              </CardTitle>
+              <CardDescription>Atividade dos últimos 7 dias</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={productivityData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--trackdoc-gray-light))" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12, fill: "hsl(var(--trackdoc-gray))" }} />
+                    <YAxis tick={{ fontSize: 12, fill: "hsl(var(--trackdoc-gray))" }} />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px hsla(var(--trackdoc-blue) / 0.1)"
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="documents" fill="hsl(var(--trackdoc-blue))" name="Documentos" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="approvals" fill="hsl(var(--success))" name="Aprovações" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="signatures" fill="hsl(var(--trackdoc-blue-dark))" name="Assinaturas" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Status dos Documentos */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5 text-trackdoc-blue" />
+                Status dos Documentos
+              </CardTitle>
+              <CardDescription>Distribuição atual por status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={documentsByStatus}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={120}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {documentsByStatus.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+                      }}
+                    />
+                    <Legend />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Métricas Avançadas */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Atividade Recente */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-blue-600" />
+                Atividade Recente
+              </CardTitle>
+              <CardDescription>Últimas ações no sistema</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {entityStats?.recent_activity?.slice(0, 5).map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {activity.action}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {activity.user_name} • {new Date(activity.created_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-center py-4 text-gray-500">
+                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhuma atividade recente</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Documentos por Categoria */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5 text-green-600" />
+                Documentos por Categoria
+              </CardTitle>
+              <CardDescription>Distribuição por categorias</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {departmentData.slice(0, 5).map((category, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: category.color }}
+                    ></div>
+                    <span className="text-sm font-medium text-gray-900">{category.name}</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-gray-100">
+                    {category.documents}
+                  </Badge>
+                </div>
+              )) || (
+                <div className="text-center py-4 text-gray-500">
+                  <Tag className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhuma categoria encontrada</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Resumo de Performance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-yellow-600" />
+                Resumo de Performance
+              </CardTitle>
+              <CardDescription>Métricas de eficiência</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-green-50">
+                <div className="flex items-center space-x-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="text-sm font-medium text-gray-900">Taxa de Aprovação</span>
+                </div>
+                <span className="text-lg font-bold text-green-600">{approvalRate}%</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50">
+                <div className="flex items-center space-x-3">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-900">Usuários Ativos</span>
+                </div>
+                <span className="text-lg font-bold text-blue-600">{entityStats?.active_users || 0}</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50">
+                <div className="flex items-center space-x-3">
+                  <Bell className="h-5 w-5 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-900">Taxa de Abertura</span>
+                </div>
+                <span className="text-lg font-bold text-purple-600">{notificationOpenRate.toFixed(1)}%</span>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50">
+                <div className="flex items-center space-x-3">
+                  <Timer className="h-5 w-5 text-orange-600" />
+                  <span className="text-sm font-medium text-gray-900">Tempo Médio</span>
+                </div>
+                <span className="text-lg font-bold text-orange-600">
+                  {(() => {
+                    // Calcular tempo médio baseado em dados reais
+                    if (documents.length === 0) return '0h'
+                    
+                    const now = new Date()
+                    const totalTime = documents.reduce((sum, doc) => {
+                      const created = new Date(doc.created_at)
+                      const updated = new Date(doc.updated_at)
+                      const diffHours = (updated.getTime() - created.getTime()) / (1000 * 60 * 60)
+                      return sum + Math.max(0, diffHours)
+                    }, 0)
+                    
+                    const avgHours = totalTime / documents.length
+                    return avgHours < 1 ? `${Math.round(avgHours * 60)}min` : `${avgHours.toFixed(1)}h`
+                  })()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Ações Rápidas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-blue-600" />
+              Ações Rápidas
+            </CardTitle>
+            <CardDescription>Atalhos para tarefas comuns</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground">+12% em relação ao mês anterior</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button 
+                onClick={() => setShowCreationSelector(true)}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                variant="outline"
+              >
+                <Plus className="h-6 w-6" />
+                <span className="text-sm font-medium">Novo Documento</span>
+              </Button>
+              
+              <Button 
+                onClick={() => setActiveView('electronic-signature')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                variant="outline"
+              >
+                <PenTool className="h-6 w-6" />
+                <span className="text-sm font-medium">Assinar Documento</span>
+              </Button>
+              
+              <Button 
+                onClick={() => setActiveView('approvals')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-200"
+                variant="outline"
+              >
+                <CheckCircle className="h-6 w-6" />
+                <span className="text-sm font-medium">Revisar Aprovações</span>
+              </Button>
+              
+              <Button 
+                onClick={() => setActiveView('notifications')}
+                className="h-20 flex flex-col items-center justify-center space-y-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                variant="outline"
+              >
+                <Bell className="h-6 w-6" />
+                <span className="text-sm font-medium">Ver Notificações</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick("approved")}>
+  const renderDocuments = () => (
+    <div className="space-y-6">
+      <DocumentList />
+    </div>
+  )
+
+  const renderApprovals = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Aprovações</h1>
+          <p className="text-gray-600">
+            Gerencie documentos pendentes de aprovação e acompanhe o status dos workflows
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+        </div>
+      </div>
+
+      {/* Estatísticas de Aprovação */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total de Aprovações</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{myApprovals?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Documentos para aprovar
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {myApprovals?.filter(a => a.status === 'pending').length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Aguardando sua ação
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Aprovados</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.approved}</div>
-            <p className="text-xs text-muted-foreground">Taxa de aprovação: 85%</p>
+            <div className="text-2xl font-bold text-green-600">
+              {myApprovals?.filter(a => a.status === 'approved').length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Documentos aprovados por você
+            </p>
           </CardContent>
         </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick("pending")}>
+        
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <CardTitle className="text-sm font-medium">Rejeitados</CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pending}</div>
-            <p className="text-xs text-muted-foreground">Aguardando aprovação</p>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleCardClick("draft")}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rascunhos</CardTitle>
-            <AlertCircle className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.draft}</div>
-            <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
+            <div className="text-2xl font-bold text-red-600">
+              {myApprovals?.filter(a => a.status === 'rejected').length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Documentos rejeitados por você
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfico de Evolução Mensal */}
+      {/* Documentos Pendentes de Aprovação */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle>Evolução Mensal de Documentos por Área</CardTitle>
-              <CardDescription>Criação de novos documentos nos últimos 7 meses</CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Select value={chartAreaFilter} onValueChange={setChartAreaFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Área" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as Áreas</SelectItem>
-                  <SelectItem value="TI">TI</SelectItem>
-                  <SelectItem value="Vendas">Vendas</SelectItem>
-                  <SelectItem value="RH">RH</SelectItem>
-                  <SelectItem value="Financeiro">Financeiro</SelectItem>
-                  <SelectItem value="Diretoria">Diretoria</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={chartTypeFilter} onValueChange={setChartTypeFilter}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Tipos</SelectItem>
-                  <SelectItem value="Política">Política</SelectItem>
-                  <SelectItem value="Procedimento">Procedimento</SelectItem>
-                  <SelectItem value="Relatório">Relatório</SelectItem>
-                  <SelectItem value="Ata">Ata</SelectItem>
-                  <SelectItem value="Manual">Manual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-yellow-600" />
+            Documentos Pendentes de Aprovação
+          </CardTitle>
+          <CardDescription>
+            Documentos que aguardam sua aprovação ou rejeição
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={monthlyEvolutionData}
-                margin={{
-                  top: 20,
-                  right: 30,
-                  left: 20,
-                  bottom: 20,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 12, fill: "#6b7280" }}
-                  axisLine={{ stroke: "#e5e7eb" }}
-                  tickLine={{ stroke: "#e5e7eb" }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: "#6b7280" }}
-                  axisLine={{ stroke: "#e5e7eb" }}
-                  tickLine={{ stroke: "#e5e7eb" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                    fontSize: "14px",
-                  }}
-                  labelStyle={{ color: "#374151", fontWeight: "600" }}
-                />
-                <Legend wrapperStyle={{ paddingTop: "20px" }} />
-
-                {/* Renderizar linhas baseado no filtro de área */}
-                {(chartAreaFilter === "all" || chartAreaFilter === "TI") && (
-                  <Line
-                    type="monotone"
-                    dataKey="TI"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    dot={{ fill: "#3b82f6", strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 7, stroke: "#3b82f6", strokeWidth: 2, fill: "#ffffff" }}
-                  />
-                )}
-                {(chartAreaFilter === "all" || chartAreaFilter === "Vendas") && (
-                  <Line
-                    type="monotone"
-                    dataKey="Vendas"
-                    stroke="#10b981"
-                    strokeWidth={3}
-                    dot={{ fill: "#10b981", strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 7, stroke: "#10b981", strokeWidth: 2, fill: "#ffffff" }}
-                  />
-                )}
-                {(chartAreaFilter === "all" || chartAreaFilter === "RH") && (
-                  <Line
-                    type="monotone"
-                    dataKey="RH"
-                    stroke="#f59e0b"
-                    strokeWidth={3}
-                    dot={{ fill: "#f59e0b", strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 7, stroke: "#f59e0b", strokeWidth: 2, fill: "#ffffff" }}
-                  />
-                )}
-                {(chartAreaFilter === "all" || chartAreaFilter === "Financeiro") && (
-                  <Line
-                    type="monotone"
-                    dataKey="Financeiro"
-                    stroke="#8b5cf6"
-                    strokeWidth={3}
-                    dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 7, stroke: "#8b5cf6", strokeWidth: 2, fill: "#ffffff" }}
-                  />
-                )}
-                {(chartAreaFilter === "all" || chartAreaFilter === "Diretoria") && (
-                  <Line
-                    type="monotone"
-                    dataKey="Diretoria"
-                    stroke="#ef4444"
-                    strokeWidth={3}
-                    dot={{ fill: "#ef4444", strokeWidth: 2, r: 5 }}
-                    activeDot={{ r: 7, stroke: "#ef4444", strokeWidth: 2, fill: "#ffffff" }}
-                  />
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Resumo das tendências - filtrado */}
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-            {Object.entries(departmentColors)
-              .filter(([dept]) => chartAreaFilter === "all" || chartAreaFilter === dept)
-              .map(([dept, color]) => {
-                // Estes dados agora dependem de monthlyEvolutionData, que está vazio.
-                // Em um cenário real, você buscaria esses dados de uma API.
-                const currentMonth =
-                  monthlyEvolutionData.length > 0 ? monthlyEvolutionData[monthlyEvolutionData.length - 1][dept] : 0
-                const previousMonth =
-                  monthlyEvolutionData.length > 1 ? monthlyEvolutionData[monthlyEvolutionData.length - 2][dept] : 0
-                const growth =
-                  previousMonth !== 0 ? (((currentMonth - previousMonth) / previousMonth) * 100).toFixed(1) : "N/A"
-                const isPositive = Number.parseFloat(growth) > 0
-
-                return (
-                  <div key={dept} className="text-center p-4 border rounded-lg bg-gray-50/50">
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></div>
-                      <span className="font-medium text-sm">{dept}</span>
-                    </div>
-                    <div className="text-xl font-bold text-gray-900">{currentMonth}</div>
-                    <div className={`text-xs font-medium ${isPositive ? "text-green-600" : "text-red-600"}`}>
-                      {isPositive ? "+" : ""}
-                      {growth}% vs mês anterior
-                    </div>
-                  </div>
-                )
-              })}
-          </div>
-
-          {/* Indicador de filtro ativo */}
-          {(chartAreaFilter !== "all" || chartTypeFilter !== "all") && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <span>Filtros ativos:</span>
-              {chartAreaFilter !== "all" && <Badge variant="secondary">Área: {chartAreaFilter}</Badge>}
-              {chartTypeFilter !== "all" && <Badge variant="secondary">Tipo: {chartTypeFilter}</Badge>}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setChartAreaFilter("all")
-                  setChartTypeFilter("all")
-                }}
-                className="text-blue-600 hover:text-blue-700"
-              >
-                Limpar filtros
-              </Button>
+          {approvalsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+              <span className="ml-2 text-gray-500">Carregando aprovações...</span>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity and Department Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Atividade Recente</CardTitle>
-            <CardDescription>Últimas ações realizadas no sistema</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Atividade recente agora vazia, esperando dados reais */}
-            <div className="text-center py-4 text-gray-500">
-              <p>Nenhuma atividade recente para exibir.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Documentos por Setor</CardTitle>
-            <CardDescription>Distribuição de documentos por departamento</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Distribuição por setor agora vazia, esperando dados reais */}
-            <div className="text-center py-4 text-gray-500">
-              <p>Nenhum dado de distribuição por setor para exibir.</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-
-  const renderDocuments = () => (
-    <div className="space-y-6">
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar documentos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="draft">Rascunho</SelectItem>
-                <SelectItem value="pending">Em Aprovação</SelectItem>
-                <SelectItem value="approved">Aprovado</SelectItem>
-                <SelectItem value="rejected">Rejeitado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sectorFilter} onValueChange={setSectorFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Setor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Setores</SelectItem>
-                <SelectItem value="TI">TI</SelectItem>
-                <SelectItem value="Vendas">Vendas</SelectItem>
-                <SelectItem value="RH">RH</SelectItem>
-                <SelectItem value="Diretoria">Diretoria</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Documents List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Documentos ({filteredDocuments.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {filteredDocuments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum documento encontrado.</p>
-              </div>
-            ) : (
-              filteredDocuments.map((doc) => {
-                const fileTypeInfo = getFileTypeIcon(doc.fileType)
-                const FileIcon = fileTypeInfo.icon
-
-                return (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => handleDocumentClick(doc)}
-                  >
+          ) : myApprovals && myApprovals.length > 0 ? (
+            <div className="space-y-4">
+              {myApprovals
+                .filter(approval => approval.status === 'pending')
+                .map((approval) => (
+                  <div key={approval.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <FileIcon className={`h-5 w-5 ${fileTypeInfo.color}`} />
-                        <div>
-                          <h3 className="font-medium hover:text-blue-600 transition-colors">{doc.title}</h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                            <span>{doc.number}</span>
-                            <span>v{doc.version}</span>
-                            <span>{doc.author}</span>
-                            <span>{doc.sector}</span>
-                            {doc.fileName && <span>{doc.fileName}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Badge className={statusColors[doc.status]}>{statusLabels[doc.status]}</Badge>
-                      {doc.status === "pending" && (
-                        <div className="text-sm text-gray-500">
-                          {doc.approvals}/{doc.totalApprovals} aprovações
-                        </div>
+                      <h3 className="font-medium">{approval.document_title || 'Documento sem título'}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Autor: {approval.document_author_name || 'N/A'} • 
+                        Criado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                      {approval.comments && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          <strong>Comentários:</strong> {approval.comments}
+                        </p>
                       )}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">{renderDocumentActions(doc)}</DropdownMenuContent>
-                      </DropdownMenu>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedApproval(approval)
+                          setShowApprovalReviewModal(true)
+                        }}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Revisar
+                      </Button>
                     </div>
                   </div>
-                )
-              })
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-
-  const renderApprovals = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Aprovações Pendentes</CardTitle>
-        <CardDescription>Documentos aguardando sua aprovação</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {documents.filter((doc) => doc.status === "pending").length === 0 ? (
+                ))}
+            </div>
+          ) : (
             <div className="text-center py-8 text-gray-500">
               <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhum documento pendente de aprovação.</p>
+              <p className="text-sm mt-2">Você está em dia com suas aprovações!</p>
             </div>
-          ) : (
-            documents
-              .filter((doc) => doc.status === "pending")
-              .map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium">{doc.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {doc.number} • v{doc.version} • {doc.author} • {doc.sector}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedDocument(doc)
-                        setShowApprovalModal(true)
-                      }}
-                    >
-                      Revisar
-                    </Button>
-                  </div>
-                </div>
-              ))
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Histórico de Aprovações */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-600" />
+            Histórico de Aprovações
+          </CardTitle>
+          <CardDescription>
+            Acompanhe documentos que você enviou para aprovação e decisões que você tomou
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* Documentos Enviados para Aprovação */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <User className="h-4 w-4 text-blue-600" />
+                Documentos que você enviou para aprovação
+              </h4>
+              {sentApprovals && sentApprovals.length > 0 ? (
+                <div className="space-y-3">
+                  {sentApprovals.map((approval) => (
+                    <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
+                      <div className="flex-1">
+                        <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
+                        <p className="text-sm text-gray-500">
+                          Status: {(approval.status as string) === 'pending_approval' ? 'Aguardando Aprovação' : 
+                                   (approval.status as string) === 'approved' ? 'Aprovado' : 
+                                   (approval.status as string) === 'rejected' ? 'Rejeitado' : approval.status}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={approval.status === 'approved' ? 'default' : 
+                                   approval.status === 'rejected' ? 'destructive' : 'secondary'}
+                          className={approval.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                                   approval.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+                                   'bg-yellow-100 text-yellow-800'}
+                        >
+                          {approval.status === 'approved' ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Aprovado
+                            </>
+                          ) : approval.status === 'rejected' ? (
+                            <>
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Rejeitado
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pendente
+                            </>
+                          )}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedApprovalForDetails(approval)
+                            setShowApprovalDetailsModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Detalhes
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum documento enviado para aprovação.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Decisões de Aprovação que você tomou */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                Decisões de aprovação que você tomou
+              </h4>
+              {myApprovals && myApprovals.filter(a => a.status !== 'pending').length > 0 ? (
+                <div className="space-y-3">
+                  {myApprovals
+                    .filter(approval => approval.status !== 'pending')
+                    .map((approval) => (
+                      <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
+                        <div className="flex-1">
+                          <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
+                          <p className="text-sm text-gray-500">
+                            {(approval.status as string) === 'approved' ? 'Aprovado' : 'Rejeitado'} em{' '}
+                            {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR') : 'Data não disponível'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            Autor: {approval.document_author_name || 'N/A'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant={(approval.status as string) === 'approved' ? 'default' : 'destructive'}
+                            className={(approval.status as string) === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                          >
+                            {(approval.status as string) === 'approved' ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Aprovado
+                              </>
+                            ) : (
+                              <>
+                                <XCircle className="h-3 w-3 mr-1" />
+                                Rejeitado
+                              </>
+                            )}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedApprovalForDetails(approval)
+                              setShowApprovalDetailsModal(true)
+                            }}
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Detalhes
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  <CheckCircle className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                  <p>Nenhuma decisão de aprovação tomada.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 
   const renderAdmin = () => {
@@ -848,7 +1347,7 @@ export default function DocumentManagementPlatform() {
               className="text-blue-600 hover:text-blue-700"
             >
               <ChevronLeft className="h-4 w-4 mr-2" />
-              Voltar para Visão Geral da Administração
+              Voltar para Visao Geral da Administracao
             </Button>
           </div>
         )}
@@ -856,11 +1355,12 @@ export default function DocumentManagementPlatform() {
           // Wrap the switch in an IIFE to allow it to be a direct child of the div
           switch (adminView) {
             case "users":
-              return <UserManagement />
-            case "workflows":
-              return <WorkflowManagement />
+              return <EntityUserManagement />
             case "document-types":
-              return <DocumentTypeManagement />
+              return <DocumentTypeManagement 
+                initialDocumentTypes={documentTypes as any || []} 
+                totalDocuments={documents.length}
+              />
             case "productivity-report":
               return <ProductivityReport />
             case "approval-time-report":
@@ -873,8 +1373,15 @@ export default function DocumentManagementPlatform() {
               return <DepartmentManagement />
             case "categories":
               return <CategoryManagement />
+            case "entity-users":
+              return <EntityUserManagement />
             case "billing":
-              return <BillingManagement />
+              return (
+                <div className="space-y-6">
+                  <BillingStats />
+                  <BillingManagement />
+                </div>
+              )
             default:
               return renderAdminOverview()
           }
@@ -887,24 +1394,16 @@ export default function DocumentManagementPlatform() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Configurações do Sistema</CardTitle>
+          <CardTitle>Configuracoes do Sistema</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
             variant="outline"
             className="w-full justify-start bg-transparent"
-            onClick={() => setAdminView("users")}
+            onClick={() => setAdminView("entity-users")}
           >
-            <Users className="h-4 w-4 mr-2" />
-            Gerenciar Usuários
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start bg-transparent"
-            onClick={() => setAdminView("workflows")}
-          >
-            <Filter className="h-4 w-4 mr-2" />
-            Configurar Fluxos de Aprovação
+            <Building2 className="h-4 w-4 mr-2" />
+            Usuarios da Entidade
           </Button>
           <Button
             variant="outline"
@@ -943,7 +1442,7 @@ export default function DocumentManagementPlatform() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Relatórios</CardTitle>
+          <CardTitle>Relatorios</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
@@ -952,7 +1451,7 @@ export default function DocumentManagementPlatform() {
             onClick={() => setAdminView("productivity-report")}
           >
             <TrendingUp className="h-4 w-4 mr-2" />
-            Relatório de Produtividade
+            Relatorio de Produtividade
           </Button>
           <Button
             variant="outline"
@@ -960,7 +1459,7 @@ export default function DocumentManagementPlatform() {
             onClick={() => setAdminView("approval-time-report")}
           >
             <Clock className="h-4 w-4 mr-2" />
-            Tempo de Aprovação
+            Tempo de Aprovacao
           </Button>
           <Button
             variant="outline"
@@ -983,46 +1482,41 @@ export default function DocumentManagementPlatform() {
     </div>
   )
 
-  // Nova função para lidar com a mudança de visão, incluindo o reset do adminView
+  // Nova funcao para lidar com a mudanca de visao, incluindo o reset do adminView
   const handleViewChange = (view: string) => {
     setActiveView(view)
     if (view === "admin") {
-      setAdminView("overview") // Reseta para a visão geral da administração
+      setAdminView("overview") // Reseta para a visao geral da administracao
     }
   }
 
-  const handleCreationOptionSelect = (option: "upload" | "manual" | "ai") => {
-    if (option === "upload") {
-      // Fluxo existente de upload
-      setSelectedDocument(null)
-      setDocumentModalMode("create")
-      setShowDocumentModal(true)
-    } else if (option === "manual") {
-      setActiveView("editor")
-    } else if (option === "ai") {
-      // Redirecionar para aba de criação com IA
-      setActiveView("ai-create")
-    }
+  const handleCreationOptionSelect = (option: "upload") => {
+    // Abrir modal de upload diretamente
+    setShowUploadModal(true)
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-trackdoc-blue-light/30">
       <Sidebar activeView={activeView} onViewChange={handleViewChange} pendingApprovalsCount={stats.pending} />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="bg-white/95 backdrop-blur-sm border-b border-trackdoc-blue-light px-6 py-4 shadow-trackdoc">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-trackdoc-black">
                   {activeView === "dashboard" && "Dashboard"}
                   {activeView === "documents" && "Documentos"}
-                  {activeView === "approvals" && "Aprovações"}
-                  {activeView === "editor" && "Editor de Documentos"} {/* Added editor title */}
-                  {activeView === "ai-create" && "Criar com IA"}
-                  {activeView === "notifications" && "Notificações"}
-                  {activeView === "admin" && "Administração"}
+                  {activeView === "approvals" && "Aprovacoes"}
+          
+                                  {activeView === "ai-create" && "Criar com IA"}
+                {activeView === "electronic-signature" && "Assinatura Eletrônica"}
+                {/* {activeView === "document-workflow" && "Tramitação de Documentos"} */}
+                {activeView === "notifications" && "Notificacoes"}
+                {activeView === "chat" && "Chat"}
+                  {activeView === "admin" && "Administracao"}
                   {activeView === "help" && "Central de Ajuda"}
+                  {activeView === "minha-conta" && "Minha Conta"}
                 </h1>
                 {activeView === "admin" && adminView !== "overview" && (
                   <>
@@ -1033,11 +1527,10 @@ export default function DocumentManagementPlatform() {
                       onClick={() => setAdminView("overview")}
                       className="text-blue-600 hover:text-blue-700"
                     >
-                      {adminView === "users" && "Gerenciar Usuários"}
-                      {adminView === "workflows" && "Fluxos de Aprovação"}
+                      {adminView === "users" && "Gerenciar Usuarios"}
                       {adminView === "document-types" && "Tipos de Documento"}
-                      {adminView === "productivity-report" && "Relatório de Produtividade"}
-                      {adminView === "approval-time-report" && "Tempo de Aprovação"}
+                      {adminView === "productivity-report" && "Relatorio de Produtividade"}
+                      {adminView === "approval-time-report" && "Tempo de Aprovacao"}
                       {adminView === "audit-report" && "Auditoria Completa"}
                       {adminView === "document-access-report" && "Documentos Mais Acessados"}
                       {adminView === "departments" && "Gerenciar Departamentos"}
@@ -1048,15 +1541,17 @@ export default function DocumentManagementPlatform() {
                 )}
               </div>
               <p className="text-gray-600 text-sm mt-1">
-                {activeView === "dashboard" && "Visão geral do sistema"}
+                {activeView === "dashboard" && "Visao geral do sistema"}
                 {activeView === "documents" && "Gerencie todos os documentos"}
-                {activeView === "approvals" && "Documentos pendentes de aprovação"}
-                {activeView === "editor" && "Crie documentos diretamente na plataforma"}{" "}
-                {/* Added editor description */}
-                {activeView === "ai-create" && "Gere documentos profissionais usando inteligência artificial"}
-                {activeView === "notifications" && "Gerencie notificações e comunicações"}
+                {activeView === "approvals" && "Documentos pendentes de aprovacao"}
+                
+                {activeView === "ai-create" && "Gere documentos profissionais usando inteligencia artificial"}
+                {activeView === "electronic-signature" && "Assine documentos eletronicamente usando o ArqSign"}
+                {activeView === "notifications" && "Gerencie notificacoes e comunicacoes"}
+                {activeView === "chat" && "Comunique-se com outros usuários da entidade"}
                 {/* ... existing admin descriptions ... */}
-                {activeView === "help" && "Encontre respostas, tutoriais e suporte técnico"}
+                {activeView === "help" && "Encontre respostas, tutoriais e suporte tecnico"}
+                {activeView === "minha-conta" && "Gerencie suas informações pessoais e configurações da conta"}
               </p>
             </div>
             <Button
@@ -1088,7 +1583,7 @@ export default function DocumentManagementPlatform() {
               </div>
             ) : (
               getDocumentsByCategory(documentListFilter).map((doc) => {
-                const fileTypeInfo = getFileTypeIcon(doc.fileType)
+                const fileTypeInfo = getFileTypeIcon(doc.file_type || '')
                 const FileIcon = fileTypeInfo.icon
 
                 return (
@@ -1104,22 +1599,22 @@ export default function DocumentManagementPlatform() {
                       <div className="flex items-center space-x-3">
                         <FileIcon className={`h-5 w-5 ${fileTypeInfo.color}`} />
                         <div>
-                          <h3 className="font-medium hover:text-blue-600 transition-colors">{doc.title}</h3>
+                          <h3 className="font-medium hover:text-trackdoc-blue transition-colors">{doc.title}</h3>
                           <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                            <span>{doc.number}</span>
+                            <span>{doc.document_number || ''}</span>
                             <span>v{doc.version}</span>
-                            <span>{doc.author}</span>
-                            <span>{doc.sector}</span>
-                            {doc.fileName && <span>{doc.fileName}</span>}
+                            <span>{doc.author?.full_name || ''}</span>
+                            <span>{doc.department?.name || ''}</span>
+                            {doc.file_name && <span>{doc.file_name}</span>}
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <Badge className={statusColors[doc.status]}>{statusLabels[doc.status]}</Badge>
-                      {doc.status === "pending" && (
+                      {doc.status === "pending_approval" && (
                         <div className="text-sm text-gray-500">
-                          {doc.approvals}/{doc.totalApprovals} aprovações
+                          Aguardando aprovação
                         </div>
                       )}
                       <DropdownMenu>
@@ -1147,10 +1642,11 @@ export default function DocumentManagementPlatform() {
         mode={documentModalMode}
         onSave={(doc) => {
           if (documentModalMode === "create") {
-            setDocuments((docs) => [...docs, { ...doc, id: Date.now() }])
+            // setDocuments removido - use createDocument do hook useDocuments
+            console.log('Documento criado via hook useDocuments')
           } else if (documentModalMode === "new-version") {
-            // Criar nova versão do documento
-            const currentVersion = Number.parseFloat(selectedDocument.version)
+            // Criar nova versao do documento
+            const currentVersion = Number.parseFloat(selectedDocument?.version || '1')
             const newVersion = (Math.floor(currentVersion) + 1).toFixed(1)
             const newDoc = {
               ...doc,
@@ -1160,9 +1656,11 @@ export default function DocumentManagementPlatform() {
               createdAt: new Date().toISOString().split("T")[0],
               updatedAt: new Date().toISOString().split("T")[0],
             }
-            setDocuments((docs) => [...docs, newDoc])
+                          // setDocuments removido - use createDocument do hook useDocuments
+              console.log('Nova versão criada via hook useDocuments')
           } else {
-            setDocuments((docs) => docs.map((d) => (d.id === selectedDocument.id ? { ...d, ...doc } : d)))
+                          // setDocuments removido - use updateDocument do hook useDocuments
+              console.log('Documento atualizado via hook useDocuments')
           }
           setShowDocumentModal(false)
           setSelectedDocument(null)
@@ -1175,7 +1673,7 @@ export default function DocumentManagementPlatform() {
         onOpenChange={setShowDocumentPreview}
         document={selectedDocument}
         onEdit={handleEditFromPreview}
-        onDownload={() => handleDownloadFromPreview(selectedDocument)} // Use a nova função aqui
+        onDownload={() => handleDownloadFromPreview(selectedDocument)} // Use a nova funcao aqui
         onViewAudit={handleViewAuditFromPreview}
       />
 
@@ -1185,24 +1683,74 @@ export default function DocumentManagementPlatform() {
         document={selectedDocument}
         onApprove={(decision) => {
           if (selectedDocument) {
-            setDocuments((docs) =>
-              docs.map((d) =>
-                d.id === selectedDocument.id ? { ...d, status: decision.approved ? "approved" : "rejected" } : d,
-              ),
-            )
+            // setDocuments removido - use changeDocumentStatus do hook useDocuments
+            console.log('Status do documento alterado via hook useDocuments')
           }
           setShowApprovalModal(false)
           setSelectedDocument(null)
         }}
       />
 
+                     <ApprovalReviewModal
+          open={showApprovalReviewModal}
+          onOpenChange={setShowApprovalReviewModal}
+          approval={selectedApproval}
+          onSuccess={() => {
+            setShowApprovalReviewModal(false)
+            setSelectedApproval(null)
+          }}
+        />
+        
+        <ApprovalDetailsModal
+          open={showApprovalDetailsModal}
+          onOpenChange={setShowApprovalDetailsModal}
+          approval={selectedApprovalForDetails}
+        />
+
       <AuditModal open={showAuditModal} onOpenChange={setShowAuditModal} document={selectedDocument} />
+
+      {/* Fixed Quick Search Modal */}
+      <FixedQuickSearchModal
+        open={showQuickSearch}
+        onOpenChange={setShowQuickSearch}
+        onDocumentSelect={(documentId) => {
+          console.log('📄 [DOCUMENT_SELECT] ID recebido:', documentId)
+          console.log('📄 [DOCUMENT_SELECT] Total de documentos:', documents.length)
+          
+          // Buscar o documento pelo ID e abrir o modal de auditoria
+          const document = documents.find(doc => doc.id === documentId)
+          console.log('📄 [DOCUMENT_SELECT] Documento encontrado:', document)
+          
+          if (document) {
+            console.log('📄 [DOCUMENT_SELECT] Abrindo modal de auditoria')
+            setSelectedDocument(document)
+            setShowAuditModal(true)
+          } else {
+            console.log('📄 [DOCUMENT_SELECT] Documento não encontrado na lista')
+          }
+        }}
+      />
 
       <DocumentCreationSelector
         open={showCreationSelector}
         onOpenChange={setShowCreationSelector}
         onSelectOption={handleCreationOptionSelect}
       />
+
+      {/* Upload Modal */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Upload de Documento</DialogTitle>
+            <DialogDescription>
+              Faca upload de um novo documento para o sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 max-h-[calc(90vh-120px)]">
+            <DocumentUploadWithApproval onSuccess={() => setShowUploadModal(false)} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
-}
+})

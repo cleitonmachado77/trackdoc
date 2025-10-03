@@ -11,6 +11,12 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-secondary-foreground",
         destructive: "border-transparent bg-destructive text-destructive-foreground",
         outline: "text-foreground",
+        // 🎨 Variantes específicas do TrackDoc
+        trackdoc: "border-transparent bg-trackdoc-blue text-white",
+        "trackdoc-light": "border-transparent bg-trackdoc-blue-light text-trackdoc-blue",
+        "trackdoc-dark": "border-transparent bg-trackdoc-blue-dark text-white",
+        success: "border-transparent bg-success text-success-foreground",
+        warning: "border-transparent bg-warning text-warning-foreground",
       },
     },
     defaultVariants: {

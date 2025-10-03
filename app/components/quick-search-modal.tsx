@@ -26,7 +26,7 @@ import {
 } from "lucide-react"
 
 // Mock data para busca
-const mockSearchData = {
+const mockSearchData: SearchResults = {
   documents: [
     {
       id: 1,
@@ -144,7 +144,7 @@ const mockSearchData = {
   ],
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   approved: "bg-green-100 text-green-800",
   pending: "bg-yellow-100 text-yellow-800",
   draft: "bg-gray-100 text-gray-800",
@@ -153,7 +153,7 @@ const statusColors = {
   inactive: "bg-red-100 text-red-800",
 }
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   approved: "Aprovado",
   pending: "Em Aprovação",
   draft: "Rascunho",
@@ -172,6 +172,59 @@ const popularSearches = [
   "relatórios mensais",
 ]
 
+interface SearchDocument {
+  id: number
+  type: string
+  number: string
+  title: string
+  author: string
+  version: string
+  status: string
+  sector: string
+  docType: string
+  createdAt: string
+  tags: string[]
+}
+
+interface SearchUser {
+  id: number
+  type: string
+  name: string
+  email: string
+  role: string
+  department: string
+  status: string
+  avatar: string
+}
+
+interface SearchWorkflow {
+  id: number
+  type: string
+  name: string
+  description: string
+  status: string
+  documentsCount: number
+  steps: number
+}
+
+interface SearchDepartment {
+  id: number
+  type: string
+  name: string
+  shortName: string
+  manager: string
+  employeeCount: number
+  documentsCount: number
+  status: string
+}
+
+interface SearchResults {
+  documents: SearchDocument[]
+  users: SearchUser[]
+  workflows: SearchWorkflow[]
+  departments: SearchDepartment[]
+}
+
 interface QuickSearchModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -180,7 +233,7 @@ interface QuickSearchModalProps {
 export default function QuickSearchModal({ open, onOpenChange }: QuickSearchModalProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
-  const [searchResults, setSearchResults] = useState({
+  const [searchResults, setSearchResults] = useState<SearchResults>({
     documents: [],
     users: [],
     workflows: [],
@@ -194,7 +247,7 @@ export default function QuickSearchModal({ open, onOpenChange }: QuickSearchModa
     if (searchTerm.length > 0) {
       setIsSearching(true)
       const timer = setTimeout(() => {
-        const results = {
+        const results: SearchResults = {
           documents: mockSearchData.documents.filter(
             (item) =>
               item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -415,7 +468,7 @@ export default function QuickSearchModal({ open, onOpenChange }: QuickSearchModa
   )
 }
 
-function SearchSection({ title, icon: Icon, items }) {
+function SearchSection({ title, icon: Icon, items }: { title: string; icon: React.ComponentType<{ className?: string }>; items: any[] }) {
   if (items.length === 0) return null
 
   return (
@@ -434,128 +487,152 @@ function SearchSection({ title, icon: Icon, items }) {
   )
 }
 
-function SearchResultItem({ item }) {
-  const renderDocumentItem = () => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <FileText className="h-5 w-5 text-blue-600" />
-            <div>
-              <h4 className="font-medium">{item.title}</h4>
-              <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
-                <span>{item.number}</span>
-                <span>v{item.version}</span>
-                <span>{item.author}</span>
-                <span>{item.sector}</span>
-                <span className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {item.createdAt}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                {item.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    <Tag className="h-2 w-2 mr-1" />
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
-            <Button variant="ghost" size="sm">
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Edit className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+function SearchResultItem({ item }: { item: SearchDocument | SearchUser | SearchWorkflow | SearchDepartment }) {
+  // Type guard para verificar se é um documento
+  const isDocument = (item: any): item is SearchDocument => item.type === 'document'
+  
+  // Type guard para verificar se é um usuário
+  const isUser = (item: any): item is SearchUser => item.type === 'user'
+  
+  // Type guard para verificar se é um workflow
+  const isWorkflow = (item: any): item is SearchWorkflow => item.type === 'workflow'
+  
+  // Type guard para verificar se é um departamento
+  const isDepartment = (item: any): item is SearchDepartment => item.type === 'department'
 
-  const renderUserItem = () => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{item.avatar}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h4 className="font-medium">{item.name}</h4>
-              <p className="text-sm text-gray-500">{item.email}</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <Badge variant="outline">{item.role}</Badge>
-                <span className="text-sm text-gray-500">{item.department}</span>
+  const renderDocumentItem = () => {
+    if (!isDocument(item)) return null
+    return (
+      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <FileText className="h-5 w-5 text-blue-600" />
+              <div>
+                <h4 className="font-medium">{item.title}</h4>
+                <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                  <span>{item.number}</span>
+                  <span>v{item.version}</span>
+                  <span>{item.author}</span>
+                  <span>{item.sector}</span>
+                  <span className="flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {item.createdAt}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 mt-2">
+                  {item.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      <Tag className="h-2 w-2 mr-1" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
+              <Button variant="ghost" size="sm">
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm">
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
-            <Button variant="ghost" size="sm">
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
 
-  const renderWorkflowItem = () => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <GitBranch className="h-5 w-5 text-purple-600" />
-            <div>
-              <h4 className="font-medium">{item.name}</h4>
-              <p className="text-sm text-gray-500">{item.description}</p>
-              <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
-                <span>{item.documentsCount} documentos</span>
-                <span>{item.steps} etapas</span>
+  const renderUserItem = () => {
+    if (!isUser(item)) return null
+    return (
+      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarFallback>{item.avatar}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h4 className="font-medium">{item.name}</h4>
+                <p className="text-sm text-gray-500">{item.email}</p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Badge variant="outline">{item.role}</Badge>
+                  <span className="text-sm text-gray-500">{item.department}</span>
+                </div>
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
+              <Button variant="ghost" size="sm">
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
-            <Button variant="ghost" size="sm">
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
 
-  const renderDepartmentItem = () => (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Building2 className="h-5 w-5 text-green-600" />
-            <div>
-              <h4 className="font-medium">{item.name}</h4>
-              <p className="text-sm text-gray-500">Gerente: {item.manager}</p>
-              <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
-                <span>{item.employeeCount} funcionários</span>
-                <span>{item.documentsCount} documentos</span>
+  const renderWorkflowItem = () => {
+    if (!isWorkflow(item)) return null
+    return (
+      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <GitBranch className="h-5 w-5 text-purple-600" />
+              <div>
+                <h4 className="font-medium">{item.name}</h4>
+                <p className="text-sm text-gray-500">{item.description}</p>
+                <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                  <span>{item.documentsCount} documentos</span>
+                  <span>{item.steps} etapas</span>
+                </div>
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
+              <Button variant="ghost" size="sm">
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
-            <Button variant="ghost" size="sm">
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const renderDepartmentItem = () => {
+    if (!isDepartment(item)) return null
+    return (
+      <Card className="hover:shadow-md transition-shadow cursor-pointer">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Building2 className="h-5 w-5 text-green-600" />
+              <div>
+                <h4 className="font-medium">{item.name}</h4>
+                <p className="text-sm text-gray-500">Gerente: {item.manager}</p>
+                <div className="flex items-center space-x-3 text-sm text-gray-500 mt-1">
+                  <span>{item.employeeCount} funcionários</span>
+                  <span>{item.documentsCount} documentos</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge className={statusColors[item.status]}>{statusLabels[item.status]}</Badge>
+              <Button variant="ghost" size="sm">
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
 
   switch (item.type) {
     case "document":

@@ -37,7 +37,34 @@ import {
   List,
 } from "lucide-react"
 
-const mockWorkflows = [
+interface Workflow {
+  id: number
+  name: string
+  description: string
+  documentTypes: string[]
+  steps: Array<{
+    id: number
+    name: string
+    users: string[]
+    required: boolean
+  }>
+  status: 'active' | 'inactive'
+  documentsCount: number
+}
+
+interface WorkflowDocument {
+  id: string
+  title: string
+  number: string
+  version: string
+  author: string
+  sector: string
+  createdAt: string
+  status: 'draft' | 'pending' | 'approved' | 'rejected'
+  currentStep: string
+}
+
+const mockWorkflows: Workflow[] = [
   {
     id: 1,
     name: "Aprovação de Políticas",
@@ -75,7 +102,7 @@ const mockWorkflows = [
 ]
 
 // mockWorkflowDocuments removido para garantir que não haja documentos vinculados
-const mockWorkflowDocuments = {}
+const mockWorkflowDocuments: Record<number, WorkflowDocument[]> = {}
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
@@ -99,13 +126,13 @@ const documentStatusLabels = {
 export default function WorkflowManagement() {
   const [workflows, setWorkflows] = useState(mockWorkflows)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedWorkflow, setSelectedWorkflow] = useState(null)
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
   const [showWorkflowModal, setShowWorkflowModal] = useState(false)
   const [showDocumentsModal, setShowDocumentsModal] = useState(false)
-  const [selectedWorkflowDocuments, setSelectedWorkflowDocuments] = useState([])
+  const [selectedWorkflowDocuments, setSelectedWorkflowDocuments] = useState<WorkflowDocument[]>([])
   const [selectedWorkflowName, setSelectedWorkflowName] = useState("")
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [workflowToDelete, setWorkflowToDelete] = useState(null)
+  const [workflowToDelete, setWorkflowToDelete] = useState<Workflow | null>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   const filteredWorkflows = workflows.filter((workflow) =>
@@ -119,14 +146,14 @@ export default function WorkflowManagement() {
     totalDocuments: workflows.reduce((sum, w) => sum + w.documentsCount, 0),
   }
 
-  const handleShowWorkflowDocuments = (workflow) => {
+  const handleShowWorkflowDocuments = (workflow: Workflow) => {
     const documents = mockWorkflowDocuments[workflow.id] || []
     setSelectedWorkflowDocuments(documents)
     setSelectedWorkflowName(workflow.name)
     setShowDocumentsModal(true)
   }
 
-  const handleSaveWorkflow = (workflowData) => {
+  const handleSaveWorkflow = (workflowData: Partial<Workflow>) => {
     if (workflowData.id) {
       setWorkflows((prevWorkflows) =>
         prevWorkflows.map((workflow) =>
@@ -134,9 +161,13 @@ export default function WorkflowManagement() {
         ),
       )
     } else {
-      const newWorkflow = {
+      const newWorkflow: Workflow = {
         id: Date.now(),
-        ...workflowData,
+        name: workflowData.name || '',
+        description: workflowData.description || '',
+        documentTypes: workflowData.documentTypes || [],
+        steps: workflowData.steps || [],
+        status: workflowData.status || 'active',
         documentsCount: 0,
       }
       setWorkflows((prevWorkflows) => [...prevWorkflows, newWorkflow])
@@ -146,9 +177,11 @@ export default function WorkflowManagement() {
   }
 
   const handleDeleteWorkflow = () => {
-    setWorkflows((prevWorkflows) => prevWorkflows.filter((workflow) => workflow.id !== workflowToDelete.id))
-    setShowDeleteConfirm(false)
-    setWorkflowToDelete(null)
+    if (workflowToDelete) {
+      setWorkflows((prevWorkflows) => prevWorkflows.filter((workflow) => workflow.id !== workflowToDelete.id))
+      setShowDeleteConfirm(false)
+      setWorkflowToDelete(null)
+    }
   }
 
   return (
@@ -471,7 +504,7 @@ export default function WorkflowManagement() {
   )
 }
 
-function WorkflowForm({ workflow, onSave }) {
+function WorkflowForm({ workflow, onSave }: { workflow: Workflow | null; onSave: (data: Partial<Workflow>) => void }) {
   const [formData, setFormData] = useState({
     name: workflow?.name || "",
     description: workflow?.description || "",
@@ -487,14 +520,14 @@ function WorkflowForm({ workflow, onSave }) {
     }))
   }
 
-  const removeStep = (stepId) => {
+  const removeStep = (stepId: number) => {
     setFormData((prev) => ({
       ...prev,
       steps: prev.steps.filter((step) => step.id !== stepId),
     }))
   }
 
-  const updateStep = (stepId, field, value) => {
+  const updateStep = (stepId: number, field: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
       steps: prev.steps.map((step) => (step.id === stepId ? { ...step, [field]: value } : step)),
@@ -517,7 +550,7 @@ function WorkflowForm({ workflow, onSave }) {
           <Label htmlFor="status">Status</Label>
           <Select
             value={formData.status}
-            onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
+            onValueChange={(value: 'active' | 'inactive') => setFormData((prev) => ({ ...prev, status: value }))}
           >
             <SelectTrigger>
               <SelectValue />
@@ -629,7 +662,7 @@ function WorkflowForm({ workflow, onSave }) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
-        <Button variant="outline" onClick={onSave}>
+        <Button variant="outline" onClick={() => {}}>
           Cancelar
         </Button>
         <Button onClick={() => onSave(formData)}>Salvar Fluxo</Button>

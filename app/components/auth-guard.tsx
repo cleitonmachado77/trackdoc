@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/lib/contexts/auth-context"
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -13,36 +13,34 @@ interface AuthGuardProps {
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { user, loading } = useAuth()
+  const hasRedirected = useRef(false)
 
   useEffect(() => {
-    const checkAuth = () => {
-      // Verificar se está na página de login
-      if (pathname === "/login") {
-        setIsLoading(false)
-        return
-      }
-
-      // Verificar autenticação
-      const authStatus = localStorage.getItem("isAuthenticated")
-
-      if (authStatus === "true") {
-        setIsAuthenticated(true)
-      } else {
-        // Redirecionar para login se não autenticado
+    if (!loading && !hasRedirected.current) {
+      // Páginas públicas que não precisam de autenticação
+      const publicPages = ["/login", "/register", "/verify-email", "/reset-password", "/confirm-email"]
+      
+      // Só redirecionar se não estiver em uma página pública e não estiver autenticado
+      if (!user && !publicPages.includes(pathname)) {
+        hasRedirected.current = true
         router.push("/login")
-        return
+      } 
+      // Só redirecionar para home se estiver em uma página pública (exceto confirm-email) e estiver autenticado
+      else if (user && publicPages.includes(pathname) && pathname !== "/confirm-email") {
+        hasRedirected.current = true
+        router.push("/")
       }
-
-      setIsLoading(false)
     }
+  }, [user, loading, pathname, router])
 
-    checkAuth()
-  }, [pathname, router])
+  // Reset do flag quando o pathname muda
+  useEffect(() => {
+    hasRedirected.current = false
+  }, [pathname])
 
   // Mostrar loading enquanto verifica autenticação
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -53,16 +51,17 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     )
   }
 
-  // Se estiver na página de login, mostrar sem verificação
-  if (pathname === "/login") {
+  // Páginas públicas
+  const publicPages = ["/login", "/register", "/verify-email", "/reset-password", "/confirm-email"]
+  if (publicPages.includes(pathname)) {
     return <>{children}</>
+  }
+
+  // Se não autenticado, não mostrar nada (será redirecionado)
+  if (!user) {
+    return null
   }
 
   // Se autenticado, mostrar conteúdo
-  if (isAuthenticated) {
-    return <>{children}</>
-  }
-
-  // Fallback (não deveria chegar aqui)
-  return null
+  return <>{children}</>
 }

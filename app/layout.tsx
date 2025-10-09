@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
+import "./globals"
 import { HybridAuthProvider } from "@/lib/contexts/hybrid-auth-context"
 import { SimpleAuthProvider } from "./components/simple-auth-context"
 import { AuthWrapper } from "./components/auth-wrapper"
@@ -38,3 +39,7 @@ export default function RootLayout({
     </html>
   )
 }
+
+// Forçar renderização dinâmica globalmente
+export const dynamic = 'force-dynamic'
+export const revalidate = 0

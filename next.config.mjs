@@ -3,6 +3,8 @@ const nextConfig = {
   // ✅ Configuração para SSR (Server-Side Rendering)
   // Removido 'output: export' para permitir rotas de API
   trailingSlash: true,
+  
+
   images: {
     // Você pode usar o otimizador de imagens do Next.js em produção
     // unoptimized: true, // Remova isso se for fazer deploy na Vercel
@@ -20,6 +22,8 @@ const nextConfig = {
     optimizePackageImports: ['@supabase/ssr', 'lucide-react'],
     missingSuspenseWithCSRBailout: false,
   },
+  
+
   
   // ✅ Compilação otimizada para produção
   swcMinify: true,

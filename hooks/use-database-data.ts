@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '@/lib/contexts/auth-context'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { useAuth } from '@/lib/contexts/hybrid-auth-context'
+import { useSupabase } from '@/lib/hooks/use-supabase'
 
 export interface Plan {
   id: string
@@ -79,8 +74,14 @@ export function usePlans() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { supabase, isConnected } = useSupabase()
 
   useEffect(() => {
+    if (!isConnected || !supabase) {
+      setLoading(false)
+      return
+    }
+
     let isMounted = true
 
     async function fetchPlans() {
@@ -88,7 +89,7 @@ export function usePlans() {
         const { data, error } = await supabase
           .from('plans')
           .select('*')
-          .eq('is_active', true)  // Apenas plans tem is_active
+          .eq('is_active', true)
           .order('price_monthly')
 
         if (error) throw error
@@ -112,7 +113,7 @@ export function usePlans() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [supabase, isConnected])
 
   return { plans, loading, error }
 }
@@ -121,9 +122,10 @@ export function useUserProfile(userId: string | undefined) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth()
 
   useEffect(() => {
-    if (!userId) {
+    if (!user) {
       setLoading(false)
       return
     }
@@ -132,7 +134,7 @@ export function useUserProfile(userId: string | undefined) {
 
     async function fetchProfile() {
       try {
-        console.log('🔍 [useUserProfile] Buscando perfil para usuário:', userId)
+        console.log('🔍 [useUserProfile] Buscando perfil para usuário:', user.id)
         
         // Usar API personalizada para buscar perfil
         const response = await fetch('/api/profile')
@@ -153,7 +155,7 @@ export function useUserProfile(userId: string | undefined) {
       } catch (err) {
         console.error('❌ [useUserProfile] Erro geral:', err)
         if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Erro ao carregar perfil')
+          setError(err instanceof Error ? err.message : 'Usuário não autenticado')
         }
       } finally {
         if (isMounted) {
@@ -167,7 +169,7 @@ export function useUserProfile(userId: string | undefined) {
     return () => {
       isMounted = false
     }
-  }, [userId])
+  }, [user])
 
   return { profile, loading, error }
 }
@@ -218,8 +220,14 @@ export function useDepartments() {
   const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { supabase, isConnected } = useSupabase()
 
   useEffect(() => {
+    if (!isConnected || !supabase) {
+      setLoading(false)
+      return
+    }
+
     async function fetchDepartments() {
       try {
         const { data, error } = await supabase
@@ -237,7 +245,7 @@ export function useDepartments() {
     }
 
     fetchDepartments()
-  }, [])
+  }, [supabase, isConnected])
 
   return { departments, loading, error }
 }
@@ -246,8 +254,14 @@ export function useDocumentTypes() {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { supabase, isConnected } = useSupabase()
 
   useEffect(() => {
+    if (!isConnected || !supabase) {
+      setLoading(false)
+      return
+    }
+
     async function fetchDocumentTypes() {
       try {
         const { data, error } = await supabase
@@ -265,7 +279,7 @@ export function useDocumentTypes() {
     }
 
     fetchDocumentTypes()
-  }, [])
+  }, [supabase, isConnected])
 
   return { documentTypes, loading, error }
 }
@@ -274,8 +288,14 @@ export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { supabase, isConnected } = useSupabase()
 
   useEffect(() => {
+    if (!isConnected || !supabase) {
+      setLoading(false)
+      return
+    }
+
     async function fetchCategories() {
       try {
         const { data, error } = await supabase
@@ -293,7 +313,7 @@ export function useCategories() {
     }
 
     fetchCategories()
-  }, [])
+  }, [supabase, isConnected])
 
   return { categories, loading, error }
 } 

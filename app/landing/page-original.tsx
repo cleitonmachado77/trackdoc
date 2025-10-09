@@ -49,7 +49,7 @@ export default function LandingPage() {
     {
       icon: CheckCircle,
       title: "Sistema de Aprovações",
-      description: "Workflow automatizado para aprovação de documentos com notificações em tempo real.",
+      description: "Sistema automatizado para aprovação de documentos com notificações em tempo real.",
       color: "text-green-600"
     },
     {
@@ -66,7 +66,7 @@ export default function LandingPage() {
     },
     {
       icon: GitBranch,
-      title: "Workflow Automatizado",
+      title: "Sistema automatizado",
       description: "Configure fluxos de trabalho personalizados para otimizar seus processos internos.",
       color: "text-indigo-600"
     },
@@ -117,7 +117,7 @@ export default function LandingPage() {
       name: "João Santos",
       role: "Gerente Financeiro",
       company: "Inovação Ltda",
-      content: "A assinatura eletrônica e o workflow automatizado nos deram total controle e segurança.",
+      content: "A assinatura eletrônica e o Sistema automatizado nos deram total controle e segurança.",
       rating: 5
     },
     {

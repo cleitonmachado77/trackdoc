@@ -53,8 +53,7 @@ export async function POST(request: NextRequest) {
     const documentId = formData.get('documentId') as string || formData.get('document_id') as string
     const file = formData.get('file') as any // Usar 'any' para evitar problemas com File
     const signatureTemplateStr = formData.get('signature_template') as string
-    const workflowProcessId = formData.get('workflow_process_id') as string
-    const workflowExecutionId = formData.get('workflow_execution_id') as string
+
     const usersStr = formData.get('users') as string
     const selectedDocumentsStr = formData.get('selected_documents') as string // ✅ NOVO: Documentos selecionados
 
@@ -76,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Processar usuários para assinatura múltipla
     let multiSignatureUsers = []
-    if (usersStr && (action === 'multi_signature' || action === 'sign_workflow')) {
+    if (usersStr && action === 'multi_signature') {
       try {
         multiSignatureUsers = JSON.parse(usersStr)
         console.log('👥 Usuários para assinatura múltipla:', multiSignatureUsers.length, 'usuários')
@@ -107,8 +106,7 @@ export async function POST(request: NextRequest) {
       hasFile: !!file,
       fileName: file?.name,
       hasCustomTemplate: !!signatureTemplate,
-      workflowProcessId,
-      workflowExecutionId
+
     })
 
     let pdfBuffer: Buffer
@@ -245,52 +243,7 @@ export async function POST(request: NextRequest) {
       pdfBuffer = Buffer.from(await fileData.arrayBuffer())
       console.log('✅ Arquivo do storage carregado, tamanho:', pdfBuffer.length)
       
-    } else if (action === 'sign_workflow') {
-      // Assinatura de documento em workflow
-      if (!documentId) {
-        console.error('❌ ID do documento não fornecido')
-        return NextResponse.json(
-          { error: 'ID do documento não fornecido' },
-          { status: 400 }
-        )
-      }
 
-      console.log('🔍 Assinando documento em workflow:', documentId)
-      
-      // Buscar documento no Supabase
-      const { data: document, error: docError } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('id', documentId)
-        .single()
-
-      if (docError || !document) {
-        console.error('❌ Documento não encontrado:', docError)
-        return NextResponse.json(
-          { error: 'Documento não encontrado' },
-          { status: 404 }
-        )
-      }
-
-      console.log('📄 Documento encontrado para workflow:', document.title)
-      documentName = document.title
-
-      // Buscar arquivo do storage
-      const { data: fileData, error: fileError } = await supabase.storage
-        .from('documents')
-        .download(document.file_path)
-
-      if (fileError || !fileData) {
-        console.error('❌ Erro ao carregar arquivo:', fileError)
-        return NextResponse.json(
-          { error: 'Erro ao carregar arquivo do documento' },
-          { status: 500 }
-        )
-      }
-
-      pdfBuffer = Buffer.from(await fileData.arrayBuffer())
-      console.log('✅ Arquivo do workflow carregado, tamanho:', pdfBuffer.length)
-      
     } else if (action === 'multi_signature') {
       // Assinatura múltipla
       if (multiSignatureUsers.length === 0) {
@@ -411,29 +364,11 @@ export async function POST(request: NextRequest) {
       let signature: any
       let allSignatures: any[] = []
 
-      if (action === 'multi_signature' || (action === 'sign_workflow' && multiSignatureUsers.length > 0)) {
-        // Assinatura múltipla - criar processo de aprovação ou assinar imediatamente (para workflow)
+      if (action === 'multi_signature') {
+        // Assinatura múltipla - criar processo de aprovação
         console.log('👥 Criando processo de assinatura múltipla para', multiSignatureUsers.length, 'usuários')
         
-        // ✅ CORREÇÃO: Para sign_workflow, assinar imediatamente
-        if (action === 'sign_workflow' && multiSignatureUsers.length > 0) {
-          console.log('🎯 [WORKFLOW] Assinando documento imediatamente com múltiplos usuários')
-          
-          // Criar assinatura múltipla imediatamente
-          const result = await digitalSignatureService.createMultiSignature(
-            pdfBuffer,
-            multiSignatureUsers,
-            documentId || `doc_${Date.now()}`,
-            signatureTemplate
-          )
-          signedPdf = result.signedPdf
-          signature = result.signatures[0] // Primeira assinatura como referência
-          allSignatures = result.signatures
-
-          console.log('✅ [WORKFLOW] Assinatura múltipla criada imediatamente:', allSignatures.length, 'assinaturas')
-          console.log('🔐 [WORKFLOW] Carimbo de tempo digital:', signature.digitalTimestamp)
-        } else {
-          // ✅ Para multi_signature, criar processo de aprovação (lógica original)
+        // Criar processo de aprovação
           console.log('📋 [MULTI_SIGNATURE] Criando processo de aprovação')
           
           // Verificar se a service role key está configurada
@@ -790,8 +725,8 @@ export async function POST(request: NextRequest) {
         console.warn('⚠️ Erro ao salvar no banco:', dbError)
       }
 
-      // Se for uma ação de workflow, substituir o documento original
-      if (action === 'sign_workflow' && documentId) {
+      // Salvar documento assinado
+      if (false) { // Removido: workflow não é mais usado
         console.log('🔄 Substituindo documento original pelo assinado...')
         try {
           // Primeiro, buscar o documento original para obter os metadados
@@ -816,8 +751,6 @@ export async function POST(request: NextRequest) {
                   original_file_path: (originalDocument as any)?.file_path,
                   signed_at: new Date().toISOString(),
                   signed_by: user.id,
-                  workflow_process_id: workflowProcessId,
-                  workflow_execution_id: workflowExecutionId
                 })
               })
               .eq('id', documentId)
@@ -928,8 +861,6 @@ export async function POST(request: NextRequest) {
                   original_file_path: doc.file_path,
                   signed_at: new Date().toISOString(),
                   signed_by: user.id,
-                  workflow_process_id: workflowProcessId,
-                  workflow_execution_id: workflowExecutionId
                 })
               })
               .eq('id', docId)
@@ -960,97 +891,7 @@ export async function POST(request: NextRequest) {
       console.log('🔗 URL de download:', downloadUrl)
       console.log('✅ Processo concluído com sucesso!')
 
-      // ✅ NOVO: Atualizar execuções do workflow se for uma ação de workflow
-      if (action === 'sign_workflow' && workflowProcessId && workflowExecutionId) {
-        console.log('🔄 [WORKFLOW_INTEGRATION] Atualizando execuções do workflow...')
-        try {
-          // Atualizar a execução específica como concluída
-          const { error: executionUpdateError } = await supabase
-            .from('workflow_executions')
-            .update({
-              status: 'completed',
-              completed_at: new Date().toISOString(),
-              action_taken: 'sign',
-              comments: 'Documento assinado com sucesso'
-            })
-            .eq('id', workflowExecutionId)
-            .eq('process_id', workflowProcessId)
 
-          if (executionUpdateError) {
-            console.warn('⚠️ [WORKFLOW_INTEGRATION] Erro ao atualizar execução específica:', executionUpdateError)
-          } else {
-            console.log('✅ [WORKFLOW_INTEGRATION] Execução específica atualizada como concluída')
-          }
-
-          // Verificar se todas as execuções do step atual foram concluídas
-          const { data: currentExecutions, error: executionsError } = await supabase
-            .from('workflow_executions')
-            .select('id, status, step_id')
-            .eq('process_id', workflowProcessId)
-            .eq('status', 'pending')
-
-          if (executionsError) {
-            console.warn('⚠️ [WORKFLOW_INTEGRATION] Erro ao verificar execuções pendentes:', executionsError)
-          } else {
-            console.log('📊 [WORKFLOW_INTEGRATION] Execuções pendentes restantes:', currentExecutions?.length || 0)
-            
-            // Se não há mais execuções pendentes, avançar para próxima etapa
-            if (!currentExecutions || currentExecutions.length === 0) {
-              console.log('🚀 [WORKFLOW_INTEGRATION] Todas as execuções concluídas - avançando para próxima etapa...')
-              
-              // Buscar próximo step
-              const { data: currentProcess, error: processError } = await supabase
-                .from('workflow_processes')
-                .select('current_step_id, workflow_template_id')
-                .eq('id', workflowProcessId)
-                .single()
-
-              if (processError || !currentProcess) {
-                console.warn('⚠️ [WORKFLOW_INTEGRATION] Erro ao buscar processo atual:', processError)
-              } else {
-                // Buscar próximo step no template
-                const { data: nextStep, error: stepError } = await supabase
-                  .from('workflow_steps')
-                  .select('id, step_order')
-                  .eq('workflow_template_id', currentProcess.workflow_template_id)
-                  .gt('step_order', 0) // Próximo step após o atual
-                  .order('step_order', { ascending: true })
-                  .limit(1)
-                  .single()
-
-                if (stepError || !nextStep) {
-                  console.log('🏁 [WORKFLOW_INTEGRATION] Processo concluído - não há próxima etapa')
-                  
-                  // Marcar processo como concluído
-                  await supabase
-                    .from('workflow_processes')
-                    .update({
-                      status: 'completed',
-                      completed_at: new Date().toISOString()
-                    })
-                    .eq('id', workflowProcessId)
-                  
-                  console.log('✅ [WORKFLOW_INTEGRATION] Processo marcado como concluído')
-                } else {
-                  // Atualizar processo para próxima etapa
-                  await supabase
-                    .from('workflow_processes')
-                    .update({
-                      current_step_id: nextStep.id,
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('id', workflowProcessId)
-                  
-                  console.log('✅ [WORKFLOW_INTEGRATION] Processo avançou para próxima etapa:', nextStep.id)
-                }
-              }
-            }
-          }
-        } catch (workflowError) {
-          console.error('❌ [WORKFLOW_INTEGRATION] Erro na integração com workflow:', workflowError)
-          // Não falhar a assinatura se a integração com workflow falhar
-        }
-      }
 
       const responseData = {
         signatureId: signature.id,
@@ -1061,7 +902,7 @@ export async function POST(request: NextRequest) {
         digitalTimestamp: signature.digitalTimestamp,
         userName: signature.userName,
         userEmail: signature.userEmail,
-        replacedOriginal: action === 'sign_workflow',
+        replacedOriginal: false,
         processedDocuments: processedDocuments // ✅ NOVO: Documentos processados
       }
 
@@ -1069,9 +910,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: responseData,
-        message: action === 'sign_workflow' 
-          ? 'Documento assinado e substituído com sucesso!' 
-          : action === 'multi_signature'
+        message: action === 'multi_signature'
           ? `Documento enviado para assinatura de ${multiSignatureUsers.length} usuário(s)!`
           : 'Documento assinado com sucesso!'
       })
@@ -1129,11 +968,7 @@ export async function GET(request: NextRequest) {
     // Buscar documentos da entidade do usuário para seleção (excluindo documentos de processos)
     console.log('🔍 Buscando documentos da entidade:', user.id)
     
-    // Primeiro, buscar IDs de documentos que pertencem a processos
-    const { data: processDocumentIds, error: processIdsError } = await supabase
-      .from('workflow_processes')
-      .select('document_id')
-      .not('document_id', 'is', null)
+    // Buscar documentos disponíveis para assinatura múltipla
 
     if (processIdsError) {
       console.warn('Erro ao buscar IDs de documentos de processos:', processIdsError)

@@ -68,7 +68,7 @@ export default function UnifiedNotificationsPage() {
       setLoading(true)
       
       const { data, error } = await supabase
-        .from('workflow_notification_feed')
+        .from('notification_feed')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -108,7 +108,7 @@ export default function UnifiedNotificationsPage() {
 
     try {
       await supabase
-        .from('workflow_notification_feed')
+        .from('notification_feed')
         .update({ is_read: true })
         .eq('id', notification.id)
 
@@ -134,7 +134,7 @@ export default function UnifiedNotificationsPage() {
 
     try {
       await supabase
-        .from('workflow_notification_feed')
+        .from('notification_feed')
         .update({ is_read: true })
         .eq('user_id', user.id)
         .eq('is_read', false)
@@ -187,7 +187,7 @@ export default function UnifiedNotificationsPage() {
           .select()
       } else {
         result = await supabase
-          .from('workflow_notifications')
+          .from('notifications')
           .delete()
           .eq('id', notificationId)
           .select()
@@ -246,7 +246,7 @@ export default function UnifiedNotificationsPage() {
       
       // Separar por tipo de notificação
       const generalNotifications = notificationsToRemove.filter(n => n.source === 'notifications')
-      const workflowNotifications = notificationsToRemove.filter(n => n.source === 'workflow_notifications')
+      const workflowNotifications = notificationsToRemove.filter(n => n.source === 'notifications')
 
       // Remover notificações gerais
       if (generalNotifications.length > 0) {
@@ -266,7 +266,7 @@ export default function UnifiedNotificationsPage() {
       // Remover notificações de workflow
       if (workflowNotifications.length > 0) {
         const workflowResult = await supabase
-          .from('workflow_notifications')
+          .from('notifications')
           .delete()
           .in('id', workflowNotifications.map(n => n.id))
           .select()
@@ -328,7 +328,7 @@ export default function UnifiedNotificationsPage() {
 
       // Separar por tipo de notificação
       const generalNotifications = readNotifications.filter(n => n.source === 'notifications')
-      const workflowNotifications = readNotifications.filter(n => n.source === 'workflow_notifications')
+      const workflowNotifications = readNotifications.filter(n => n.source === 'notifications')
 
       // Remover notificações gerais lidas
       if (generalNotifications.length > 0) {
@@ -348,7 +348,7 @@ export default function UnifiedNotificationsPage() {
       // Remover notificações de workflow lidas
       if (workflowNotifications.length > 0) {
         const workflowResult = await supabase
-          .from('workflow_notifications')
+          .from('notifications')
           .delete()
           .in('id', workflowNotifications.map(n => n.id))
           .select()
@@ -835,7 +835,7 @@ export default function UnifiedNotificationsPage() {
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
                 <SelectItem value="approval">Aprovações</SelectItem>
-                {/* <SelectItem value="workflow">Tramitação</SelectItem> */}
+
                 <SelectItem value="signature">Assinatura</SelectItem>
                 <SelectItem value="system">Sistema</SelectItem>
               </SelectContent>

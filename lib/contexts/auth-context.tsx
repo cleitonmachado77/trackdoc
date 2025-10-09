@@ -6,20 +6,36 @@ import { User, Session } from "@supabase/supabase-js"
 import { SupabaseConfigError } from "../../app/components/supabase-config-error"
 import { handleAuthError, isRefreshTokenError, clearUserSession } from "@/lib/auth-error-handler"
 import { getUserActiveSubscription } from "@/lib/subscription-utils"
+import { cleanupAuthData, isAuthDataCorrupted } from "@/lib/auth-cleanup"
 
 interface Subscription {
-  subscription_id: string
-  plan_name: string
-  plan_description: string
-  plan_price: number
+  id?: string
+  subscription_id?: string
+  user_id?: string
+  plan_id?: string
+  plan_name?: string
+  plan_description?: string
+  plan_price?: number
   status: string
-  current_period_start: string
-  current_period_end: string
+  current_period_start?: string
+  current_period_end?: string
+  start_date?: string
+  end_date?: string
   trial_start?: string
   trial_end?: string
-  is_trial: boolean
-  days_remaining: number
-  features: any
+  trial_end_date?: string
+  is_trial?: boolean
+  days_remaining?: number
+  features?: any
+  created_at?: string
+  updated_at?: string
+  plan?: {
+    id: string
+    name: string
+    price: number
+    interval: string
+    features: string[]
+  }
 }
 
 interface Entity {
@@ -80,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.error('Variaveis de ambiente do Supabase nao configuradas!')
     console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Configurado' : 'Nao configurado')
     console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Configurado' : 'Nao configurado')
-    
+
     // Mostrar componente de erro de configuracao
     return <SupabaseConfigError />
   }
@@ -93,14 +109,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Verificar sessao inicial
     const getSession = async () => {
       try {
+        // Verificar e limpar dados corrompidos
+        if (isAuthDataCorrupted()) {
+          console.log('Dados de autenticação corrompidos detectados, limpando...')
+          cleanupAuthData()
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession()
-        
+
         if (mounted) {
           // Tratar erro de autenticação
           if (error) {
             const errorHandler = handleAuthError(error)
             console.log(errorHandler.logMessage)
-            
+
             if (errorHandler.shouldLogout || isRefreshTokenError(error)) {
               await clearUserSession(supabase)
               setSession(null)
@@ -108,13 +130,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setSubscription(null)
               setUsage([])
               setEntity(null)
-              setAuthError(errorHandler.userMessage)
+              setAuthError(null) // Não mostrar erro na inicialização
             } else {
               // Para outros erros, ainda tentar usar a sessão se existir
               setSession(session)
               setUser(session?.user ?? null)
-              setAuthError(errorHandler.userMessage)
-              
+              setAuthError(null) // Não mostrar erro na inicialização
+
               if (session?.user) {
                 await refreshSubscription()
                 await refreshUsage()
@@ -124,20 +146,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             setSession(session)
             setUser(session?.user ?? null)
-            
+
             if (session?.user) {
               await refreshSubscription()
               await refreshUsage()
               await refreshEntity()
             }
           }
-          
+
           setLoading(false)
         }
       } catch (error) {
         const errorHandler = handleAuthError(error as any)
         console.error(errorHandler.logMessage)
-        
+
         if (mounted) {
           // Em caso de erro crítico, limpar sessão e fazer logout
           await clearUserSession(supabase)
@@ -157,6 +179,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (mounted) {
+          console.log('Auth state change:', event, session?.user?.id)
+
           // Tratar eventos de erro de refresh token
           if (event === 'TOKEN_REFRESHED' && !session) {
             console.log('Refresh token inválido - fazendo logout automático')
@@ -171,7 +195,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           // Tratar outros eventos de erro
-          if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          if (event === 'SIGNED_OUT') {
+            setSession(null)
+            setUser(null)
+            setSubscription(null)
+            setUsage([])
+            setEntity(null)
+            setLoading(false)
+            return
+          }
+
+          // Silenciar erros de refresh token na inicialização
+          if (event === 'INITIAL_SESSION' && !session) {
             setSession(null)
             setUser(null)
             setSubscription(null)
@@ -183,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setSession(session)
           setUser(session?.user ?? null)
-          
+
           // Evitar atualizacoes desnecessarias se o usuario nao mudou
           if (session?.user?.id !== user?.id) {
             if (session?.user) {
@@ -196,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setEntity(null)
             }
           }
-          
+
           setLoading(false)
         }
       }
@@ -211,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
       console.log('Tentando registrar usuario:', { email, fullName })
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -231,7 +266,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Usuario criado com sucesso:', data.user.id)
         console.log('Perfil sera criado automaticamente pelo trigger handle_new_user')
         console.log('Email de confirmacao enviado. Aguardando confirmacao do usuario.')
-        
+
         // NAO verificar o perfil imediatamente - aguardar confirmacao do email
         // O trigger handle_new_user criara o perfil quando o email for confirmado
       }
@@ -239,11 +274,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error }
     } catch (err) {
       console.error('Erro inesperado no signUp:', err)
-      return { 
-        error: { 
+      return {
+        error: {
           message: err instanceof Error ? err.message : 'Erro interno do servidor',
           status: 500
-        } 
+        }
       }
     }
   }
@@ -251,7 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       console.log('Tentando fazer login:', { email })
-      
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -269,11 +304,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error }
     } catch (err) {
       console.error('Erro inesperado no signIn:', err)
-      return { 
-        error: { 
+      return {
+        error: {
           message: err instanceof Error ? err.message : 'Erro interno do servidor',
           status: 500
-        } 
+        }
       }
     }
   }
@@ -309,9 +344,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       console.log('🔄 [refreshSubscription] Buscando subscription para usuário:', user.id)
-      
+
       const result = await getUserActiveSubscription(user.id)
-      
+
       if (result.error) {
         console.error('❌ [refreshSubscription] Erro:', result.error)
         console.log('📊 [refreshSubscription] Método usado:', result.method)
@@ -377,11 +412,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!profileExists) {
         console.error('Perfil nao foi criado apos 10 segundos')
-        return { 
-          error: { 
+        return {
+          error: {
             message: 'Erro: Perfil do usuario nao foi criado automaticamente. Tente novamente.',
             status: 500
-          } 
+          }
         }
       }
 
@@ -412,11 +447,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null, data }
     } catch (err) {
       console.error('Erro inesperado ao criar assinatura:', err)
-      return { 
-        error: { 
+      return {
+        error: {
           message: err instanceof Error ? err.message : 'Erro interno do servidor',
           status: 500
-        } 
+        }
       }
     }
   }
@@ -431,7 +466,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Tentar chamar a funcao RPC com retry primeiro
       console.log('Chamando funcao RPC com retry...')
-      
+
       let { data, error } = await supabase.rpc('create_simple_trial_subscription', {
         p_user_id: userId,
         p_plan_id: planId,
@@ -441,13 +476,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Se a funcao com retry nao existir, usar a funcao original
       if (error && error.message.includes('function') && error.message.includes('does not exist')) {
         console.log('Funcao com retry nao encontrada, usando funcao original...')
-        
+
         const { data: originalData, error: originalError } = await supabase.rpc('create_user_trial_subscription', {
           user_id: userId,
           plan_id: planId,
           is_trial: isTrial
         })
-        
+
         data = originalData
         error = originalError
       }
@@ -494,19 +529,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: null, data }
     } catch (err) {
       console.error('Erro inesperado ao atualizar assinatura:', err)
-      return { 
-        error: { 
+      return {
+        error: {
           message: err instanceof Error ? err.message : 'Erro interno do servidor',
           status: 500
-        } 
+        }
       }
     }
   }
 
-    const refreshEntity = async () => {
-      if (!user) {
-        return
-      }
+  const refreshEntity = async () => {
+    if (!user) {
+      return
+    }
 
     console.log('🔄 [REFRESH_ENTITY] Iniciando busca de entidade para usuário:', user.id)
 
@@ -527,7 +562,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (profileData?.entity_id) {
         console.log('🔄 [REFRESH_ENTITY] Buscando dados da entidade:', profileData.entity_id)
-        
+
         const { data: entityData, error: entityError } = await supabase
           .from('entities')
           .select('*')

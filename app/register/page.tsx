@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle, ArrowRight, Crown, Star, Building2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from "@/lib/contexts/hybrid-auth-context"
 import { useRegistrationPlans } from "@/hooks/use-registration-plans"
 import { createBrowserClient } from '@supabase/ssr'
 import Link from "next/link"
@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
 
 export default function RegisterPage() {
   const router = useRouter()
-  const { signUp, createSubscriptionForNewUser } = useAuth()
+  const { signUp } = useAuth()
   const { plans, loading: plansLoading, error: plansError } = useRegistrationPlans()
   // Verificar se as variáveis de ambiente estão configuradas
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

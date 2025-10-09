@@ -1,7 +1,7 @@
 {
   "name": "TrackDoc - Gestão Inteligente de Documentos",
   "short_name": "TrackDoc",
-  "description": "Plataforma de gestão inteligente de documentos com IA, assinatura eletrônica e workflow automatizado para empresas.",
+  "description": "Plataforma de gestão inteligente de documentos com IA, assinatura eletrônica e automação para empresas.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

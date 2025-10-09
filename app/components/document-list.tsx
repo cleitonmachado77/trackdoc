@@ -146,7 +146,7 @@ export default function DocumentList() {
       try {
         // Buscar todos os status de aprovação em uma única consulta
         const { data: allWorkflows, error } = await supabase
-          .from('approval_workflows')
+          .from('approval_requests')
           .select('*')
           .in('document_id', documents.map(d => d.id))
           .order('step_order', { ascending: true })

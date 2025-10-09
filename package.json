@@ -18,6 +18,8 @@
     "start:prod": "cross-env NODE_ENV=production next start",
     "setup-db": "node scripts/setup-database.js",
     "clean": "rimraf .next && rimraf node_modules/.cache",
+    "cleanup-auth": "node scripts/cleanup-auth.js",
+    "prepare-production": "node scripts/prepare-production.js",
     "type-check": "tsc --noEmit --incremental",
     "optimize": "node scripts/optimize-dev.js",
     "dev:optimized": "npm run optimize && npm run dev:windows",

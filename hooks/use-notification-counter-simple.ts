@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/lib/contexts/auth-context'
+import { useAuth } from '@/lib/contexts/hybrid-auth-context'
 
 // Evento personalizado para notificar mudanças no contador
 const NOTIFICATION_COUNTER_EVENT = 'notificationCounterChanged'
@@ -18,7 +18,7 @@ export function useNotificationCounterSimple() {
     try {
       setLoading(true)
 
-      const response = await fetch(`/api/workflows?scope=assigned`)
+      const response = await fetch(`/api/approvals?scope=assigned`)
       if (!response.ok) {
         console.error('Erro ao buscar processos pendentes:', await response.text())
         return 0
@@ -109,7 +109,7 @@ export function useNotificationCounterNotifierSimple() {
     if (!user?.email || !user?.id) return
 
     try {
-      const response = await fetch(`/api/workflows?scope=assigned`)
+      const response = await fetch(`/api/approvals?scope=assigned`)
       if (!response.ok) {
         console.error('Erro ao buscar processos pendentes:', await response.text())
         return

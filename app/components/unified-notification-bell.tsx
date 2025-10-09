@@ -54,7 +54,7 @@ export default function UnifiedNotificationBell() {
       setLoading(true)
 
       const { data, error } = await supabase
-        .from('workflow_notification_feed')
+        .from('notification_feed')
         .select('*')
         .eq('user_id', user.id)
         .eq('is_read', false)
@@ -90,7 +90,7 @@ export default function UnifiedNotificationBell() {
 
     try {
       await supabase
-        .from('workflow_notification_feed')
+        .from('notification_feed')
         .update({ is_read: true })
         .eq('id', notification.id)
 

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Check, Crown, Star, Zap, Building, Users, FileText, HardDrive, ArrowRight } from "lucide-react"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from "@/lib/contexts/hybrid-auth-context"
 import Link from "next/link"
 
 interface Plan {

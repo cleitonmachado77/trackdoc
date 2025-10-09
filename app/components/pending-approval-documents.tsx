@@ -59,10 +59,10 @@ export default function PendingApprovalDocuments() {
       setLoading(true)
       
       const { data, error } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select(`
           *,
-          document:documents!approval_workflows_document_id_fkey(
+          document:documents!approval_requests_document_id_fkey(
             id,
             title,
             description,
@@ -97,7 +97,7 @@ export default function PendingApprovalDocuments() {
       
       // 1. Atualizar workflow de aprovação
       const { error: workflowError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .update({ 
           status: approved ? 'approved' : 'rejected',
           comments: comments || undefined,
@@ -109,7 +109,7 @@ export default function PendingApprovalDocuments() {
 
       // 2. Verificar se é o último aprovador
       const { data: remainingWorkflows, error: remainingError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select('*')
         .eq('document_id', selectedDocument.document_id)
         .eq('status', 'pending')

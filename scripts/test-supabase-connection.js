@@ -1,71 +1,98 @@
-require('dotenv').config({ path: '.env.local' })
-require('dotenv').config({ path: '.env' })
+/**
+ * Script simples para testar conectividade com Supabase
+ */
 
 const { createClient } = require('@supabase/supabase-js')
+require('dotenv').config({ path: '.env.local' })
 
-console.log('🔍 Testando conexão com Supabase...')
-console.log('📋 Variáveis de ambiente:')
-console.log('- NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✅ Configurada' : '❌ Não encontrada')
-console.log('- NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ Não encontrada')
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.error('❌ Variáveis de ambiente não configuradas!')
+console.log('🔍 Testando conectividade com Supabase...\n')
+
+console.log('📋 Configurações:')
+console.log('URL:', supabaseUrl)
+console.log('Anon Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'NÃO DEFINIDA')
+console.log('Service Key:', supabaseServiceKey ? `${supabaseServiceKey.substring(0, 20)}...` : 'NÃO DEFINIDA')
+console.log('Proxy:', process.env.NEXT_PUBLIC_ENABLE_PROXY)
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Configurações básicas não encontradas')
   process.exit(1)
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
-
 async function testConnection() {
   try {
-    console.log('\n🧪 Testando conexão...')
+    // 1. Testar com chave anônima
+    console.log('\n1️⃣ Testando com chave anônima...')
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey)
     
-    // Teste 1: Buscar usuários
-    console.log('1️⃣ Testando busca de usuários...')
-    const { data: users, error: usersError } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .limit(1)
-    
-    if (usersError) {
-      console.error('❌ Erro ao buscar usuários:', usersError)
-    } else {
-      console.log('✅ Usuários encontrados:', users?.length || 0)
+    try {
+      const { data, error } = await anonClient.auth.getSession()
+      if (error) {
+        console.log('⚠️ Erro na sessão (esperado):', error.message)
+      } else {
+        console.log('✅ Conexão anônima OK')
+      }
+    } catch (err) {
+      console.log('❌ Erro de conectividade anônima:', err.message)
+      return false
     }
-
-    // Teste 2: Buscar subscriptions
-    console.log('\n2️⃣ Testando busca de subscriptions...')
-    const { data: subscriptions, error: subsError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .limit(1)
     
-    if (subsError) {
-      console.error('❌ Erro ao buscar subscriptions:', subsError)
-    } else {
-      console.log('✅ Subscriptions encontradas:', subscriptions?.length || 0)
+    // 2. Testar com service role (se disponível)
+    if (supabaseServiceKey) {
+      console.log('\n2️⃣ Testando com service role...')
+      const serviceClient = createClient(supabaseUrl, supabaseServiceKey)
+      
+      try {
+        // Tentar uma operação simples
+        const { data, error } = await serviceClient
+          .from('profiles')
+          .select('count')
+          .limit(1)
+        
+        if (error) {
+          console.log('⚠️ Erro ao acessar profiles:', error.message)
+          
+          // Se for erro de RLS, a conexão está OK
+          if (error.message.includes('RLS') || error.message.includes('policy')) {
+            console.log('✅ Conexão service role OK (erro de RLS esperado)')
+            return true
+          }
+        } else {
+          console.log('✅ Conexão service role OK')
+          return true
+        }
+      } catch (err) {
+        console.log('❌ Erro de conectividade service role:', err.message)
+        return false
+      }
     }
-
-    // Teste 3: Buscar plans
-    console.log('\n3️⃣ Testando busca de plans...')
-    const { data: plans, error: plansError } = await supabase
-      .from('plans')
-      .select('*')
-      .limit(1)
     
-    if (plansError) {
-      console.error('❌ Erro ao buscar plans:', plansError)
-    } else {
-      console.log('✅ Plans encontrados:', plans?.length || 0)
-    }
-
-    console.log('\n🎉 Teste de conexão concluído!')
+    return true
     
   } catch (error) {
     console.error('❌ Erro geral:', error.message)
+    return false
   }
 }
 
+// Executar teste
 testConnection()
+  .then((success) => {
+    if (success) {
+      console.log('\n🎉 Conectividade OK! O problema pode ser específico das tabelas ou RLS.')
+    } else {
+      console.log('\n❌ Problema de conectividade detectado.')
+      console.log('\n🔧 Possíveis soluções:')
+      console.log('1. Verificar se o Supabase está online')
+      console.log('2. Verificar configurações de proxy/firewall')
+      console.log('3. Verificar se as chaves estão corretas')
+    }
+    process.exit(success ? 0 : 1)
+  })
+  .catch(error => {
+    console.error('❌ Erro fatal:', error)
+    process.exit(1)
+  })

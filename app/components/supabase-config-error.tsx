@@ -1,10 +1,5 @@
 "use client"
 
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, ExternalLink, FileText } from "lucide-react"
-
 export function SupabaseConfigError() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center p-4">
@@ -12,27 +7,34 @@ export function SupabaseConfigError() {
         {/* Logo e Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-2xl mb-4">
-            <AlertCircle className="h-8 w-8 text-white" />
+            <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuração Necessária</h1>
           <p className="text-gray-600">TrackDoc precisa ser configurado</p>
         </div>
 
         {/* Card de Erro */}
-        <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-bold text-center text-red-600">Supabase Não Configurado</CardTitle>
-            <CardDescription className="text-center">
+        <div className="bg-white rounded-lg shadow-xl border-0 p-6">
+          <div className="space-y-1 pb-6">
+            <h2 className="text-2xl font-bold text-center text-red-600">Supabase Não Configurado</h2>
+            <p className="text-center text-gray-600">
               As variáveis de ambiente do Supabase não estão configuradas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                O arquivo <code className="bg-gray-100 px-1 rounded">.env.local</code> não foi encontrado ou não está configurado corretamente.
-              </AlertDescription>
-            </Alert>
+            </p>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="border border-red-200 bg-red-50 p-4 rounded-lg">
+              <div className="flex items-start">
+                <svg className="h-4 w-4 text-red-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div className="text-sm text-red-700">
+                  O arquivo <code className="bg-gray-100 px-1 rounded">.env.local</code> não foi encontrado ou não está configurado corretamente.
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">Como resolver:</h3>
@@ -46,13 +48,12 @@ export function SupabaseConfigError() {
                     <p className="text-sm text-gray-700">
                       Crie um projeto no <strong>Supabase</strong>
                     </p>
-                    <Button
-                      variant="link"
-                      className="px-0 h-auto text-blue-600 hover:text-blue-700"
+                    <button
+                      className="text-blue-600 hover:text-blue-700 text-sm underline"
                       onClick={() => window.open('https://supabase.com', '_blank')}
                     >
-                      Acessar Supabase <ExternalLink className="ml-1 h-3 w-3" />
-                    </Button>
+                      Acessar Supabase →
+                    </button>
                   </div>
                 </div>
 
@@ -107,22 +108,20 @@ export function SupabaseConfigError() {
               <pre className="text-xs text-gray-700 bg-white p-3 rounded border overflow-x-auto">
 {`NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NODE_ENV=development`}
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here`}
               </pre>
             </div>
 
             <div className="text-center">
-              <Button
+              <button
                 onClick={() => window.location.reload()}
-                className="w-full"
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 Recarregar após configurar
-              </Button>
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-gray-500">

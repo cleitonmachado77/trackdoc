@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/contexts/auth-context'
+import { useAuth } from '@/lib/contexts/hybrid-auth-context'
 import { AuthErrorToast } from './auth-error-toast'
 
 interface AuthWrapperProps {
@@ -8,7 +8,7 @@ interface AuthWrapperProps {
 }
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
-  const { authError, clearAuthError } = useAuth()
+  const { authError, clearAuthError, connectionStatus } = useAuth()
 
   return (
     <>
@@ -17,6 +17,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
         error={authError} 
         onDismiss={clearAuthError}
       />
+      
+
     </>
   )
 }

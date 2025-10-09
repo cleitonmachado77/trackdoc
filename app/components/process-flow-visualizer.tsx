@@ -78,7 +78,7 @@ export default function ProcessFlowVisualizer({
       
       // Buscar informações do template
       const { data: template, error: templateError } = await supabase
-        .from('workflow_templates')
+        .from('process_templates')
         .select('id, name, description')
         .eq('id', templateId)
         .single()
@@ -91,7 +91,7 @@ export default function ProcessFlowVisualizer({
       
       // Buscar etapas reais do template do workflow
       const { data: workflowSteps, error: stepsError } = await supabase
-        .from('workflow_steps')
+        .from('process_steps')
         .select(`
           id,
           step_name,
@@ -106,7 +106,7 @@ export default function ProcessFlowVisualizer({
             id,
             name
           ),
-          user:profiles!workflow_steps_user_id_fkey(
+          user:profiles!process_steps_user_id_fkey(
             id,
             full_name,
             email
@@ -125,7 +125,7 @@ export default function ProcessFlowVisualizer({
       let executions: any[] = []
       if (processId) {
         const { data: executionsData, error: executionsError } = await supabase
-          .from('workflow_executions')
+          .from('process_executions')
           .select(`
             id,
             step_id,
@@ -136,7 +136,7 @@ export default function ProcessFlowVisualizer({
             completed_at,
             comments,
             action_taken,
-            assigned_user:profiles!workflow_executions_assigned_to_fkey(
+            assigned_user:profiles!process_executions_assigned_to_fkey(
               id,
               full_name,
               email

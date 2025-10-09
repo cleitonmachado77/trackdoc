@@ -25,7 +25,7 @@ import {
   User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from "@/lib/contexts/hybrid-auth-context"
 import { useUserProfile } from "@/hooks/use-database-data"
 import { useNotificationCounterSimple } from "@/hooks/use-notification-counter-simple"
 import FixedQuickSearchModal from "./fixed-quick-search-modal"
@@ -86,12 +86,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         icon: PenTool,
         badge: null,
       },
-      // {
-      //   id: "document-workflow",
-      //   label: "Tramitação de Documentos",
-      //   icon: Workflow,
-      //   badge: null,
-      // },
+
       {
         id: "approvals",
         label: "Aprovações",

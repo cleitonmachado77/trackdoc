@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '@/lib/contexts/auth-context'
+import { useAuth } from '@/lib/contexts/hybrid-auth-context'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-export interface ApprovalWorkflow {
+export interface ApprovalDocument {
   id: string
   document_id: string
   approver_id: string
@@ -22,15 +22,14 @@ export interface ApprovalWorkflow {
   approver_name?: string
   document_author_name?: string
   // Campos adicionais para documentos enviados
-  approval_workflows?: any[]
-  latest_workflow?: any
+  approval_status?: string
 }
 
 export function useApprovals() {
   const { user } = useAuth()
-  const [pendingApprovals, setPendingApprovals] = useState<ApprovalWorkflow[]>([])
-  const [myApprovals, setMyApprovals] = useState<ApprovalWorkflow[]>([])
-  const [sentApprovals, setSentApprovals] = useState<ApprovalWorkflow[]>([])
+  const [pendingApprovals, setPendingApprovals] = useState<ApprovalDocument[]>([])
+  const [myApprovals, setMyApprovals] = useState<ApprovalDocument[]>([])
+  const [sentApprovals, setSentApprovals] = useState<ApprovalDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -53,7 +52,7 @@ export function useApprovals() {
 
       // Buscar aprovações pendentes (documentos que o usuário criou)
       const { data: pendingData, error: pendingError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select('*')
         .eq('status', 'pending')
         .order('step_order', { ascending: true })
@@ -62,7 +61,7 @@ export function useApprovals() {
 
       // Buscar TODAS as aprovações que o usuário precisa fazer (incluindo aprovadas e rejeitadas)
       const { data: myData, error: myError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select('*')
         .eq('approver_id', user!.id)
         .order('step_order', { ascending: true })
@@ -77,13 +76,13 @@ export function useApprovals() {
           title,
           status,
           created_at,
-          approval_workflows (
+          approval_requests (
             id,
             status,
             comments,
             approved_at,
             approver_id,
-            profiles!approval_workflows_approver_id_fkey (
+            profiles!approval_requests_approver_id_fkey (
               full_name
             )
           )
@@ -189,8 +188,8 @@ export function useApprovals() {
 
       // Processar dados enviados para aprovação
       const processSentApprovals = (sentData || []).map(doc => {
-        const workflows = doc.approval_workflows || []
-        const latestWorkflow = workflows[workflows.length - 1] // Último workflow
+        const approvals = doc.approval_requests || []
+        const latestapproval = approvals[approvals.length - 1] // Último approval
         
         return {
           id: doc.id,
@@ -198,14 +197,14 @@ export function useApprovals() {
           document_title: doc.title,
           status: doc.status,
           created_at: doc.created_at,
-          approval_workflows: workflows,
-          latest_workflow: latestWorkflow,
+          approval_requests: approvals,
+          latest_approval: latestapproval,
                    // Para compatibilidade com a interface existente
-         approver_id: latestWorkflow?.approver_id || '',
-         approver_name: latestWorkflow?.profiles?.[0]?.full_name || '',
-          comments: latestWorkflow?.comments || '',
-          approved_at: latestWorkflow?.approved_at || '',
-          step_order: workflows.length
+         approver_id: latestapproval?.approver_id || '',
+         approver_name: latestapproval?.profiles?.[0]?.full_name || '',
+          comments: latestapproval?.comments || '',
+          approved_at: latestapproval?.approved_at || '',
+          step_order: approvals.length
         }
       })
 
@@ -230,11 +229,11 @@ export function useApprovals() {
     }
   }
 
-  const createApprovalWorkflow = async (documentId: string, approvers: string[]) => {
+  const createApprovalDocument = async (documentId: string, approvers: string[]) => {
     try {
       setError(null)
 
-      const workflows = approvers.map((approverId, index) => ({
+      const approvals = approvers.map((approverId, index) => ({
         document_id: documentId,
         approver_id: approverId,
         step_order: index + 1,
@@ -242,8 +241,8 @@ export function useApprovals() {
       }))
 
       const { data, error } = await supabase
-        .from('approval_workflows')
-        .insert(workflows)
+        .from('approval_requests')
+        .insert(approvals)
         .select()
 
       if (error) throw error
@@ -262,26 +261,26 @@ export function useApprovals() {
     }
   }
 
-  const approveDocument = async (workflowId: string, approved: boolean, comments?: string) => {
+  const approveDocument = async (approvalId: string, approved: boolean, comments?: string) => {
     try {
       setError(null)
 
       const status = approved ? 'approved' : 'rejected'
       const approved_at = approved ? new Date().toISOString() : null
 
-      // Atualizar workflow
-      const { data: workflowData, error: workflowError } = await supabase
-        .from('approval_workflows')
+      // Atualizar approval
+      const { data: approvalData, error: approvalError } = await supabase
+        .from('approval_requests')
         .update({ 
           status, 
           comments, 
           approved_at 
         })
-        .eq('id', workflowId)
+        .eq('id', approvalId)
         .select()
         .single()
 
-      if (workflowError) throw workflowError
+      if (approvalError) throw approvalError
 
       // Buscar informações do documento e autor para a notificação
       let documentTitle = ''
@@ -293,7 +292,7 @@ export function useApprovals() {
         const { data: docData } = await supabase
           .from('documents')
           .select('title, author_id')
-          .eq('id', workflowData.document_id)
+          .eq('id', approvalData.document_id)
           .single()
         
         documentTitle = docData?.title || 'Documento'
@@ -355,25 +354,25 @@ export function useApprovals() {
       }
 
       // Verificar se é o último aprovador
-      const { data: remainingWorkflows, error: remainingError } = await supabase
-        .from('approval_workflows')
+      const { data: remainingapprovals, error: remainingError } = await supabase
+        .from('approval_requests')
         .select('*')
-        .eq('document_id', workflowData.document_id)
+        .eq('document_id', approvalData.document_id)
         .eq('status', 'pending')
 
       if (remainingError) throw remainingError
 
       // Se não há mais aprovações pendentes, finalizar documento
-      if (remainingWorkflows.length === 0) {
+      if (remainingapprovals.length === 0) {
         const finalStatus = approved ? 'approved' : 'rejected'
         await supabase
           .from('documents')
           .update({ status: finalStatus })
-          .eq('id', workflowData.document_id)
+          .eq('id', approvalData.document_id)
       }
 
       await fetchApprovals()
-      return workflowData
+      return approvalData
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao aprovar documento')
       throw err
@@ -383,7 +382,7 @@ export function useApprovals() {
   const getDocumentApprovalStatus = async (documentId: string) => {
     try {
       const { data, error } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select('*')
         .eq('document_id', documentId)
         .order('step_order', { ascending: true })
@@ -391,15 +390,15 @@ export function useApprovals() {
       if (error) throw error
 
       // Buscar nomes dos aprovadores
-      const workflowsWithNames = await Promise.all(
-        (data || []).map(async (workflow) => {
+      const approvalsWithNames = await Promise.all(
+        (data || []).map(async (approval) => {
           let approver_name = ''
-          if (workflow.approver_id) {
+          if (approval.approver_id) {
             try {
               const { data: approverData } = await supabase
                 .from('profiles')
                 .select('full_name')
-                .eq('id', workflow.approver_id)
+                .eq('id', approval.approver_id)
                 .single()
               approver_name = approverData?.full_name || ''
             } catch (e) {
@@ -408,13 +407,13 @@ export function useApprovals() {
           }
 
           return {
-            ...workflow,
+            ...approval,
             approver_name
           }
         })
       )
 
-      return workflowsWithNames
+      return approvalsWithNames
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao buscar status de aprovação')
       return []
@@ -427,7 +426,7 @@ export function useApprovals() {
     sentApprovals,
     loading,
     error,
-    createApprovalWorkflow,
+    createApprovalDocument,
     approveDocument,
     getDocumentApprovalStatus,
     refetch: fetchApprovals

@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'TrackDoc - Gestão Inteligente de Documentos com IA | Plataforma Empresarial',
-  description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, workflow automatizado, IA para criação de documentos e muito mais. Comece grátis!',
+  description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, sistema automatizado, IA para criação de documentos e muito mais. Comece grátis!',
   keywords: [
     'gestão de documentos',
     'assinatura eletrônica',
-    'workflow automatizado',
+    'sistema automatizado',
     'IA documentos',
     'plataforma empresarial',
     'gestão digital',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'TrackDoc - Gestão Inteligente de Documentos com IA',
-    description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, workflow automatizado, IA para criação de documentos e muito mais.',
+    description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, sistema automatizado, IA para criação de documentos e muito mais.',
     url: 'https://trackdoc.com.br',
     siteName: 'TrackDoc',
     images: [
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'TrackDoc - Gestão Inteligente de Documentos com IA',
-    description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, workflow automatizado, IA para criação de documentos.',
+    description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, sistema automatizado, IA para criação de documentos.',
     images: ['/twitter-image.png'],
     creator: '@trackdoc',
   },
@@ -84,7 +84,7 @@ export default function LandingLayout({
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             "name": "TrackDoc",
-            "description": "Plataforma de gestão inteligente de documentos com IA, assinatura eletrônica e workflow automatizado para empresas.",
+            "description": "Plataforma de gestão inteligente de documentos com IA, assinatura eletrônica e sistema automatizado para empresas.",
             "url": "https://trackdoc.com.br",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",

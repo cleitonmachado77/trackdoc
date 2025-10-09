@@ -31,7 +31,7 @@ import {
 import { useChatMessages, useChat, type ChatMessage } from "./use-chat"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
-import { useAuth } from "../../../lib/contexts/auth-context"
+import { useAuth } from "../../../lib/contexts/hybrid-auth-context"
 
 interface ChatMessagesProps {
   conversationId: string | null

@@ -95,14 +95,14 @@ export default function ApprovalTimeReport() {
 
       // Buscar dados de aprovação
       const { data: approvalData, error: approvalError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select(`
           id,
           status,
           created_at,
           approved_at,
-          approver:profiles!approval_workflows_approver_id_fkey(full_name, role),
-          document:documents!approval_workflows_document_id_fkey(
+          approver:profiles!approval_requests_approver_id_fkey(full_name, role),
+          document:documents!approval_requests_document_id_fkey(
             title,
             document_type:document_types(name)
           )

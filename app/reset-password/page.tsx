@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle } from "lucide-react"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from "@/lib/contexts/hybrid-auth-context"
 
 export default function ResetPasswordPage() {
   const router = useRouter()

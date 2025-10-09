@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '../../../lib/contexts/auth-context'
+import { useAuth } from '../../../lib/contexts/hybrid-auth-context'
 import { chatCache } from '@/lib/cache'
 
 const supabase = createBrowserClient(

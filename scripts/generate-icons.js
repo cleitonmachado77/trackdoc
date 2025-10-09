@@ -62,7 +62,7 @@ const ogSVG = `<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none"
     Gestão Inteligente de Documentos com IA
   </text>
   <text x="220" y="330" font-family="Arial, sans-serif" font-size="18" fill="white" opacity="0.8">
-    Assinatura Eletrônica • Workflow Automatizado • Dashboard Executivo
+    Assinatura Eletrônica • Gestão Inteligente • Dashboard Executivo
   </text>
 </svg>`;
 

@@ -1,27 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { supabaseConfig } from '@/lib/supabase/config'
+import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase-server'
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 [profile-api] GET - Buscando perfil do usuário...')
 
-    const cookieStore = cookies()
-    const supabase = createServerClient(supabaseConfig.url, supabaseConfig.anonKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: any) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    })
+    const supabase = createSupabaseServerClient()
 
     // Verificar autenticação
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -36,20 +20,7 @@ export async function GET(request: NextRequest) {
     console.log('✅ [profile-api] Usuário autenticado:', user.id)
 
     // Usar service role para bypass RLS
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return NextResponse.json(
-        { error: 'Configuração de service role não encontrada' },
-        { status: 500 }
-      )
-    }
-
-    const serviceRoleSupabase = createClient(
-      supabaseConfig.url,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
-
-    // A tabela profiles já existe, vamos usar a estrutura correta
-    console.log('📋 [profile-api] Usando tabela profiles existente...')
+    const serviceRoleSupabase = createSupabaseServiceClient()
 
     // Buscar perfil
     const { data: profile, error: profileError } = await serviceRoleSupabase
@@ -69,7 +40,7 @@ export async function GET(request: NextRequest) {
           id: user.id,
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
           email: user.email || '',
-          role: 'user', // Já está em lowercase
+          role: 'user',
           status: 'active',
           permissions: ['read', 'write'],
           registration_completed: true,
@@ -131,22 +102,8 @@ export async function PUT(request: NextRequest) {
   try {
     console.log('🔍 [profile-api] PUT - Atualizando perfil do usuário...')
 
-    const cookieStore = cookies()
-    const supabase = createServerClient(supabaseConfig.url, supabaseConfig.anonKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: any) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    })
+    const supabase = createSupabaseServerClient()
 
-    console.log('🔐 [profile-api] Verificando autenticação...')
     // Verificar autenticação
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -160,11 +117,10 @@ export async function PUT(request: NextRequest) {
     console.log('✅ [profile-api] Usuário autenticado:', user.id)
 
     // Obter dados do corpo da requisição
-    console.log('📋 [profile-api] Lendo corpo da requisição...')
     const body = await request.json()
     const { full_name, phone, role, department, position } = body
 
-    // Normalizar o role para lowercase e validar valores permitidos (constraint da tabela)
+    // Normalizar o role para lowercase e validar valores permitidos
     const validRoles = ['user', 'admin', 'manager']
     const normalizedRole = role ? role.toLowerCase() : 'user'
     const finalRole = validRoles.includes(normalizedRole) ? normalizedRole : 'user'
@@ -172,24 +128,9 @@ export async function PUT(request: NextRequest) {
     console.log('📝 [profile-api] Dados recebidos:', { full_name, phone, role: finalRole, department, position })
 
     // Usar service role para bypass RLS
-    console.log('🔑 [profile-api] Verificando service role key...')
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ [profile-api] Service role key não encontrada')
-      return NextResponse.json(
-        { error: 'Configuração de service role não encontrada' },
-        { status: 500 }
-      )
-    }
+    const serviceRoleSupabase = createSupabaseServiceClient()
 
-    console.log('🔑 [profile-api] Criando cliente service role...')
-    const serviceRoleSupabase = createClient(
-      supabaseConfig.url,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
-
-    // Usar upsert para criar ou atualizar perfil na tabela existente
-    console.log('🔄 [profile-api] Usando upsert para criar/atualizar perfil...')
-    
+    // Usar upsert para criar ou atualizar perfil
     const profileData = {
       id: user.id,
       full_name,
@@ -206,8 +147,6 @@ export async function PUT(request: NextRequest) {
       updated_at: new Date().toISOString()
     }
 
-    console.log('📝 [profile-api] Dados do perfil (upsert):', profileData)
-
     const { data, error } = await serviceRoleSupabase
       .from('profiles')
       .upsert(profileData, {
@@ -216,35 +155,23 @@ export async function PUT(request: NextRequest) {
       .select()
       .single()
 
-    const result = { data, error }
-    console.log('✅ [profile-api] Resultado do upsert:', { data, error })
-
-    if (result.error) {
-      console.error('❌ [profile-api] Erro detalhado na operação:', {
-        message: result.error.message,
-        details: result.error.details,
-        hint: result.error.hint,
-        code: result.error.code
-      })
+    if (error) {
+      console.error('❌ [profile-api] Erro ao salvar perfil:', error)
       return NextResponse.json(
-        { error: `Erro ao salvar perfil: ${result.error.message}` },
+        { error: `Erro ao salvar perfil: ${error.message}` },
         { status: 500 }
       )
     }
 
-    console.log('✅ [profile-api] Operação concluída com sucesso:', result.data)
+    console.log('✅ [profile-api] Perfil salvo com sucesso:', data)
 
     return NextResponse.json({
       success: true,
-      profile: result.data
+      profile: data
     })
 
   } catch (error) {
-    console.error('❌ [profile-api] Erro interno detalhado:', {
-      message: error instanceof Error ? error.message : 'Erro desconhecido',
-      stack: error instanceof Error ? error.stack : undefined,
-      error
-    })
+    console.error('❌ [profile-api] Erro interno:', error)
     return NextResponse.json(
       { error: `Erro interno do servidor: ${error instanceof Error ? error.message : 'Erro desconhecido'}` },
       { status: 500 }

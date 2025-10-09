@@ -59,7 +59,7 @@ export default function DocumentSelectorModal({
 
       // Buscar o processo para obter o document_id principal
       const { data: process, error: processError } = await supabase
-        .from('workflow_processes')
+        .from('document_processes')
         .select('document_id')
         .eq('id', processId)
         .single()

@@ -1,8 +1,11 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import { AuthProvider } from "@/lib/contexts/auth-context"
+import { HybridAuthProvider } from "@/lib/contexts/hybrid-auth-context"
 import { AuthWrapper } from "./components/auth-wrapper"
+import { ErrorBoundary } from "./components/error-boundary"
+import { ErrorHandlerSetup } from "./components/error-handler-setup"
+
 
 export const metadata: Metadata = {
   title: "TrackDoc - Sistema de Gestao de Documentos",
@@ -22,11 +25,14 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className="font-sans antialiased">
-        <AuthProvider>
-          <AuthWrapper>
-            {children}
-          </AuthWrapper>
-        </AuthProvider>
+        <ErrorHandlerSetup />
+        <ErrorBoundary>
+          <HybridAuthProvider>
+            <AuthWrapper>
+              {children}
+            </AuthWrapper>
+          </HybridAuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

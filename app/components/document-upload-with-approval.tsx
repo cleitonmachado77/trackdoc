@@ -144,7 +144,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
       // 2. Criar workflow de aprovação
       const { error: workflowError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .insert({
           document_id: documentId,
           approver_id: approverId,

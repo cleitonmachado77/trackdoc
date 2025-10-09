@@ -7,13 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, Clock, Star, Loader2, AlertCircle, ArrowRight } from "lucide-react"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from "@/lib/contexts/hybrid-auth-context"
 import { useRegistrationPlans, type RegistrationPlan } from "@/hooks/use-registration-plans"
 import { useAccessStatus } from "@/hooks/use-access-status"
 
 export default function ChoosePlanPage() {
   const router = useRouter()
-  const { user, createSubscription } = useAuth()
+  const { user } = useAuth()
   const { plans, loading: plansLoading, error: plansError } = useRegistrationPlans()
   const { accessStatus, loading: accessLoading } = useAccessStatus()
   

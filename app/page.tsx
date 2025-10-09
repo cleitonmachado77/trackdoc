@@ -6,7 +6,7 @@ import AccessGuard from "./components/access-guard"
 import AuthGuard from "./components/auth-guard"
 import AdminGuard from "./components/admin-guard"
 import LandingRedirect from "./components/landing-redirect"
-import { AuthProvider } from "@/lib/contexts/auth-context"
+import { HybridAuthProvider } from "@/lib/contexts/hybrid-auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -81,7 +81,7 @@ import DocumentList from "./components/document-list"
 import DocumentUploadWithApproval from "./components/document-upload-with-approval"
 import EntityUserManagement from "./components/admin/entity-user-management"
 import ElectronicSignature from "./components/electronic-signature"
-// import DocumentWorkflow from "./components/document-workflow"
+
 import ChatPage from "./chat/page"
 import MinhaContaPage from "./minha-conta/page"
 import { useDocuments } from "@/hooks/use-documents"
@@ -140,14 +140,14 @@ const statusLabels = {
 
 const DocumentManagementPlatform = memo(function DocumentManagementPlatform() {
   return (
-    <AuthProvider>
+    <>
       <LandingRedirect />
       <AuthGuard>
         <AccessGuard requireAuth={true} requireActiveSubscription={true}>
           <DocumentManagementPlatformContent />
         </AccessGuard>
       </AuthGuard>
-    </AuthProvider>
+    </>
   )
 })
 
@@ -550,8 +550,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return <AIDocumentCreator />
       case "electronic-signature":
         return <ElectronicSignature />
-      // case "document-workflow":
-      //   return <DocumentWorkflow />
+
       case "notifications":
         return <UnifiedNotificationsPage />
       case "chat":
@@ -1051,7 +1050,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Aprovações</h1>
           <p className="text-gray-600">
-            Gerencie documentos pendentes de aprovação e acompanhe o status dos workflows
+            Gerencie documentos pendentes de aprovação e acompanhe o status das solicitações
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1511,7 +1510,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           
                                   {activeView === "ai-create" && "Criar com IA"}
                 {activeView === "electronic-signature" && "Assinatura Eletrônica"}
-                {/* {activeView === "document-workflow" && "Tramitação de Documentos"} */}
+
                 {activeView === "notifications" && "Notificacoes"}
                 {activeView === "chat" && "Chat"}
                   {activeView === "admin" && "Administracao"}

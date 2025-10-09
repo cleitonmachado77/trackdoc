@@ -138,14 +138,14 @@ export default function AuditReport() {
 
       // Buscar dados de aprovação
       const { data: approvals, error: approvalError } = await supabase
-        .from('approval_workflows')
+        .from('approval_requests')
         .select(`
           id,
           status,
           created_at,
           approved_at,
-          approver:profiles!approval_workflows_approver_id_fkey(full_name),
-          document:documents!approval_workflows_document_id_fkey(title)
+          approver:profiles!approval_requests_approver_id_fkey(full_name),
+          document:documents!approval_requests_document_id_fkey(title)
         `)
         .order('created_at', { ascending: false })
         .limit(50)

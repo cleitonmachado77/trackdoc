@@ -25,8 +25,15 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState<string | null>(null)
   const [supabase, setSupabase] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+
     // Inicializar Supabase de forma simples
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -57,7 +64,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [mounted])
 
   const signIn = async (email: string, password: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
@@ -122,6 +129,26 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     resetPassword,
     updatePassword,
     clearAuthError,
+  }
+
+  // Evitar hidratação até que o componente esteja montado
+  if (!mounted) {
+    return (
+      <SimpleAuthContext.Provider value={{
+        user: null,
+        session: null,
+        loading: true,
+        authError: null,
+        signIn: async () => ({ error: null }),
+        signOut: async () => {},
+        signUp: async () => ({ error: null }),
+        resetPassword: async () => ({ error: null }),
+        updatePassword: async () => ({ error: null }),
+        clearAuthError: () => {},
+      }}>
+        {children}
+      </SimpleAuthContext.Provider>
+    )
   }
 
   return (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/lib/contexts/hybrid-auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useSupabase } from '@/lib/hooks/use-supabase'
 
 export interface Plan {

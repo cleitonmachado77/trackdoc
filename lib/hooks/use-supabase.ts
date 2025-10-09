@@ -2,7 +2,7 @@
  * Hook para obter o cliente Supabase correto (com proxy se necessário)
  */
 
-import { useAuth } from '@/lib/contexts/hybrid-auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { useEffect, useState } from 'react'
 

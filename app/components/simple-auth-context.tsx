@@ -61,18 +61,18 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
   const signIn = async (email: string, password: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
-    
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
-    
+
     return { error }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -82,7 +82,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         },
       },
     })
-    
+
     return { error }
   }
 
@@ -93,14 +93,14 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
   const resetPassword = async (email: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
-    
+
     const { error } = await supabase.auth.resetPasswordForEmail(email)
     return { error }
   }
 
   const updatePassword = async (newPassword: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
-    
+
     const { error } = await supabase.auth.updateUser({
       password: newPassword
     })

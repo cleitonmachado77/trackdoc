@@ -1,13 +1,10 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import "./globals"
-import { HybridAuthProvider } from "@/lib/contexts/hybrid-auth-context"
 import { SimpleAuthProvider } from "./components/simple-auth-context"
 import { AuthWrapper } from "./components/auth-wrapper"
 import { ErrorBoundary } from "./components/error-boundary"
 import { ErrorHandlerSetup } from "./components/error-handler-setup"
-import ClientOnly from "./components/client-only"
 
 
 export const metadata: Metadata = {
@@ -30,17 +27,11 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <ErrorHandlerSetup />
         <ErrorBoundary>
-          <ClientOnly fallback={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            </div>
-          }>
-            <SimpleAuthProvider>
-              <AuthWrapper>
-                {children}
-              </AuthWrapper>
-            </SimpleAuthProvider>
-          </ClientOnly>
+          <SimpleAuthProvider>
+            <AuthWrapper>
+              {children}
+            </AuthWrapper>
+          </SimpleAuthProvider>
         </ErrorBoundary>
       </body>
     </html>

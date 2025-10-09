@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/lib/contexts/hybrid-auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useUserProfile, usePlans } from "@/hooks/use-database-data"
 import { useUserSubscription } from "@/hooks/use-subscriptions"
 import { useAccessStatus } from "@/hooks/use-access-status"
@@ -770,3 +770,7 @@ export default function MinhaContaPage() {
     </div>
   )
 }
+
+
+// Desabilitar prerendering para páginas com autenticação
+export const dynamic = 'force-dynamic'

@@ -25,7 +25,7 @@ import {
   User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/contexts/hybrid-auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useUserProfile } from "@/hooks/use-database-data"
 import { useNotificationCounterSimple } from "@/hooks/use-notification-counter-simple"
 import FixedQuickSearchModal from "./fixed-quick-search-modal"

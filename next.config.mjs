@@ -82,6 +82,12 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
+  // Desabilitar prerendering para todas as páginas que usam autenticação
+  experimental: {
+    ...nextConfig.experimental,
+    missingSuspenseWithCSRBailout: false,
+  },
+  
   // ✅ Compilador otimizado
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',

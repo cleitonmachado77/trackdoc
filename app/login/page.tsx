@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/contexts/hybrid-auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -258,3 +258,7 @@ export default function LoginPage() {
     </div>
   )
 }
+
+
+// Desabilitar prerendering para páginas com autenticação
+export const dynamic = 'force-dynamic'

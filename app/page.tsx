@@ -6,7 +6,7 @@ import AccessGuard from "./components/access-guard"
 import AuthGuard from "./components/auth-guard"
 import AdminGuard from "./components/admin-guard"
 import LandingRedirect from "./components/landing-redirect"
-import { HybridAuthProvider } from "@/lib/contexts/hybrid-auth-context"
+import { useAuth } from "@/lib/hooks/use-unified-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -1753,3 +1753,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     </div>
   )
 })
+
+
+// Desabilitar prerendering para páginas com autenticação
+export const dynamic = 'force-dynamic'

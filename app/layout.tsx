@@ -23,27 +23,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Usar autenticação simples em produção para evitar problemas de conectividade
-  const isProduction = process.env.NODE_ENV === 'production'
-  
   return (
     <html lang="pt-BR">
       <body className="font-sans antialiased">
         <ErrorHandlerSetup />
         <ErrorBoundary>
-          {isProduction ? (
-            <SimpleAuthProvider>
-              <AuthWrapper>
-                {children}
-              </AuthWrapper>
-            </SimpleAuthProvider>
-          ) : (
-            <HybridAuthProvider>
-              <AuthWrapper>
-                {children}
-              </AuthWrapper>
-            </HybridAuthProvider>
-          )}
+          <SimpleAuthProvider>
+            <AuthWrapper>
+              {children}
+            </AuthWrapper>
+          </SimpleAuthProvider>
         </ErrorBoundary>
       </body>
     </html>

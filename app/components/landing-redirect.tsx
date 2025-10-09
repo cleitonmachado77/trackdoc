@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useAuth } from "@/lib/contexts/hybrid-auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 
 export default function LandingRedirect() {
   const router = useRouter()

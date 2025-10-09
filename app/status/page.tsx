@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/contexts/hybrid-auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useSupabase } from '@/lib/hooks/use-supabase'
 import { useUserProfile } from '@/hooks/use-database-data'
 import { useNotificationCounterSimple } from '@/hooks/use-notification-counter-simple'
@@ -253,3 +253,7 @@ export default function StatusPage() {
     </div>
   )
 }
+
+
+// Desabilitar prerendering para páginas com autenticação
+export const dynamic = 'force-dynamic'

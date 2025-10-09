@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/contexts/hybrid-auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useEffect, useState } from 'react'
 
 export default function TestConnectionPage() {
@@ -178,3 +178,6 @@ export default function TestConnectionPage() {
     </div>
   )
 }
+
+// Desabilitar prerendering para páginas com autenticação
+export const dynamic = 'force-dynamic'

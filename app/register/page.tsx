@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle, ArrowRight, Crown, Star, Building2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/contexts/hybrid-auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useRegistrationPlans } from "@/hooks/use-registration-plans"
 import { createBrowserClient } from '@supabase/ssr'
 import Link from "next/link"
@@ -645,3 +645,6 @@ export default function RegisterPage() {
     </div>
   )
 } 
+
+// Desabilitar prerendering para páginas com autenticação
+export const dynamic = 'force-dynamic'

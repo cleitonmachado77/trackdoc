@@ -40,7 +40,18 @@ interface QuickNotification {
 }
 
 export default function UnifiedNotificationBell() {
-  const { user } = useAuth()
+  const auth = useAuth()
+  
+  // Verificar se o hook retornou dados válidos
+  if (!auth) {
+    return (
+      <Button variant="ghost" size="sm" disabled>
+        <Bell className="h-4 w-4" />
+      </Button>
+    )
+  }
+  
+  const { user } = auth
   const { notifyCounterChange } = useNotificationCounterNotifierSimple()
   const [notifications, setNotifications] = useState<QuickNotification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)

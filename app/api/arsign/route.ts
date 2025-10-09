@@ -502,25 +502,24 @@ export async function POST(request: NextRequest) {
           console.log('✅ Notificações criadas para', multiSignatureUsers.length, 'usuários')
         }
 
-          // Retornar dados da solicitação criada (sem assinar o documento ainda)
-          return NextResponse.json({
-            success: true,
-            message: 'Processo de assinatura múltipla criado com sucesso',
-            data: {
-              requestId: multiSignatureRequest.id,
-              documentName: documentName,
-              totalSignatures: multiSignatureUsers.length,
-              pendingSignatures: multiSignatureUsers.length,
-              status: 'pending',
-              users: multiSignatureUsers.map(u => ({
-                id: u.id,
-                name: u.full_name,
-                email: u.email,
-                status: 'pending'
-              }))
-            }
-          })
-        }
+        // Retornar dados da solicitação criada (sem assinar o documento ainda)
+        return NextResponse.json({
+          success: true,
+          message: 'Processo de assinatura múltipla criado com sucesso',
+          data: {
+            requestId: multiSignatureRequest.id,
+            documentName: documentName,
+            totalSignatures: multiSignatureUsers.length,
+            pendingSignatures: multiSignatureUsers.length,
+            status: 'pending',
+            users: multiSignatureUsers.map(u => ({
+              id: u.id,
+              name: u.full_name,
+              email: u.email,
+              status: 'pending'
+            }))
+          }
+        })
       } else {
         // Assinatura única
         const result = await digitalSignatureService.createSignature(

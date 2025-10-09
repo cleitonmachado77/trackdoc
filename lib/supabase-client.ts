@@ -111,6 +111,9 @@ export async function createSupabaseClient() {
   return client
 }
 
+// Alias para compatibilidade
+export const getSupabase = createSupabaseClient
+
 export async function checkConnection() {
   try {
     const { client, isUsingProxy } = await getSupabaseClient()

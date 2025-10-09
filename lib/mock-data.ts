@@ -2,6 +2,7 @@
  * Dados mock para desenvolvimento local sem APIs externas
  */
 
+export const mockProcesses = [
   {
     id: '1',
     name: 'Aprovação de Documento',
@@ -135,15 +136,18 @@ export class MockAPI {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
 
+  async getProcesses(scope?: string) {
     await this.delay()
     
     if (scope === 'assigned') {
       return {
+        data: mockProcesses.filter(p => p.status === 'active'),
         error: null
       }
     }
     
     return {
+      data: mockProcesses,
       error: null
     }
   }
@@ -172,40 +176,55 @@ export class MockAPI {
     }
   }
 
+  async createProcess(processData: any) {
     await this.delay()
     
+    const newProcess = {
+      id: Date.now().toString(),
+      ...processData,
       created_at: new Date().toISOString(),
       status: 'active'
     }
     
+    mockProcesses.push(newProcess)
     
     return {
+      data: newProcess,
       error: null
     }
   }
 
+  async updateProcess(id: string, updates: any) {
     await this.delay()
     
+    const index = mockProcesses.findIndex(p => p.id === id)
     if (index === -1) {
       return {
         data: null,
+        error: { message: 'Processo não encontrado' }
       }
     }
     
+    mockProcesses[index] = { ...mockProcesses[index], ...updates }
     
     return {
+      data: mockProcesses[index],
       error: null
     }
   }
 
+  async deleteProcess(id: string) {
     await this.delay()
     
+    const index = mockProcesses.findIndex(p => p.id === id)
     if (index === -1) {
       return {
         data: null,
+        error: { message: 'Processo não encontrado' }
       }
     }
     
+    mockProcesses.splice(index, 1)
     
     return {
       data: { success: true },

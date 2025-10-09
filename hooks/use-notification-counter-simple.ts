@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 
 // Evento personalizado para notificar mudanças no contador
 const NOTIFICATION_COUNTER_EVENT = 'notificationCounterChanged'

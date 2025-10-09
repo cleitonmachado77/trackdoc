@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { checkSimpleEntityAdminStatus, fixSimpleEntityAdminStatus, listSimpleEntities } from '@/lib/simple-entity-admin-utils'
 import { checkGlobalAdminStatus } from '@/lib/entity-admin-utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

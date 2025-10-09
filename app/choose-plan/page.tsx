@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, Clock, Star, Loader2, AlertCircle, ArrowRight } from "lucide-react"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useRegistrationPlans, type RegistrationPlan } from "@/hooks/use-registration-plans"
 import { useAccessStatus } from "@/hooks/use-access-status"
 

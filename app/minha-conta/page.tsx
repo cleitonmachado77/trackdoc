@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useUserProfile, usePlans } from "@/hooks/use-database-data"
 import { useUserSubscription } from "@/hooks/use-subscriptions"
 import { useAccessStatus } from "@/hooks/use-access-status"

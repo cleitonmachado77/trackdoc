@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useToast } from '@/hooks/use-toast'
 
 const createClient = () =>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useSupabase } from '@/lib/hooks/use-supabase'
 import { useUserProfile } from '@/hooks/use-database-data'
 import { useNotificationCounterSimple } from '@/hooks/use-notification-counter-simple'

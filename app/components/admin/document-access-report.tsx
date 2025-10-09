@@ -22,7 +22,7 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { toast } from "@/hooks/use-toast"
 
 const supabase = createBrowserClient(

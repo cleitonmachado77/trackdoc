@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useSupabase } from '@/lib/hooks/use-supabase'
 import { useEffect, useState } from 'react'
 

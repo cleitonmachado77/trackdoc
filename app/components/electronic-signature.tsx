@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Upload, FileText, Download, CheckCircle, Clock, XCircle, FileCheck, Eye, X, Settings, AlertCircle, Users, Calendar, History, Search } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -6,7 +6,7 @@ import AccessGuard from "./components/access-guard"
 import AuthGuard from "./components/auth-guard"
 import AdminGuard from "./components/admin-guard"
 import LandingRedirect from "./components/landing-redirect"
-import { useAuth } from "@/lib/hooks/use-unified-auth"
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"

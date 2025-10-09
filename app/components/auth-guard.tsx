@@ -4,7 +4,7 @@ import type React from "react"
 import { useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Loader2 } from "lucide-react"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 
 interface AuthGuardProps {
   children: React.ReactNode

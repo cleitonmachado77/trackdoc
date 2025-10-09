@@ -24,7 +24,7 @@ import {
   Send,
   User,
 } from "lucide-react"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useDocuments } from "@/hooks/use-documents"
 import { useCategories } from "@/hooks/use-categories"
 import { useDepartments } from "@/hooks/use-departments"

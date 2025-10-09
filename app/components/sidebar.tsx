@@ -25,11 +25,11 @@ import {
   User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useUserProfile } from "@/hooks/use-database-data"
 import { useNotificationCounterSimple } from "@/hooks/use-notification-counter-simple"
 import FixedQuickSearchModal from "./fixed-quick-search-modal"
-import UnifiedNotificationBell from "./unified-notification-bell"
+import BellNotificationsV2 from "./bell-notifications-v2"
 import { createBrowserClient } from "@supabase/ssr"
 
 interface SidebarProps {
@@ -252,7 +252,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     <Search className="h-4 w-4 mr-3" />
                     Busca Rápida
                   </Button>
-                  <UnifiedNotificationBell />
+                  <BellNotificationsV2 />
                 </div>
                 <Button
                   variant={activeView === "help" ? "secondary" : "ghost"}

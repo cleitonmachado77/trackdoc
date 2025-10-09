@@ -25,7 +25,7 @@ import {
   Info
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useNotificationCounterNotifierSimple } from "@/hooks/use-notification-counter-simple"
 import { useToast } from "@/hooks/use-toast"
 

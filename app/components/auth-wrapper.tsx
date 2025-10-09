@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { AuthErrorToast } from './auth-error-toast'
 
 interface AuthWrapperProps {

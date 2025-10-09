@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useEffect, useState } from 'react'
 
 export default function TestConnectionPage() {

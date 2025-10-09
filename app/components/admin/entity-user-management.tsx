@@ -45,7 +45,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { createBrowserClient } from '@supabase/ssr'
 import { checkSimpleEntityAdminStatus } from "@/lib/simple-entity-admin-utils"
 import { EntityAdminDebug } from "../entity-admin-debug"

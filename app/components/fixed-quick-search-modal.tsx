@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Star,
 } from "lucide-react"
-import { useAuth } from '@/lib/hooks/use-unified-auth'
+import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 

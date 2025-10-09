@@ -18,6 +18,7 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['@supabase/ssr', 'lucide-react'],
+    missingSuspenseWithCSRBailout: false,
   },
   
   // ✅ Compilação otimizada para produção
@@ -82,11 +83,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   
-  // Desabilitar prerendering para todas as páginas que usam autenticação
-  experimental: {
-    ...nextConfig.experimental,
-    missingSuspenseWithCSRBailout: false,
-  },
+
   
   // ✅ Compilador otimizado
   compiler: {

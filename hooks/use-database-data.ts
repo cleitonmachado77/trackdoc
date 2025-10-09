@@ -141,6 +141,27 @@ export function useUserProfile(userId: string | undefined) {
         const result = await response.json()
 
         if (!response.ok) {
+          // Se for erro 401 com código PROFILE_NOT_FOUND, forçar logout
+          if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
+            console.log('⚠️ [useUserProfile] Perfil não encontrado - forçando logout completo')
+            
+            // Limpar autenticação e redirecionar para login
+            if (typeof window !== 'undefined') {
+              // Limpar todos os dados de autenticação
+              localStorage.clear()
+              sessionStorage.clear()
+              
+              // Limpar cookies do Supabase
+              document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+              });
+              
+              // Forçar reload completo da página para limpar estado
+              console.log('🔄 [useUserProfile] Redirecionando para login...')
+              window.location.replace('/login')
+            }
+            return
+          }
           throw new Error(result.error || 'Erro ao buscar perfil')
         }
 

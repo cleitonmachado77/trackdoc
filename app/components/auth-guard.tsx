@@ -69,6 +69,67 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return null
   }
 
-  // Se autenticado, mostrar conteúdo
+  // Se autenticado, verificar perfil antes de mostrar conteúdo
+  return (
+    <>
+      {/* Importar ProfileGuard dinamicamente para evitar problemas de SSR */}
+      <ProfileGuardWrapper>{children}</ProfileGuardWrapper>
+    </>
+  )
+}
+
+// Componente wrapper para ProfileGuard
+function ProfileGuardWrapper({ children }: { children: React.ReactNode }) {
+  const { user, signOut } = useAuth()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  useEffect(() => {
+    async function checkProfile() {
+      if (!user) return
+
+      // Páginas que não precisam de verificação de perfil
+      const skipProfileCheck = ["/confirm-email", "/verify-email"]
+      if (skipProfileCheck.includes(pathname)) return
+
+      try {
+        console.log('🔍 [ProfileGuard] Verificando perfil para usuário:', user.id)
+        
+        const response = await fetch('/api/profile')
+        const result = await response.json()
+
+        if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
+          console.log('❌ [ProfileGuard] Perfil não encontrado - fazendo logout')
+          
+          // Fazer logout através do contexto
+          await signOut()
+          
+          // Limpar storage
+          localStorage.clear()
+          sessionStorage.clear()
+          
+          // Redirecionar para login
+          router.replace('/login')
+          return
+        }
+
+        if (!response.ok) {
+          console.log('❌ [ProfileGuard] Erro ao verificar perfil:', result.error)
+          await signOut()
+          router.replace('/login')
+          return
+        }
+
+        console.log('✅ [ProfileGuard] Perfil encontrado - acesso liberado')
+      } catch (error) {
+        console.error('❌ [ProfileGuard] Erro ao verificar perfil:', error)
+        await signOut()
+        router.replace('/login')
+      }
+    }
+
+    checkProfile()
+  }, [user, signOut, router, pathname])
+
   return <>{children}</>
 }

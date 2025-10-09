@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle, ArrowRight, Crown, Star, Building2, User } from "lucide-react"
+import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle, ArrowRight, Building2, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useRegistrationPlans } from "@/hooks/use-registration-plans"
@@ -15,10 +15,11 @@ import { createBrowserClient } from '@supabase/ssr'
 import Link from "next/link"
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
 
-export default function RegisterPage() {
+export default function RegisterPageSimplified() {
   const router = useRouter()
   const { signUp } = useAuth()
   const { plans, loading: plansLoading, error: plansError } = useRegistrationPlans()
+  
   // Verificar se as variáveis de ambiente estão configuradas
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -126,148 +127,57 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!selectedPlanId) {
-      setError("Por favor, selecione um plano.")
-      return
-    }
+    if (!validateForm()) return
 
     setIsLoading(true)
     setError("")
     setSuccess("")
 
     try {
-      // 1. Criar conta
-      const signUpResult = await signUp(formData.email, formData.password, formData.fullName)
-      
-      if (signUpResult.error) {
-        if (signUpResult.error.message.includes("already registered")) {
+      // 1. Criar usuário com metadata correto para o trigger
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            role: registrationType === 'entity' ? 'admin' : 'user',
+            entity_role: registrationType === 'entity' ? 'admin' : 'user',
+            registration_type: registrationType === 'entity' ? 'entity_admin' : 'individual',
+            selected_plan_id: selectedPlanId
+          }
+        }
+      })
+
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
           setError("Este email já está cadastrado. Faça login ou use outro email.")
         } else {
-          setError(signUpResult.error.message)
+          setError(signUpError.message)
         }
         return
       }
 
-      const { data } = signUpResult as { error: null; data: any }
-
-      // NÃO tentar buscar o perfil imediatamente - aguardar confirmação do email
-      // O perfil será criado automaticamente pelo trigger quando o email for confirmado
-      
+      // 2. Para entidades, salvar dados para criar após confirmação do email
       if (registrationType === 'entity') {
-        // Para entidades, vamos criar o perfil manualmente (sem verificar se existe)
-        try {
-          // 1. Criar perfil de entidade diretamente
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: data.user!.id,
-              full_name: formData.fullName,
-              email: formData.email,
-              role: 'admin',
-              status: 'active',
-              permissions: '["read", "write", "admin"]',
-              entity_id: null, // Será atualizado depois
-              registration_type: 'entity_admin',
-              entity_role: 'admin',
-              selected_plan_id: selectedPlanId,
-              registration_completed: true
-            }])
-
-          if (profileError) {
-            // Se der erro de chave duplicada, significa que o trigger já criou o perfil
-            if (profileError.code === '23505') {
-              console.log('Perfil já existe (criado pelo trigger), atualizando...')
-              const { error: profileUpdateError } = await supabase
-                .from('profiles')
-                .update({
-                  role: 'admin',
-                  permissions: '["read", "write", "admin"]',
-                  registration_type: 'entity_admin',
-                  entity_role: 'admin',
-                  selected_plan_id: selectedPlanId,
-                  registration_completed: true
-                })
-                .eq('id', data.user!.id)
-
-              if (profileUpdateError) {
-                console.error('Erro ao atualizar perfil existente:', profileUpdateError)
-                setError("Conta criada, mas erro ao atualizar perfil. Entre em contato com o suporte.")
-                return
-              }
-            } else {
-              console.error('Erro ao criar perfil de entidade:', profileError)
-              setError("Conta criada, mas erro ao criar perfil. Entre em contato com o suporte.")
-              return
-            }
-          }
-
-          // 2. Criar entidade com admin_user_id válido
-          const { data: entityData, error: entityError } = await supabase
-            .from('entities')
-            .insert([{
-              name: formData.entityName,
-              legal_name: formData.entityLegalName,
-              cnpj: formData.entityCnpj.replace(/\D/g, ''),
-              email: formData.email,
-              phone: formData.entityPhone,
-              subscription_plan_id: selectedPlanId,
-              max_users: 10, // Padrão para entidades
-              admin_user_id: data.user!.id, // Agora o perfil já existe
-            }])
-            .select()
-            .single()
-
-          if (entityError) {
-            console.error('Erro ao criar entidade:', entityError)
-            setError("Conta criada, mas erro ao criar entidade. Entre em contato com o suporte.")
-            return
-          }
-
-          // 3. Atualizar o perfil com o entity_id
-          const { error: updateProfileError } = await supabase
-            .from('profiles')
-            .update({ entity_id: entityData.id })
-            .eq('id', data.user!.id)
-
-          if (updateProfileError) {
-            console.error('Erro ao atualizar perfil com entity_id:', updateProfileError)
-            setError("Conta criada, mas erro ao vincular perfil à entidade. Entre em contato com o suporte.")
-            return
-          }
-
-          // 4. Criar assinatura da entidade
-          const selectedPlan = plans?.find(plan => plan.id === selectedPlanId)
-          const isTrial = selectedPlan?.is_trial || false
-
-          const { error: entitySubscriptionError } = await supabase
-            .from('entity_subscriptions')
-            .insert([{
-              entity_id: entityData.id,
-              plan_id: selectedPlanId,
-              is_trial: isTrial,
-              status: isTrial ? 'trial' : 'active'
-            }])
-
-          if (entitySubscriptionError) {
-            console.error('Erro ao criar assinatura da entidade:', entitySubscriptionError)
-            setError("Conta criada, mas erro ao configurar assinatura. Entre em contato com o suporte.")
-            return
-          }
-
-          setSuccess("Conta de entidade criada com sucesso! Verifique seu email para confirmar o cadastro.")
-          router.push('/confirm-email')
-          
-        } catch (error) {
-          console.error('Erro ao criar entidade:', error)
-          setError("Conta criada, mas erro ao configurar entidade. Entre em contato com o suporte.")
-          return
-        }
-      } else {
-        // Para usuários individuais, aguardar confirmação do email
-        // O trigger handle_new_user criará o perfil automaticamente
-        setSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.")
-        router.push('/confirm-email')
+        localStorage.setItem('pendingEntityData', JSON.stringify({
+          userId: data.user?.id,
+          entityName: formData.entityName,
+          entityLegalName: formData.entityLegalName,
+          entityCnpj: formData.entityCnpj.replace(/\D/g, ''),
+          entityPhone: formData.entityPhone,
+          selectedPlanId: selectedPlanId,
+          userEmail: formData.email
+        }))
       }
+
+      setSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.")
+      
+      // Redirecionar para página de confirmação
+      setTimeout(() => {
+        router.push('/confirm-email')
+      }, 2000)
+
     } catch (err) {
       console.error('Erro no registro:', err)
       setError("Erro interno do servidor. Tente novamente.")
@@ -289,7 +199,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-trackdoc-blue-light via-white to-trackdoc-blue-light p-4">
       <div className="max-w-6xl mx-auto">
-        {/* 🎨 Logo e Header - Novo Design */}
+        {/* Logo e Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <img 
@@ -301,7 +211,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* 🎨 Formulário de Registro - Novo Design */}
+          {/* Formulário de Registro */}
           <Card className="shadow-trackdoc-lg border-0 bg-white/95 backdrop-blur-sm">
             <CardHeader className="space-y-1 pb-6">
               <CardTitle className="text-2xl font-bold text-center text-trackdoc-black">Criar conta</CardTitle>
@@ -593,13 +503,11 @@ export default function RegisterPage() {
                           <CardTitle className="text-lg">{plan.name}</CardTitle>
                           {plan.is_popular && (
                             <div className="flex items-center space-x-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                              <Star className="h-3 w-3" />
                               <span>Popular</span>
                             </div>
                           )}
                           {plan.is_trial && (
                             <div className="flex items-center space-x-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                              <Crown className="h-3 w-3" />
                               <span>Grátis</span>
                             </div>
                           )}

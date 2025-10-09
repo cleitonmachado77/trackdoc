@@ -32,47 +32,17 @@ export async function GET(request: NextRequest) {
     if (profileError) {
       console.error('❌ [profile-api] Erro ao buscar perfil:', profileError)
       
-      // Se perfil não existe, criar um perfil básico automaticamente
+      // Se perfil não existe, retornar erro 401 para forçar logout/login
       if (profileError.code === 'PGRST116') {
-        console.log('⚠️ [profile-api] Perfil não encontrado, criando perfil básico...')
-        
-        const basicProfile = {
-          id: user.id,
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-          email: user.email || '',
-          role: 'user',
-          status: 'active',
-          permissions: ['read', 'write'],
-          registration_completed: true,
-          registration_type: 'individual',
-          entity_role: 'user',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        
-        // Tentar criar o perfil básico
-        const { data: createdProfile, error: createError } = await serviceRoleSupabase
-          .from('profiles')
-          .insert([basicProfile])
-          .select()
-          .single()
-        
-        if (createError) {
-          console.error('❌ [profile-api] Erro ao criar perfil básico:', createError)
-          // Se não conseguir criar, retornar perfil básico sem salvar
-          return NextResponse.json({
-            success: true,
-            profile: basicProfile,
-            isBasic: true
-          })
-        }
-        
-        console.log('✅ [profile-api] Perfil básico criado:', createdProfile)
-        return NextResponse.json({
-          success: true,
-          profile: createdProfile,
-          isBasic: false
-        })
+        console.log('⚠️ [profile-api] Perfil não encontrado - usuário deve fazer login novamente')
+        return NextResponse.json(
+          { 
+            error: 'Perfil não encontrado',
+            code: 'PROFILE_NOT_FOUND',
+            message: 'Usuário deve fazer login novamente'
+          },
+          { status: 401 }
+        )
       }
       
       return NextResponse.json(

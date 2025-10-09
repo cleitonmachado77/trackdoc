@@ -8,9 +8,13 @@ interface SimpleAuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  authError: string | null
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (newPassword: string) => Promise<{ error: any }>
+  clearAuthError: () => void
 }
 
 const SimpleAuthContext = createContext<SimpleAuthContextType | undefined>(undefined)
@@ -19,6 +23,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [supabase, setSupabase] = useState<any>(null)
 
   useEffect(() => {
@@ -86,13 +91,37 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     await supabase.auth.signOut()
   }
 
+  const resetPassword = async (email: string) => {
+    if (!supabase) return { error: { message: 'Supabase não inicializado' } }
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    return { error }
+  }
+
+  const updatePassword = async (newPassword: string) => {
+    if (!supabase) return { error: { message: 'Supabase não inicializado' } }
+    
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+    return { error }
+  }
+
+  const clearAuthError = () => {
+    setAuthError(null)
+  }
+
   const value = {
     user,
     session,
     loading,
+    authError,
     signIn,
     signOut,
     signUp,
+    resetPassword,
+    updatePassword,
+    clearAuthError,
   }
 
   return (

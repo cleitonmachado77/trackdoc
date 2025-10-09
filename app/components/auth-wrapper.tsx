@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from '@/lib/contexts/hybrid-auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { AuthErrorToast } from './auth-error-toast'
 
 interface AuthWrapperProps {
@@ -8,17 +8,27 @@ interface AuthWrapperProps {
 }
 
 export function AuthWrapper({ children }: AuthWrapperProps) {
-  const { authError, clearAuthError, connectionStatus } = useAuth()
+  const auth = useAuth()
+  
+  // Verificar se o hook retornou dados válidos
+  if (!auth) {
+    return <>{children}</>
+  }
+
+  const { authError, clearAuthError } = auth
+  
+  // connectionStatus pode não existir no SimpleAuth
+  const connectionStatus = 'connectionStatus' in auth ? auth.connectionStatus : null
 
   return (
     <>
       {children}
-      <AuthErrorToast 
-        error={authError} 
-        onDismiss={clearAuthError}
-      />
-      
-
+      {authError && clearAuthError && (
+        <AuthErrorToast 
+          error={authError} 
+          onDismiss={clearAuthError}
+        />
+      )}
     </>
   )
 }

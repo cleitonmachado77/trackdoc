@@ -54,7 +54,7 @@ import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-d
 import { useCategories } from "@/hooks/use-categories"
 import { useDepartments } from "@/hooks/use-departments"
 import { useDocumentTypes } from "@/hooks/use-document-types"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { toast } from "@/hooks/use-toast"
 import DocumentUploadWithApproval from "./document-upload-with-approval"
 import { AnimatedDocumentRow } from "./animated-document-row"

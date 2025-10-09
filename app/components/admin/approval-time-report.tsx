@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Clock, TrendingUp, TrendingDown, AlertTriangle, Users, Download, Timer, RefreshCw } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { toast } from "@/hooks/use-toast"
 
 const supabase = createBrowserClient(

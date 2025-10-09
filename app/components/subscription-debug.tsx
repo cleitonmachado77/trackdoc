@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/contexts/auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { checkSubscriptionTables } from '@/lib/subscription-utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

@@ -32,7 +32,7 @@ import {
 } from "lucide-react"
 import { usePlans, type Plan } from "@/hooks/use-plans"
 import { useUserSubscription, useUserInvoices, useUserPaymentMethods } from "@/hooks/use-subscriptions"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useUserUsage } from "@/hooks/use-database-data"
 
 export default function BillingManagement() {

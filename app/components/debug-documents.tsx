@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useDocuments } from "@/hooks/use-documents"
 import { useCategories } from "@/hooks/use-categories"
 import { useDepartments } from "@/hooks/use-departments"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '@/lib/contexts/auth-context'
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useRouter } from 'next/navigation'
 
 const supabase = createBrowserClient(

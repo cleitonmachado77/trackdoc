@@ -19,7 +19,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from "@/lib/hooks/use-unified-auth"
 import { useNotificationCounterNotifierSimple } from "@/hooks/use-notification-counter-simple"
 
 const supabase = createBrowserClient(

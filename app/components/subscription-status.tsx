@@ -1,6 +1,6 @@
 "use client"
 
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useUserProfile, useUserUsage } from "@/hooks/use-database-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"

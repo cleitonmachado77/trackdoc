@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode } from "react"
-import { useAuth } from "@/lib/contexts/auth-context"
+import { useAuth } from '@/lib/hooks/use-unified-auth'
 import { useUserProfile } from "@/hooks/use-database-data"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Shield } from "lucide-react"

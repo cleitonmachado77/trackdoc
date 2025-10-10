@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseConfig } from '@/lib/supabase/config'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
+
+  // Usar a URL correta baseada no ambiente
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://trackdoc.com.br'
 
   if (code) {
     const cookieStore = await cookies()
@@ -42,11 +45,11 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // Redirecionar para a página de confirmação de email
-      return NextResponse.redirect(`${origin}/confirm-email?confirmed=true`)
+      // Redirecionar para a página de confirmação de email usando a URL correta
+      return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true`)
     }
   }
 
-  // Se houver erro, redirecionar para a página de confirmação com erro
-  return NextResponse.redirect(`${origin}/confirm-email?error=confirmation_failed`)
+  // Se houver erro, redirecionar para a página de confirmação com erro usando a URL correta
+  return NextResponse.redirect(`${baseUrl}/confirm-email?error=confirmation_failed`)
 }

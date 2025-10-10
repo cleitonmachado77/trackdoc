@@ -103,7 +103,9 @@ export default function RegisterPageSimple() {
             full_name: formData.fullName,
             role: 'user',
             registration_type: 'individual'
-          }
+          },
+          // Configurar URL de redirecionamento correta para produção
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://trackdoc.com.br'}/auth/callback`
         }
       })
 

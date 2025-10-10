@@ -25,8 +25,8 @@ export default function AdminGuard({ children, fallback }: AdminGuardProps) {
     )
   }
 
-  // Se não é admin, mostrar mensagem de acesso negado
-  if (profile?.role !== 'admin') {
+  // Se não há usuário autenticado, mostrar mensagem de erro
+  if (!user || !profile) {
     if (fallback) {
       return <>{fallback}</>
     }
@@ -36,13 +36,15 @@ export default function AdminGuard({ children, fallback }: AdminGuardProps) {
         <Alert className="max-w-md">
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            Você não tem permissão para acessar esta área. Apenas administradores podem acessar a página de Administração.
+            Você precisa estar logado para acessar esta área.
           </AlertDescription>
         </Alert>
       </div>
     )
   }
 
-  // Se é admin, mostrar o conteúdo
+  // ✅ MUDANÇA: Permitir acesso à administração para todos os usuários autenticados
+  // Isso permite que usuários sem entidade possam criar uma entidade
+  // Se é usuário autenticado, mostrar o conteúdo
   return <>{children}</>
 }

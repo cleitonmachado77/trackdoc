@@ -48,6 +48,8 @@ import {
   FolderOpen,
   Building2,
   MoreHorizontal,
+  Grid3X3,
+  List,
 } from "lucide-react"
 // Importações removidas - não precisamos mais de Tabs nem Alert
 import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-documents"
@@ -65,6 +67,15 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+
+// Função para formatar tamanho de arquivo
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
 
 
 export default function DocumentList() {
@@ -96,6 +107,7 @@ export default function DocumentList() {
   const [showViewer, setShowViewer] = useState(false)
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, any[]>>({})
   const [approvalStatusesLoading, setApprovalStatusesLoading] = useState(false)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
   // Estados removidos - documentos de processos não são mais exibidos nesta página
   // Documentos anexados em processos são exibidos apenas dentro do respectivo processo
@@ -205,7 +217,7 @@ export default function DocumentList() {
   const handleDownload = async (document: Document) => {
     if (document.file_path && document.file_name) {
       try {
-        await downloadDocument(document.file_path, document.file_name)
+        await downloadDocument(document)
       } catch (error) {
         console.error('Erro ao baixar documento:', error)
       }
@@ -311,6 +323,151 @@ export default function DocumentList() {
     )
   }
 
+  // Função para renderizar os documentos em formato de lista
+  const renderDocumentsList = (documentsList: Document[], title: string, icon: React.ReactNode, emptyMessage: string) => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-trackdoc-black flex items-center gap-2">
+            {icon}
+            {title}
+          </h2>
+          <p className="text-trackdoc-gray mt-1">
+            {documentsList.length} documento(s) encontrado(s)
+          </p>
+        </div>
+      </div>
+
+      {/* Lista em Tabela */}
+      {documentsList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="text-center">
+            <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-muted-foreground mb-2">{emptyMessage}</h3>
+            <p className="text-muted-foreground mb-4">Comece criando seu primeiro documento</p>
+            {title === "Documentos Armazenados" && (
+              <Button variant="default" onClick={() => router.push('/?showCreationSelector=true')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar primeiro documento
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Documento</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Autor</TableHead>
+                <TableHead>Departamento</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tamanho</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documentsList.map((document) => (
+                <AnimatedDocumentRow key={document.id}>
+                  <TableRow className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-trackdoc-blue-light rounded-lg">
+                          <FileText className="h-4 w-4 text-trackdoc-blue" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{document.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {document.description || 'Sem descrição'}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                        style={{ 
+                          backgroundColor: `${document.document_type?.color || '#6B7280'}20`, 
+                          borderColor: document.document_type?.color || '#6B7280' 
+                        }}
+                      >
+                        {document.document_type?.name || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {document.category?.name || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm truncate">{document.author?.full_name || 'N/A'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-sm truncate">{document.department?.name || 'N/A'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {renderApprovalStatus(document.id)}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {formatFileSize(document.file_size || 0)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedDocument(document)
+                            setShowViewer(true)
+                          }}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => downloadDocument(document)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Tem certeza que deseja excluir este documento?')) {
+                              deleteDocument(document.id)
+                            }
+                          }}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </AnimatedDocumentRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+    </div>
+  )
+
   // Função para renderizar os documentos em cards quadrados
   const renderDocumentsGrid = (documentsList: Document[], title: string, icon: React.ReactNode, emptyMessage: string) => (
     <div className="space-y-6">
@@ -335,7 +492,7 @@ export default function DocumentList() {
             <h3 className="text-lg font-medium text-muted-foreground mb-2">{emptyMessage}</h3>
             <p className="text-muted-foreground mb-4">Comece criando seu primeiro documento</p>
             {title === "Documentos Armazenados" && (
-              <Button variant="trackdoc" onClick={() => router.push('/?showCreationSelector=true')}>
+              <Button variant="default" onClick={() => router.push('/?showCreationSelector=true')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Criar primeiro documento
               </Button>
@@ -498,6 +655,26 @@ export default function DocumentList() {
           <p className="text-trackdoc-gray">Gerencie todos os documentos do sistema</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Toggle de Visualização */}
+          <div className="flex items-center border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className="h-8 px-3"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8 px-3"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          
           <Button 
             onClick={handleRefresh} 
             variant="outline" 
@@ -585,12 +762,20 @@ export default function DocumentList() {
       </Card>
 
       {/* Lista de Documentos Armazenados */}
-      {renderDocumentsGrid(
-        documents,
-        "Documentos Armazenados",
-        <FolderOpen className="h-5 w-5 text-success" />,
-        "Nenhum documento armazenado encontrado"
-      )}
+      {viewMode === 'grid' 
+        ? renderDocumentsGrid(
+            documents,
+            "Documentos Armazenados",
+            <FolderOpen className="h-5 w-5 text-success" />,
+            "Nenhum documento armazenado encontrado"
+          )
+        : renderDocumentsList(
+            documents,
+            "Documentos Armazenados",
+            <FolderOpen className="h-5 w-5 text-success" />,
+            "Nenhum documento armazenado encontrado"
+          )
+      }
 
 
 

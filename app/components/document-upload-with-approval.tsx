@@ -133,7 +133,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   const requestApproval = async (documentId: string, approverId: string) => {
     try {
       setIsRequestingApproval(true)
-      
+
       // 1. Atualizar status do documento para pending_approval
       const { error: docError } = await supabase
         .from('documents')
@@ -202,7 +202,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
     const uploadPromises = uploadFiles.map(async (uploadFile) => {
       try {
         console.log(`\n--- PROCESSANDO ARQUIVO: ${uploadFile.file.name} ---`)
-        
+
         // Validar arquivo se tipo de documento selecionado
         if (selectedDocumentType) {
           console.log('Validando arquivo com tipo de documento...')
@@ -218,13 +218,13 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
         }
 
         // Atualizar status para uploading
-        setUploadFiles(prev => prev.map(f => 
+        setUploadFiles(prev => prev.map(f =>
           f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 0 } : f
         ))
 
         // Simular progresso
         const progressInterval = setInterval(() => {
-          setUploadFiles(prev => prev.map(f => 
+          setUploadFiles(prev => prev.map(f =>
             f.id === uploadFile.id ? { ...f, progress: Math.min(f.progress + 10, 90) } : f
           ))
         }, 200)
@@ -249,14 +249,14 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
         const document = await createDocument(documentData, uploadFile.file)
 
         clearInterval(progressInterval)
-        
+
         // Atualizar status para success
-        setUploadFiles(prev => prev.map(f => 
+        setUploadFiles(prev => prev.map(f =>
           f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f
         ))
 
         console.log('Documento criado com sucesso:', document)
-        
+
         // Se foi selecionado um aprovador, solicitar aprovação
         if (selectedApprover && document) {
           await requestApproval(document.id, selectedApprover)
@@ -270,12 +270,12 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
         console.error('Tipo do erro:', typeof error)
         console.error('Mensagem do erro:', error instanceof Error ? error.message : 'Erro desconhecido')
         console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A')
-        
-        setUploadFiles(prev => prev.map(f => 
-          f.id === uploadFile.id ? { 
-            ...f, 
-            status: 'error', 
-            error: error instanceof Error ? error.message : 'Erro no upload' 
+
+        setUploadFiles(prev => prev.map(f =>
+          f.id === uploadFile.id ? {
+            ...f,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Erro no upload'
           } : f
         ))
 
@@ -291,12 +291,12 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
     try {
       await Promise.all(uploadPromises)
-      
+
       toast({
         title: "Upload concluído!",
         description: `${uploadFiles.length} arquivo(s) enviado(s) com sucesso.`,
       })
-      
+
       // Limpar formulário
       setUploadFiles([])
       setSelectedCategory("")
@@ -306,7 +306,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
       setTags([])
       setSelectedApprover("")
       setShowApproverSelect(false)
-      
+
       onSuccess?.()
     } catch (error) {
       console.error('Erro no upload:', error)
@@ -326,15 +326,14 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           Arraste e solte arquivos ou clique para selecionar.
         </p>
       </div>
-      
+
       {/* Área de Drop */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors ${
-          isDragActive
-            ? "border-primary bg-primary/5"
-            : "border-gray-300 hover:border-primary/50"
-        }`}
+        className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors ${isDragActive
+          ? "border-primary bg-primary/5"
+          : "border-gray-300 hover:border-primary/50"
+          }`}
       >
         <input {...getInputProps()} />
         <Upload className="mx-auto h-4 w-4 text-gray-400 mb-1" />
@@ -371,22 +370,22 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-1 ml-2">
                 {uploadFile.status === 'uploading' && (
                   <div className="w-16">
                     <Progress value={uploadFile.progress} className="h-1" />
                   </div>
                 )}
-                
+
                 {uploadFile.status === 'success' && (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 )}
-                
+
                 {uploadFile.status === 'error' && (
                   <AlertCircle className="h-4 w-4 text-red-500" />
                 )}
-                
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -399,7 +398,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
               </div>
             </div>
           ))}
-          
+
           {uploadFiles.some(f => f.status === 'error') && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -415,7 +414,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
       {uploadFiles.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-sm font-medium">Configurações do Documento</h3>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <Label htmlFor="category" className="text-xs">Categoria</Label>
@@ -509,7 +508,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                   ))}
                 </SelectContent>
               </Select>
-              
+
               {selectedApprover && (
                 <div className="mt-1 flex gap-1">
                   <Button

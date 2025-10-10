@@ -463,21 +463,10 @@ export default function EntityUserManagement() {
         return
       }
 
-      // Buscar todos os usuários da entidade
+      // Buscar todos os usuários da entidade com campos básicos
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          id, 
-          full_name, 
-          email, 
-          entity_role, 
-          status, 
-          created_at, 
-          last_login, 
-          phone, 
-          department, 
-          position
-        `)
+        .select('id, full_name, email, entity_role, status, created_at')
         .eq('entity_id', profileData.entity_id)
         .order('created_at', { ascending: false })
 
@@ -584,43 +573,19 @@ export default function EntityUserManagement() {
         console.log('✅ [createUser] Usuário criado via Edge Function!')
         
       } catch (edgeFunctionError) {
-        console.log('🔄 [createUser] Usando método alternativo - criação direta no banco')
+        console.log('🔄 [createUser] Edge Function falhou, tentando método simplificado')
         
-        // Método alternativo: criar usuário diretamente no banco
-        // Gerar um ID único para o usuário
-        const userId = crypto.randomUUID()
+        // Por enquanto, apenas mostrar erro até resolvermos a Edge Function
+        setError(`Não foi possível criar o usuário no momento. 
         
-        // Criar perfil diretamente na tabela profiles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: userId,
-            full_name: userData.full_name.trim(),
-            email: userData.email.trim().toLowerCase(),
-            role: 'user',
-            status: 'active',
-            permissions: ['read', 'write'],
-            entity_id: profileData.entity_id,
-            registration_type: 'entity_user',
-            entity_role: userData.entity_role,
-            phone: userData.phone?.trim() || null,
-            department: userData.department?.trim() || null,
-            position: userData.position?.trim() || null,
-            registration_completed: true
-          }])
-
-        if (profileError) {
-          console.error('❌ [createUser] Erro ao criar perfil:', profileError)
-          setError('Erro ao criar usuário: ' + profileError.message)
-          return
-        }
-
-        console.log('✅ [createUser] Usuário criado via método alternativo!')
+        Detalhes técnicos: A função de criação de usuários está temporariamente indisponível. 
         
-        // Nota: O usuário criado desta forma precisará fazer reset de senha para acessar
-        setSuccess(`Usuário cadastrado com sucesso! 
-        IMPORTANTE: O usuário deve acessar a página de login e usar "Esqueci minha senha" 
-        com o email ${userData.email.trim().toLowerCase()} para definir uma senha de acesso.`)
+        Soluções:
+        1. Tente novamente em alguns minutos
+        2. Verifique se o usuário já existe no sistema
+        3. Entre em contato com o suporte técnico se o problema persistir`)
+        
+        return
       }
 
       console.log('✅ [createUser] Usuário criado com sucesso!')
@@ -735,10 +700,13 @@ export default function EntityUserManagement() {
     }
   }
 
-  const filteredUsers = entityUsers.filter(user =>
-    (user.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredUsers = entityUsers.filter(user => {
+    const searchLower = searchTerm.toLowerCase()
+    const fullName = (user?.full_name || '').toLowerCase()
+    const email = (user?.email || '').toLowerCase()
+    
+    return fullName.includes(searchLower) || email.includes(searchLower)
+  })
 
   const stats = {
     total: entityUsers.length,
@@ -772,26 +740,51 @@ export default function EntityUserManagement() {
   // Verificar se o usuário é admin de uma entidade
   const [isEntityAdmin, setIsEntityAdmin] = useState(false)
   const [userEntityId, setUserEntityId] = useState<string | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string>('')
 
   useEffect(() => {
     const checkEntityAdmin = async () => {
-      if (!user?.id) return
+      if (!user?.id) {
+        setDebugInfo('Usuário não logado')
+        return
+      }
 
       try {
+        setDebugInfo('Verificando perfil do usuário...')
         console.log('🔍 [EntityUserManagement] Verificando admin de entidade para usuário:', user.id)
         
-        const adminStatus = await checkSimpleEntityAdminStatus(user.id)
+        // Verificação simples direta no banco
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('entity_id, entity_role, full_name, email')
+          .eq('id', user.id)
+          .single()
+
+        console.log('📊 [EntityUserManagement] Perfil encontrado:', profileData)
         
-        console.log('📊 [EntityUserManagement] Status de admin:', adminStatus)
-
-        setIsEntityAdmin(adminStatus.isEntityAdmin)
-        setUserEntityId(adminStatus.entityId)
-
-        if (adminStatus.errors.length > 0) {
-          console.log('⚠️ [EntityUserManagement] Problemas encontrados:', adminStatus.errors)
+        if (profileError) {
+          setDebugInfo(`Erro ao buscar perfil: ${profileError.message}`)
+          console.error('❌ Erro ao buscar perfil:', profileError)
+          return
         }
+
+        if (!profileData) {
+          setDebugInfo('Perfil não encontrado')
+          return
+        }
+
+        if (profileData.entity_id) {
+          setIsEntityAdmin(true)
+          setUserEntityId(profileData.entity_id)
+          setDebugInfo(`Usuário é admin da entidade: ${profileData.entity_id}`)
+        } else {
+          setIsEntityAdmin(false)
+          setDebugInfo('Usuário não está associado a uma entidade')
+        }
+
       } catch (err) {
-        console.error('❌ [EntityUserManagement] Erro geral ao verificar admin de entidade:', err)
+        console.error('❌ [EntityUserManagement] Erro geral:', err)
+        setDebugInfo(`Erro geral: ${err instanceof Error ? err.message : 'Erro desconhecido'}`)
       }
     }
 
@@ -799,7 +792,19 @@ export default function EntityUserManagement() {
   }, [user?.id])
 
   if (!isEntityAdmin) {
-    return <CreateEntityInterface onEntityCreated={() => window.location.reload()} />
+    return (
+      <div className="space-y-4">
+        <CreateEntityInterface onEntityCreated={() => window.location.reload()} />
+        
+        {/* Debug temporário */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="font-medium text-yellow-800 mb-2">Debug Info:</h3>
+          <p className="text-sm text-yellow-700">{debugInfo}</p>
+          <p className="text-sm text-yellow-700 mt-1">Usuário ID: {user?.id}</p>
+          <p className="text-sm text-yellow-700 mt-1">Is Entity Admin: {isEntityAdmin ? 'Sim' : 'Não'}</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -830,6 +835,18 @@ export default function EntityUserManagement() {
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
+
+      {/* Debug Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <h3 className="font-medium text-blue-800 mb-2">Status do Sistema:</h3>
+        <div className="text-sm text-blue-700 space-y-1">
+          <p>• Loading: {loading ? 'Sim' : 'Não'}</p>
+          <p>• Usuários carregados: {entityUsers.length}</p>
+          <p>• Entity ID: {userEntityId}</p>
+          <p>• Erro: {error || 'Nenhum'}</p>
+          <p>• Debug: {debugInfo}</p>
+        </div>
+      </div>
 
       {/* Estatisticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

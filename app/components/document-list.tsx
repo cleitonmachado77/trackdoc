@@ -359,34 +359,33 @@ export default function DocumentList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Documento</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Autor</TableHead>
-                <TableHead>Departamento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tamanho</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="w-[40%]">Documento</TableHead>
+                <TableHead className="w-[15%]">Tipo</TableHead>
+                <TableHead className="w-[20%]">Autor</TableHead>
+                <TableHead className="w-[10%]">Status</TableHead>
+                <TableHead className="w-[15%] text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {documentsList.map((document) => (
                 <AnimatedDocumentRow key={document.id}>
                   <TableRow className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-trackdoc-blue-light rounded-lg">
-                          <FileText className="h-4 w-4 text-trackdoc-blue" />
+                    <TableCell className="w-[40%]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-trackdoc-blue-light rounded">
+                          <FileText className="h-3 w-3 text-trackdoc-blue" />
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm truncate">{document.title}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {document.description || 'Sem descrição'}
-                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="truncate">{document.category?.name || 'N/A'}</span>
+                            <span>•</span>
+                            <span>{formatFileSize(document.file_size || 0)}</span>
+                          </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[15%]">
                       <Badge 
                         variant="outline" 
                         className="text-xs"
@@ -398,65 +397,53 @@ export default function DocumentList() {
                         {document.document_type?.name || 'N/A'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {document.category?.name || 'N/A'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm truncate">{document.author?.full_name || 'N/A'}</span>
+                    <TableCell className="w-[20%]">
+                      <div className="min-w-0">
+                        <p className="text-sm truncate">{document.author?.full_name || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {document.department?.name || 'N/A'}
+                        </p>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm truncate">{document.department?.name || 'N/A'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
+                    <TableCell className="w-[10%]">
                       {renderApprovalStatus(document.id)}
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {formatFileSize(document.file_size || 0)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedDocument(document)
-                            setShowViewer(true)
-                          }}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => downloadDocument(document)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir este documento?')) {
-                              deleteDocument(document.id)
-                            }
-                          }}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <TableCell className="w-[15%] text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedDocument(document)
+                              setShowViewer(true)
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Visualizar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => downloadDocument(document)}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                deleteDocument(document.id)
+                              }
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 </AnimatedDocumentRow>

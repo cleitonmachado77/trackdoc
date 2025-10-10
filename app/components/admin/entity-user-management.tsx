@@ -365,14 +365,12 @@ interface EntityUser {
   full_name: string | null
   email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended' | 'invited'
+  status: 'active' | 'inactive' | 'suspended'
   created_at: string
   last_login?: string | null
   phone?: string | null
   department_id?: string | null  // UUID, não texto
   position?: string | null
-  invitation_token?: string // Para convites pendentes
-  expires_at?: string // Para convites pendentes
 }
 
 // Função para gerar iniciais do nome completo
@@ -395,7 +393,6 @@ const statusColors = {
   active: "bg-green-100 text-green-800",
   inactive: "bg-red-100 text-red-800",
   suspended: "bg-yellow-100 text-yellow-800",
-  invited: "bg-blue-100 text-blue-800",
 }
 
 const roleLabels = {
@@ -496,40 +493,8 @@ export default function EntityUserManagement() {
         throw error
       }
 
-      // Buscar também convites pendentes
-      const { data: invitations } = await supabase
-        .from('entity_invitations')
-        .select('*')
-        .eq('entity_id', profileData.entity_id)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-
-      console.log('📨 [fetchEntityUsers] Convites pendentes:', invitations?.length || 0)
-
-      // Converter convites em formato de usuário para exibição
-      const pendingUsers = (invitations || []).map(invitation => {
-        const messageData = invitation.message ? JSON.parse(invitation.message) : {}
-        return {
-          id: `invitation-${invitation.id}`,
-          full_name: messageData.full_name || 'Usuário Convidado',
-          email: invitation.email,
-          entity_role: invitation.entity_role || invitation.role,
-          status: 'invited' as const,
-          created_at: invitation.created_at,
-          last_login: null,
-          phone: messageData.phone || null,
-          department_id: null,
-          position: messageData.position || null,
-          invitation_token: invitation.token,
-          expires_at: invitation.expires_at
-        }
-      })
-
-      // Combinar usuários reais com convites pendentes
-      const allUsers = [...(data || []), ...pendingUsers]
-      setEntityUsers(allUsers)
-      
-      console.log('✅ [fetchEntityUsers] Usuários e convites carregados:', allUsers.length)
+      setEntityUsers(data || [])
+      console.log('✅ [fetchEntityUsers] Usuários carregados com sucesso')
       
     } catch (err) {
       console.error('❌ [fetchEntityUsers] Erro geral:', err)
@@ -604,64 +569,98 @@ export default function EntityUserManagement() {
         console.log('⚠️ [createUser] Não foi possível verificar auth.users, continuando...')
       }
 
-      console.log('🚀 [createUser] Criando convite de usuário (sem RLS)...')
+      console.log('🚀 [createUser] Criando usuário real via API de registro...')
 
-      // Gerar token único para o convite
-      const invitationToken = crypto.randomUUID()
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 7) // Expira em 7 dias
-      
-      // Criar convite na tabela entity_invitations (sem RLS)
-      const { error: invitationError } = await supabase
-        .from('entity_invitations')
-        .insert([{
-          entity_id: userData.entity_id,
-          email: userData.email.trim().toLowerCase(),
-          role: userData.entity_role,
-          status: 'pending',
-          invited_by: user.id,
-          token: invitationToken,
-          expires_at: expiresAt.toISOString(),
-          entity_role: userData.entity_role,
-          message: JSON.stringify({
+      // Criar usuário real usando a API de registro do Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email.trim().toLowerCase(),
+        password: userData.password,
+        options: {
+          data: {
             full_name: userData.full_name.trim(),
-            password: userData.password,
+            entity_id: userData.entity_id,
+            entity_role: userData.entity_role,
             phone: userData.phone?.trim() || null,
             position: userData.position?.trim() || null,
-            created_by_admin: true
-          })
-        }])
+            created_by_admin: true,
+            registration_type: 'entity_user'
+          }
+        }
+      })
 
-      if (invitationError) {
-        console.error('❌ [createUser] Erro ao criar convite:', invitationError)
-        setError(`Erro ao criar usuário: ${invitationError.message}`)
+      if (authError) {
+        console.error('❌ [createUser] Erro ao criar usuário:', authError)
+        setError(`Erro ao criar usuário: ${authError.message}`)
         return
       }
 
-      console.log('✅ [createUser] Convite criado com sucesso!')
+      if (!authData.user) {
+        setError('Erro: Usuário não foi criado corretamente')
+        return
+      }
 
-      // Nota: Não atualizamos o contador ainda, será atualizado quando o usuário aceitar o convite
+      console.log('✅ [createUser] Usuário criado no auth, atualizando perfil...')
+
+      // Aguardar um pouco para o trigger criar o perfil
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Atualizar o perfil criado automaticamente pelo trigger
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: userData.full_name.trim(),
+          entity_id: userData.entity_id,
+          entity_role: userData.entity_role,
+          phone: userData.phone?.trim() || null,
+          position: userData.position?.trim() || null,
+          registration_type: 'entity_user',
+          registration_completed: true,
+          status: 'active' // ✅ Ativo imediatamente
+        })
+        .eq('id', authData.user.id)
+
+      if (profileError) {
+        console.error('❌ [createUser] Erro ao atualizar perfil:', profileError)
+        // Não falhar aqui, o usuário foi criado
+        console.log('⚠️ [createUser] Usuário criado mas perfil não foi atualizado completamente')
+      }
+
+      console.log('✅ [createUser] Usuário criado com sucesso!')
+
+      // Atualizar contador de usuários na entidade
+      const { data: entityData } = await supabase
+        .from('entities')
+        .select('current_users')
+        .eq('id', userData.entity_id)
+        .single()
+
+      if (entityData) {
+        await supabase
+          .from('entities')
+          .update({ 
+            current_users: (entityData.current_users || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userData.entity_id)
+      }
 
       console.log('✅ [createUser] Processo concluído!')
       
-      setSuccess(`✅ Convite de usuário criado com sucesso!
+      setSuccess(`✅ Usuário criado com sucesso!
 
 📧 Email: ${userData.email.trim().toLowerCase()}
-🔑 Senha temporária: ${userData.password}
+🔑 Senha: ${userData.password}
 👤 Cargo: ${userData.entity_role}
 🏢 Entidade: ${availableEntities.find(e => e.id === userData.entity_id)?.name}
-🎫 Token: ${invitationToken}
+🆔 ID: ${authData.user.id}
 
-📋 INSTRUÇÕES PARA O USUÁRIO:
-1. Acessar: ${window.location.origin}/register
-2. Fazer cadastro com o email: ${userData.email.trim().toLowerCase()}
-3. O sistema detectará o convite automaticamente
-4. Perfil será vinculado à entidade após registro
+✅ USUÁRIO PRONTO PARA LOGIN:
+- O usuário já pode fazer login imediatamente
+- Email: ${userData.email.trim().toLowerCase()}
+- Senha: ${userData.password}
+- Status: Ativo na entidade
 
-⚠️ IMPORTANTE: 
-- Convite expira em 7 dias
-- Usuário aparecerá na lista após aceitar o convite
-- Senha temporária será substituída no registro`)
+🎯 O usuário aparecerá na lista de usuários da entidade.`)
       
       setShowCreateModal(false)
       

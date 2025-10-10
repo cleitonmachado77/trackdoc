@@ -452,7 +452,6 @@ export default function EntityUserManagement() {
     email: string
     type: string
     current_users: number
-    max_users: number
     created_at: string
   } | null>(null)
 
@@ -1082,7 +1081,7 @@ O usuário já pode fazer login no sistema.`)
           // Buscar informações completas da entidade
           const { data: entityData, error: entityError } = await supabase
             .from('entities')
-            .select('id, name, legal_name, email, type, current_users, max_users, created_at')
+            .select('id, name, legal_name, email, type, current_users, created_at')
             .eq('id', profileData.entity_id)
             .single()
 
@@ -1168,22 +1167,15 @@ O usuário já pode fazer login no sistema.`)
                 </p>
               </div>
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-600">Usuários</span>
-                  <span className="text-sm text-gray-900">
-                    {entityInfo.current_users} / {entityInfo.max_users}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-600">Total de Usuários</span>
+                  <span className="text-lg font-semibold text-blue-600">
+                    {entityInfo.current_users}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
-                    style={{ 
-                      width: `${Math.min((entityInfo.current_users / entityInfo.max_users) * 100, 100)}%` 
-                    }}
-                  ></div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Criada em {new Date(entityInfo.created_at).toLocaleDateString('pt-BR')}
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Criada em:</span>{' '}
+                  {new Date(entityInfo.created_at).toLocaleDateString('pt-BR')}
                 </p>
               </div>
             </div>

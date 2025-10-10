@@ -1402,7 +1402,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             onClick={() => setAdminView("entity-users")}
           >
             <Building2 className="h-4 w-4 mr-2" />
-            Usuarios da Entidade
+            Entidade
           </Button>
           <Button
             variant="outline"
@@ -1527,6 +1527,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                       className="text-blue-600 hover:text-blue-700"
                     >
                       {adminView === "users" && "Gerenciar Usuarios"}
+                      {adminView === "entity-users" && "Entidade"}
                       {adminView === "document-types" && "Tipos de Documento"}
                       {adminView === "productivity-report" && "Relatorio de Produtividade"}
                       {adminView === "approval-time-report" && "Tempo de Aprovacao"}
@@ -1548,6 +1549,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                 {activeView === "electronic-signature" && "Assine documentos eletronicamente usando o ArqSign"}
                 {activeView === "notifications" && "Gerencie notificacoes e comunicacoes"}
                 {activeView === "chat" && "Comunique-se com outros usuários da entidade"}
+                {activeView === "admin" && adminView === "entity-users" && "Gerencie sua entidade, crie usuários e defina cargos"}
                 {/* ... existing admin descriptions ... */}
                 {activeView === "help" && "Encontre respostas, tutoriais e suporte tecnico"}
                 {activeView === "minha-conta" && "Gerencie suas informações pessoais e configurações da conta"}

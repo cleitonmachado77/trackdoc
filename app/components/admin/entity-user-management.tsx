@@ -400,8 +400,8 @@ export default function EntityUserManagement() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciar Usuarios da Entidade</h1>
-          <p className="text-gray-600">Gerencie os usuarios da sua entidade</p>
+          <h1 className="text-2xl font-bold text-gray-900">Entidade</h1>
+          <p className="text-gray-600">Gerencie sua entidade, crie usuários e defina cargos</p>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -467,7 +467,7 @@ export default function EntityUserManagement() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Usuarios da Entidade</CardTitle>
+            <CardTitle>Usuários da Entidade</CardTitle>
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

@@ -49,6 +49,10 @@ export default function ElectronicSignature() {
     signature?: any
   } | null>(null)
   
+  // Estados para histórico de assinaturas
+  const [signatureHistory, setSignatureHistory] = useState<any[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  
   // Estados para configuração do modelo de assinatura
   const [signatureTemplate, setSignatureTemplate] = useState({
     title: "ASSINATURA DIGITAL",
@@ -578,6 +582,67 @@ export default function ElectronicSignature() {
     }
   }
 
+  // Função para buscar histórico de assinaturas
+  const fetchSignatureHistory = async () => {
+    if (!user?.id) return
+    
+    try {
+      setLoadingHistory(true)
+      console.log('🔍 [fetchSignatureHistory] Buscando assinaturas do usuário:', user.id)
+      
+      const { data, error } = await supabase
+        .from('document_signatures')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('❌ [fetchSignatureHistory] Erro ao buscar assinaturas:', error)
+        return
+      }
+      
+      console.log('✅ [fetchSignatureHistory] Assinaturas encontradas:', data?.length || 0)
+      setSignatureHistory(data || [])
+      
+    } catch (err) {
+      console.error('❌ [fetchSignatureHistory] Erro geral:', err)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+  
+  // Carregar histórico quando o componente montar
+  useEffect(() => {
+    if (user?.id) {
+      fetchSignatureHistory()
+    }
+  }, [user?.id])
+  
+  // Função para formatar data
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+  
+  // Função para obter cor do status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'failed':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -588,11 +653,12 @@ export default function ElectronicSignature() {
       </div>
 
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="upload">Assinatura Simples</TabsTrigger>
             <TabsTrigger value="existing">Documento Existente</TabsTrigger>
             <TabsTrigger value="template">Configurar Modelo</TabsTrigger>
             <TabsTrigger value="multi-signature">Assinatura Múltipla</TabsTrigger>
+            <TabsTrigger value="history">Histórico</TabsTrigger>
             <TabsTrigger value="verify">Verificar Assinatura</TabsTrigger>
           </TabsList>
 
@@ -993,6 +1059,121 @@ export default function ElectronicSignature() {
 
         </TabsContent>
 
+        <TabsContent value="history" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                Histórico de Assinaturas
+              </CardTitle>
+              <CardDescription>
+                Visualize todos os documentos que você assinou
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Clock className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground">Carregando assinaturas...</p>
+                  </div>
+                </div>
+              ) : signatureHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                    Nenhuma assinatura encontrada
+                  </h3>
+                  <p className="text-muted-foreground text-center">
+                    Você ainda não assinou nenhum documento.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {signatureHistory.length} assinatura(s) encontrada(s)
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={fetchSignatureHistory}
+                      disabled={loadingHistory}
+                    >
+                      Atualizar
+                    </Button>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {signatureHistory.map((signature) => (
+                      <Card key={signature.id} className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                              <FileText className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-900 mb-1">
+                                {signature.title || 'Documento sem título'}
+                              </h3>
+                              <div className="space-y-1">
+                                <p className="text-sm text-gray-600">
+                                  ID: {signature.arqsign_document_id}
+                                </p>
+                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                  <span>Criado: {formatDate(signature.created_at)}</span>
+                                  {signature.updated_at !== signature.created_at && (
+                                    <span>Atualizado: {formatDate(signature.updated_at)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <Badge className={getStatusColor(signature.status)}>
+                              {getStatusText(signature.status)}
+                            </Badge>
+                            
+                            <div className="flex items-center gap-2">
+                              {signature.verification_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(signature.verification_url, '_blank')}
+                                  title="Verificar assinatura"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              )}
+                              
+                              {signature.signature_url && signature.status === 'completed' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const link = document.createElement('a')
+                                    link.href = signature.signature_url!
+                                    link.download = signature.title || 'documento-assinado.pdf'
+                                    link.click()
+                                  }}
+                                  title="Baixar documento assinado"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="verify" className="space-y-6">
           <Card>
             <CardHeader>
@@ -1370,8 +1551,7 @@ function MultiSignatureUploadContent({ signatureTemplate }: { signatureTemplate:
           fileInputRef.current.value = ''
         }
         
-        // Disparar refresh das aprovações pendentes
-        setRefreshTrigger(prev => prev + 1)
+        // Histórico será recarregado automaticamente na próxima visualização
       } else {
         throw new Error(result.error || 'Erro desconhecido')
       }
@@ -1717,7 +1897,7 @@ function MultiSignatureRequestsContent() {
           title: "Sucesso!",
           description: "Assinatura múltipla finalizada com sucesso!",
         })
-        loadData() // Recarregar dados
+        loadMyRequests() // Recarregar dados
       } else {
         toast({
           title: "Erro",
@@ -1857,7 +2037,7 @@ function MultiSignatureRequestsContent() {
         })
         
         // Recarregar dados para atualizar a lista
-        loadData()
+        loadMyRequests()
       } else {
         throw new Error(result.error || 'Erro ao excluir documento')
       }

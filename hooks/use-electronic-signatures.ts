@@ -10,11 +10,13 @@ interface Document {
 
 interface Signature {
   id: string
+  title?: string | null
   document_id: string | null
   arqsign_document_id: string
   status: string
   signature_url: string | null
   created_at: string
+  updated_at?: string
   verification_code?: string
   verification_url?: string
   qr_code_data?: string

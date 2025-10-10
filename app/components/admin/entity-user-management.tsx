@@ -426,11 +426,16 @@ export default function EntityUserManagement() {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
+    password: "",
+    entity_id: "",
     entity_role: "user" as 'user' | 'admin' | 'manager' | 'viewer',
     phone: "",
-    position: "",
-    password: ""
+    position: ""
   })
+
+  // Lista de entidades disponíveis para o usuário logado
+  const [availableEntities, setAvailableEntities] = useState<Array<{id: string, name: string}>>([])
+  const [loadingEntities, setLoadingEntities] = useState(false)
 
   const fetchEntityUsers = async () => {
     if (!user?.id) return
@@ -501,20 +506,31 @@ export default function EntityUserManagement() {
   const createUser = async (userData: {
     full_name: string
     email: string
+    password: string
+    entity_id: string
     entity_role: 'user' | 'admin' | 'manager' | 'viewer'
     phone?: string
     position?: string
-    password: string
   }) => {
     if (!user?.id) return
 
     try {
       setError('')
-      console.log('🔍 [createUser] Iniciando criação de usuário:', userData.email)
+      console.log('🔍 [createUser] Iniciando criação simplificada de usuário:', userData.email)
 
       // Validações básicas
-      if (!userData.full_name.trim() || !userData.email.trim() || !userData.password.trim()) {
-        setError('Nome, email e senha são obrigatórios')
+      if (!userData.full_name.trim()) {
+        setError('Nome completo é obrigatório')
+        return
+      }
+
+      if (!userData.email.trim()) {
+        setError('Email é obrigatório')
+        return
+      }
+
+      if (!userData.password.trim()) {
+        setError('Senha é obrigatória')
         return
       }
 
@@ -523,158 +539,116 @@ export default function EntityUserManagement() {
         return
       }
 
-      // Primeiro buscar o entity_id do perfil do usuário logado
-      const { data: profileData, error: profileError } = await supabase
+      if (!userData.entity_id) {
+        setError('Selecione uma entidade')
+        return
+      }
+
+      console.log('🚀 [createUser] Criando usuário diretamente no banco...')
+
+      // ETAPA 1: Criar usuário no auth.users
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email: userData.email.trim().toLowerCase(),
+        password: userData.password,
+        email_confirm: true, // Email já confirmado
+        user_metadata: {
+          full_name: userData.full_name.trim()
+        }
+      })
+
+      if (authError) {
+        console.error('❌ [createUser] Erro ao criar usuário auth:', authError)
+        
+        if (authError.message.includes('already registered')) {
+          setError('Este email já está cadastrado no sistema')
+        } else {
+          setError(`Erro ao criar usuário: ${authError.message}`)
+        }
+        return
+      }
+
+      console.log('✅ [createUser] Usuário auth criado:', authUser.user.id)
+
+      // ETAPA 2: Criar perfil na tabela profiles
+      const { error: profileError } = await supabase
         .from('profiles')
-        .select('entity_id, entity_role')
-        .eq('id', user.id)
+        .insert([{
+          id: authUser.user.id,
+          full_name: userData.full_name.trim(),
+          email: userData.email.trim().toLowerCase(),
+          entity_id: userData.entity_id,
+          entity_role: userData.entity_role,
+          role: 'user',
+          status: 'active',
+          registration_type: 'entity_user',
+          registration_completed: true,
+          phone: userData.phone?.trim() || null,
+          position: userData.position?.trim() || null,
+          permissions: ['read', 'write']
+        }])
+
+      if (profileError) {
+        console.error('❌ [createUser] Erro ao criar perfil:', profileError)
+        
+        // Se falhou ao criar perfil, tentar deletar o usuário auth criado
+        try {
+          await supabase.auth.admin.deleteUser(authUser.user.id)
+          console.log('🔄 [createUser] Usuário auth removido após erro no perfil')
+        } catch (deleteError) {
+          console.error('❌ [createUser] Erro ao remover usuário auth:', deleteError)
+        }
+        
+        setError(`Erro ao criar perfil: ${profileError.message}`)
+        return
+      }
+
+      console.log('✅ [createUser] Perfil criado com sucesso!')
+
+      // ETAPA 3: Atualizar contador de usuários na entidade
+      // Buscar contador atual e incrementar
+      const { data: entityData, error: fetchError } = await supabase
+        .from('entities')
+        .select('current_users')
+        .eq('id', userData.entity_id)
         .single()
 
-      console.log('📊 [createUser] Perfil do admin:', profileData)
-
-      if (profileError || !profileData?.entity_id) {
-        console.error('❌ [createUser] Erro ao buscar perfil do admin:', profileError)
-        setError('Usuário não está associado a uma entidade')
-        return
-      }
-
-      // Verificar se o usuário tem permissão para criar usuários
-      if (profileData.entity_role !== 'admin' && profileData.entity_role !== 'manager') {
-        setError('Você não tem permissão para criar usuários')
-        return
-      }
-
-      console.log('🚀 [createUser] Chamando Edge Function...')
-
-      const requestBody = {
-        full_name: userData.full_name.trim(),
-        email: userData.email.trim().toLowerCase(),
-        entity_role: userData.entity_role,
-        phone: userData.phone?.trim() || null,
-        position: userData.position?.trim() || null,
-        password: userData.password,
-        entity_id: profileData.entity_id
-      }
-
-      console.log('📋 [createUser] Dados enviados:', requestBody)
-
-      // Tentar Edge Function primeiro, se falhar usar método alternativo
-      try {
-        const { data, error } = await supabase.functions.invoke('create-entity-user', {
-          body: requestBody
-        })
-
-        console.log('📊 [createUser] Resposta da Edge Function:', { data, error })
-
-        if (error) {
-          console.error('❌ [createUser] Edge Function falhou, usando método alternativo:', error)
-          throw new Error('Edge Function não disponível')
-        }
-
-        if (data?.error) {
-          console.error('❌ [createUser] Erro retornado pela função:', data.error)
-          setError(data.error)
-          return
-        }
-
-        // Se chegou aqui, Edge Function funcionou
-        console.log('✅ [createUser] Usuário criado via Edge Function!')
-        
-      } catch (edgeFunctionError) {
-        console.log('🔄 [createUser] Edge Function falhou, usando método alternativo direto')
-        
-        // Método alternativo: usar API do Supabase Auth Admin
-        try {
-          console.log('🔄 [createUser] Tentando criar usuário via API Admin do Supabase')
-          
-          // Usar a API admin do Supabase para criar usuário
-          const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-            email: userData.email.trim().toLowerCase(),
-            password: userData.password,
-            email_confirm: true,
-            user_metadata: {
-              full_name: userData.full_name.trim(),
-              entity_role: userData.entity_role
-            }
+      if (!fetchError && entityData) {
+        const { error: updateError } = await supabase
+          .from('entities')
+          .update({ 
+            current_users: (entityData.current_users || 0) + 1,
+            updated_at: new Date().toISOString()
           })
+          .eq('id', userData.entity_id)
 
-          if (authError) {
-            console.error('❌ [createUser] Erro ao criar usuário auth:', authError)
-            
-            // Se o erro for de permissão, usar método de convite
-            if (authError.message.includes('permission') || authError.message.includes('admin')) {
-              console.log('🔄 [createUser] Sem permissão admin, criando convite para o usuário')
-              
-              setSuccess(`Usuário registrado para convite!
-              
-              O usuário ${userData.email.trim().toLowerCase()} foi registrado no sistema.
-              
-              PRÓXIMOS PASSOS:
-              1. Informe ao usuário para acessar: ${window.location.origin}/register
-              2. Ele deve se registrar com o email: ${userData.email.trim().toLowerCase()}
-              3. Após o registro, o perfil será automaticamente vinculado à sua entidade
-              4. O cargo será: ${userData.entity_role}`)
-              
-              return
-            }
-            
-            setError(`Erro ao criar usuário: ${authError.message}`)
-            return
-          }
-
-          console.log('✅ [createUser] Usuário auth criado, agora criando perfil')
-
-          // Criar perfil na tabela profiles
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: authUser.user.id,
-              full_name: userData.full_name.trim(),
-              email: userData.email.trim().toLowerCase(),
-              entity_id: profileData.entity_id,
-              entity_role: userData.entity_role,
-              status: 'active',
-              registration_type: 'entity_user',
-              registration_completed: true,
-              phone: userData.phone?.trim() || null,
-              position: userData.position?.trim() || null
-            }])
-
-          if (profileError) {
-            console.error('❌ [createUser] Erro ao criar perfil:', profileError)
-            setError(`Erro ao criar perfil: ${profileError.message}`)
-            return
-          }
-
-          console.log('✅ [createUser] Usuário e perfil criados com sucesso!')
-          
-          setSuccess(`Usuário criado com sucesso!
-          
-          Email: ${userData.email.trim().toLowerCase()}
-          Senha: ${userData.password}
-          Cargo: ${userData.entity_role}
-          
-          O usuário já pode fazer login no sistema.`)
-          
-        } catch (directError) {
-          console.error('❌ [createUser] Erro no método alternativo:', directError)
-          setError('Erro ao criar usuário. Verifique se o email já não está em uso.')
-          return
+        if (updateError) {
+          console.warn('⚠️ [createUser] Erro ao atualizar contador da entidade:', updateError)
+          // Não falhar por causa disso
         }
       }
 
-      console.log('✅ [createUser] Usuário criado com sucesso!')
-      setSuccess('Usuário cadastrado com sucesso! Email com dados de acesso foi enviado.')
+      console.log('✅ [createUser] Usuário criado completamente!')
+      
+      setSuccess(`✅ Usuário criado com sucesso!
+
+📧 Email: ${userData.email.trim().toLowerCase()}
+🔑 Senha: ${userData.password}
+👤 Cargo: ${userData.entity_role}
+🏢 Entidade: ${availableEntities.find(e => e.id === userData.entity_id)?.name}
+
+O usuário já pode fazer login no sistema.`)
+      
       setShowCreateModal(false)
       
       // Limpar formulário
       setFormData({
         full_name: "",
         email: "",
+        password: "",
+        entity_id: availableEntities.length === 1 ? availableEntities[0].id : "",
         entity_role: "user",
         phone: "",
-        position: "",
-        password: ""
+        position: ""
       })
       
       // Recarregar lista de usuários
@@ -791,8 +765,44 @@ export default function EntityUserManagement() {
   const passwordsMatch = newPassword === confirmPassword
   const canUpdatePassword = newPassword && confirmPassword && passwordsMatch
 
+  // Buscar entidades disponíveis para o usuário logado
+  const fetchAvailableEntities = async () => {
+    if (!user?.id) return
+
+    try {
+      setLoadingEntities(true)
+      console.log('🔍 [fetchAvailableEntities] Buscando entidades para:', user.id)
+
+      // Buscar entidades onde o usuário é admin
+      const { data: entities, error } = await supabase
+        .from('entities')
+        .select('id, name')
+        .eq('admin_user_id', user.id)
+        .eq('status', 'active')
+
+      if (error) {
+        console.error('❌ [fetchAvailableEntities] Erro:', error)
+        return
+      }
+
+      console.log('📊 [fetchAvailableEntities] Entidades encontradas:', entities)
+      setAvailableEntities(entities || [])
+
+      // Se há apenas uma entidade, selecionar automaticamente
+      if (entities && entities.length === 1) {
+        setFormData(prev => ({ ...prev, entity_id: entities[0].id }))
+      }
+
+    } catch (err) {
+      console.error('❌ [fetchAvailableEntities] Erro geral:', err)
+    } finally {
+      setLoadingEntities(false)
+    }
+  }
+
   useEffect(() => {
     fetchEntityUsers()
+    fetchAvailableEntities()
   }, [user?.id])
 
   // Limpar mensagens apos 5 segundos
@@ -1068,6 +1078,38 @@ export default function EntityUserManagement() {
             <DialogTitle>Cadastrar Novo Usuario</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Seleção de Entidade */}
+            <div>
+              <Label htmlFor="entity">Entidade *</Label>
+              <Select
+                value={formData.entity_id}
+                onValueChange={(value) => setFormData({ ...formData, entity_id: value })}
+                disabled={loadingEntities || availableEntities.length <= 1}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    loadingEntities 
+                      ? "Carregando entidades..." 
+                      : availableEntities.length === 0
+                      ? "Nenhuma entidade disponível"
+                      : "Selecione uma entidade"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableEntities.map((entity) => (
+                    <SelectItem key={entity.id} value={entity.id}>
+                      {entity.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {availableEntities.length === 0 && (
+                <p className="text-sm text-red-600 mt-1">
+                  Você não é administrador de nenhuma entidade
+                </p>
+              )}
+            </div>
+
             <div>
               <Label htmlFor="full_name">Nome Completo *</Label>
               <Input
@@ -1158,12 +1200,13 @@ export default function EntityUserManagement() {
                 onClick={() => createUser({
                   full_name: formData.full_name,
                   email: formData.email,
+                  password: formData.password,
+                  entity_id: formData.entity_id,
                   entity_role: formData.entity_role,
                   phone: formData.phone,
-                  position: formData.position,
-                  password: formData.password
+                  position: formData.position
                 })}
-                disabled={!formData.full_name || !formData.email || !formData.password}
+                disabled={!formData.full_name || !formData.email || !formData.password || !formData.entity_id}
               >
                 Cadastrar Usuario
               </Button>

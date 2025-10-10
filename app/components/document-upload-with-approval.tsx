@@ -319,74 +319,72 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <div>
-        <h3 className="text-lg font-medium">Upload de Documentos</h3>
-        <p className="text-sm text-gray-500">
-          Faça upload de documentos para o sistema. Arraste e solte arquivos ou clique para selecionar.
+        <h3 className="text-base font-medium">Upload de Documentos</h3>
+        <p className="text-xs text-gray-500">
+          Arraste e solte arquivos ou clique para selecionar.
         </p>
       </div>
       
       {/* Área de Drop */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors ${
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-gray-300 hover:border-primary/50"
         }`}
       >
         <input {...getInputProps()} />
-        <Upload className="mx-auto h-8 w-8 text-gray-400 mb-3" />
+        <Upload className="mx-auto h-4 w-4 text-gray-400 mb-1" />
         {isDragActive ? (
-          <p className="text-lg font-medium text-primary">Solte os arquivos aqui...</p>
+          <p className="text-xs font-medium text-primary">Solte os arquivos aqui...</p>
         ) : (
           <div>
-            <p className="text-lg font-medium mb-2">Arraste e solte arquivos aqui</p>
-            <p className="text-sm text-gray-500 mb-4">ou clique para selecionar arquivos</p>
-            <Button variant="outline">Selecionar Arquivos</Button>
+            <p className="text-xs font-medium">Arraste arquivos ou clique</p>
+            <Button variant="outline" size="sm" className="mt-1 h-6 text-xs px-2">
+              Selecionar
+            </Button>
           </div>
         )}
-        <p className="text-xs text-gray-400 mt-4">
-          Tipos suportados: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JPG, PNG, GIF
-        </p>
-        <p className="text-xs text-gray-400">
-          Tamanho máximo: 50MB por arquivo
+        <p className="text-xs text-gray-400 mt-1">
+          PDF, DOC, XLS, PPT, TXT, JPG, PNG | Max: 50MB
         </p>
       </div>
 
       {/* Lista de Arquivos */}
       {uploadFiles.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-base font-medium">Arquivos Selecionados</h3>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Arquivos Selecionados</h3>
           {uploadFiles.map((uploadFile) => (
             <div
               key={uploadFile.id}
-              className="flex items-center justify-between p-4 border rounded-lg"
+              className="flex items-center justify-between p-2 border rounded text-sm"
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 min-w-0 flex-1">
                 {getFileIcon(uploadFile.file.type)}
-                <div>
-                  <p className="font-medium">{uploadFile.file.name}</p>
-                  <p className="text-sm text-gray-500">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{uploadFile.file.name}</p>
+                  <p className="text-xs text-gray-500">
                     {formatFileSize(uploadFile.file.size)}
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 ml-2">
                 {uploadFile.status === 'uploading' && (
-                  <div className="w-32">
-                    <Progress value={uploadFile.progress} className="h-2" />
+                  <div className="w-16">
+                    <Progress value={uploadFile.progress} className="h-1" />
                   </div>
                 )}
                 
                 {uploadFile.status === 'success' && (
-                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-green-500" />
                 )}
                 
                 {uploadFile.status === 'error' && (
-                  <AlertCircle className="h-5 w-5 text-red-500" />
+                  <AlertCircle className="h-4 w-4 text-red-500" />
                 )}
                 
                 <Button
@@ -394,8 +392,9 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                   size="sm"
                   onClick={() => removeFile(uploadFile.id)}
                   disabled={uploadFile.status === 'uploading'}
+                  className="h-6 w-6 p-0"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3 w-3" />
                 </Button>
               </div>
             </div>
@@ -414,14 +413,14 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
       {/* Configurações do Documento */}
       {uploadFiles.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-base font-medium">Configurações do Documento</h3>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Configurações do Documento</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="category">Categoria</Label>
+              <Label htmlFor="category" className="text-xs">Categoria</Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -435,9 +434,9 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </div>
 
             <div>
-              <Label htmlFor="department">Departamento</Label>
+              <Label htmlFor="department" className="text-xs">Departamento</Label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Selecione um departamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -451,9 +450,9 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </div>
 
             <div>
-              <Label htmlFor="documentType">Tipo de Documento</Label>
+              <Label htmlFor="documentType" className="text-xs">Tipo de Documento</Label>
               <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-sm">
                   <SelectValue placeholder="Selecione um tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -467,92 +466,96 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </div>
 
             {/* Botão Solicitar Aprovação */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <Button
                 type="button"
                 variant={selectedApprover ? "default" : "outline"}
                 onClick={() => setShowApproverSelect(!showApproverSelect)}
-                className="w-full"
+                className="w-full h-8 text-xs"
               >
                 {selectedApprover ? (
                   <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Aprovador: {users.find(u => u.id === selectedApprover)?.full_name}
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Aprovador
                   </>
                 ) : (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
+                    <Send className="h-3 w-3 mr-1" />
                     Solicitar Aprovação
                   </>
                 )}
               </Button>
             </div>
-
-            {/* Seletor de Aprovador */}
-            {showApproverSelect && (
-              <div className="col-span-2 mt-4 p-4 border rounded-lg bg-gray-50">
-                <Label htmlFor="approver" className="text-sm font-medium mb-2 block">
-                  Selecionar Aprovador
-                </Label>
-                <Select value={selectedApprover} onValueChange={setSelectedApprover}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Escolha um usuário para aprovar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          {user.full_name} ({user.email})
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                {selectedApprover && (
-                  <div className="mt-3 flex gap-2">
-                    <Button
-                      onClick={() => setShowApproverSelect(false)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Confirmar
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setSelectedApprover("")
-                        setShowApproverSelect(false)
-                      }}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
+          {/* Seletor de Aprovador */}
+          {showApproverSelect && (
+            <div className="p-2 border rounded bg-gray-50">
+              <Label htmlFor="approver" className="text-xs font-medium mb-1 block">
+                Selecionar Aprovador
+              </Label>
+              <Select value={selectedApprover} onValueChange={setSelectedApprover}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Escolha um usuário para aprovar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        <span className="text-xs">{user.full_name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedApprover && (
+                <div className="mt-1 flex gap-1">
+                  <Button
+                    onClick={() => setShowApproverSelect(false)}
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                  >
+                    Confirmar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setSelectedApprover("")
+                      setShowApproverSelect(false)
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs px-2"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
-            <Label htmlFor="description">Descrição</Label>
+            <Label htmlFor="description" className="text-xs">Descrição</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descrição do documento..."
-              rows={2}
+              rows={1}
+              className="text-sm h-8 resize-none"
             />
           </div>
 
           <div>
-            <Label htmlFor="tags">Tags</Label>
-            <div className="space-y-2">
-              <div className="flex space-x-2">
+            <Label htmlFor="tags" className="text-xs">Tags</Label>
+            <div className="space-y-1">
+              <div className="flex space-x-1">
                 <Input
                   id="tags"
                   placeholder="Adicionar tag..."
+                  className="h-8 text-sm"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -564,6 +567,8 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
                   onClick={() => {
                     const input = document.getElementById('tags') as HTMLInputElement
                     if (input.value) {
@@ -576,12 +581,12 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 </Button>
               </div>
               {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1">
                   {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="cursor-pointer">
+                    <Badge key={tag} variant="secondary" className="cursor-pointer text-xs h-5">
                       {tag}
                       <X
-                        className="h-3 w-3 ml-1"
+                        className="h-2 w-2 ml-1"
                         onClick={() => removeTag(tag)}
                       />
                     </Badge>
@@ -594,16 +599,16 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           <Button
             onClick={handleUpload}
             disabled={uploadFiles.some(f => f.status === 'uploading')}
-            className="w-full"
+            className="w-full h-8 text-sm"
           >
             {uploadFiles.some(f => f.status === 'uploading') ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                 Fazendo Upload...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-1 h-3 w-3" />
                 Fazer Upload ({uploadFiles.length} arquivo{uploadFiles.length !== 1 ? 's' : ''})
               </>
             )}

@@ -302,7 +302,7 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <h3 className="text-base font-medium">Upload de Documentos</h3>
         <p className="text-xs text-gray-500">
@@ -313,28 +313,26 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
       {/* Área de Drop */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors ${
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-gray-300 hover:border-primary/50"
         }`}
       >
         <input {...getInputProps()} />
-        <Upload className="mx-auto h-6 w-6 text-gray-400 mb-2" />
+        <Upload className="mx-auto h-4 w-4 text-gray-400 mb-1" />
         {isDragActive ? (
-          <p className="text-sm font-medium text-primary">Solte os arquivos aqui...</p>
+          <p className="text-xs font-medium text-primary">Solte os arquivos aqui...</p>
         ) : (
           <div>
-            <p className="text-sm font-medium mb-1">Arraste e solte arquivos aqui</p>
-            <p className="text-xs text-gray-500 mb-2">ou clique para selecionar arquivos</p>
-            <Button variant="outline" size="sm">Selecionar Arquivos</Button>
+            <p className="text-xs font-medium">Arraste arquivos ou clique</p>
+            <Button variant="outline" size="sm" className="mt-1 h-6 text-xs px-2">
+              Selecionar
+            </Button>
           </div>
         )}
-        <p className="text-xs text-gray-400 mt-2">
-          PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JPG, PNG, GIF
-        </p>
-        <p className="text-xs text-gray-400">
-          Tamanho máximo: 50MB por arquivo
+        <p className="text-xs text-gray-400 mt-1">
+          PDF, DOC, XLS, PPT, TXT, JPG, PNG | Max: 50MB
         </p>
       </div>
 
@@ -469,8 +467,8 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descrição do documento..."
-              rows={2}
-              className="text-sm"
+              rows={1}
+              className="text-sm h-8 resize-none"
             />
           </div>
 

@@ -57,6 +57,7 @@ export async function GET(request: Request) {
         id,
         document_id,
         user_id,
+        title,
         status,
         signature_url,
         verification_code,
@@ -103,10 +104,13 @@ export async function GET(request: Request) {
     const processedDocuments = (signatures || []).map(sig => {
       const docInfo = documentInfo.get(sig.document_id)
       
+      // Priorizar título da tabela document_signatures, depois da tabela documents
+      const documentTitle = sig.title || docInfo?.title || 'Documento sem título'
+      
       return {
         id: sig.id,
         document_id: sig.document_id,
-        document_name: docInfo?.title || `Documento ${sig.document_id || 'N/A'}`,
+        document_name: documentTitle,
         document_path: docInfo?.file_path || '',
         signed_file_path: sig.signature_url,
         requester_id: sig.user_id,

@@ -1,5 +1,6 @@
 'use client'
 
+import { CompleteEntitySetup } from './complete-entity-setup'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -94,11 +95,10 @@ export default function ConfirmEmailPage() {
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session?.user) {
-          console.log('ConfirmEmailPage: Usuário já autenticado, redirecionando')
+          console.log('ConfirmEmailPage: Usuário já autenticado')
           setIsConfirmed(true)
-          setTimeout(() => {
-            router.push('/')
-          }, 2000)
+          // Não redirecionar automaticamente - deixar o CompleteEntitySetup aparecer se necessário
+          setIsChecking(false)
         } else {
           console.log('ConfirmEmailPage: Usuário não autenticado, aguardando confirmação')
           setIsChecking(false)
@@ -210,13 +210,16 @@ export default function ConfirmEmailPage() {
           <div className="text-center">
             <p className="text-xs text-gray-500">
               {isConfirmed 
-                ? 'Redirecionando em alguns segundos...'
+                ? 'Email confirmado com sucesso!'
                 : 'Após confirmar o email, você poderá fazer login normalmente.'
               }
             </p>
           </div>
         </CardContent>
       </Card>
+
+      {/* Componente para finalizar configuração da entidade */}
+      {isConfirmed && <CompleteEntitySetup />}
     </div>
   )
 }

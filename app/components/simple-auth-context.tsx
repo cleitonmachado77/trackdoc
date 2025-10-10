@@ -19,6 +19,7 @@ interface SimpleAuthContextType {
   resetPassword: (email: string) => Promise<{ error: any }>
   updatePassword: (newPassword: string) => Promise<{ error: any }>
   clearAuthError: () => void
+  clearAuthData: () => Promise<void>
 }
 
 const SimpleAuthContext = createContext<SimpleAuthContextType | undefined>(undefined)
@@ -41,18 +42,40 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    // Verificar sessão atual com tratamento de erro
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.warn('Erro ao obter sessão:', error.message)
+        // Limpar dados inválidos
+        setSession(null)
+        setUser(null)
+      } else {
+        setSession(session)
+        setUser(session?.user ?? null)
+      }
+      setLoading(false)
+    }).catch((error) => {
+      console.warn('Erro ao verificar sessão:', error.message)
+      // Em caso de erro, limpar estado e continuar
+      setSession(null)
+      setUser(null)
       setLoading(false)
     })
 
     // Listener de mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
+      (event, session) => {
+        console.log('Auth state changed:', event)
+        
+        // Se houve erro de token, limpar tudo
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh falhou, limpando sessão')
+          setSession(null)
+          setUser(null)
+        } else {
+          setSession(session)
+          setUser(session?.user ?? null)
+        }
         setLoading(false)
       }
     )
@@ -112,6 +135,33 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     setAuthError(null)
   }
 
+  const clearAuthData = async () => {
+    if (!supabase) return
+    
+    // Fazer logout completo
+    await supabase.auth.signOut()
+    
+    // Limpar estado local
+    setSession(null)
+    setUser(null)
+    setAuthError(null)
+    
+    // Limpar localStorage/sessionStorage (se estiver no browser)
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-')) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      Object.keys(sessionStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('sb-')) {
+          sessionStorage.removeItem(key)
+        }
+      })
+    }
+  }
+
   const value = {
     user,
     session,
@@ -127,6 +177,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     resetPassword,
     updatePassword,
     clearAuthError,
+    clearAuthData,
   }
 
   return (

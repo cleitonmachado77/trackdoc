@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Loader2 } from "lucide-react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
@@ -83,14 +83,23 @@ function ProfileGuardWrapper({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true)
+  const [hasValidProfile, setHasValidProfile] = useState(false)
 
   useEffect(() => {
     async function checkProfile() {
-      if (!user) return
+      if (!user) {
+        setIsCheckingProfile(false)
+        return
+      }
 
       // Páginas que não precisam de verificação de perfil
       const skipProfileCheck = ["/confirm-email", "/verify-email"]
-      if (skipProfileCheck.includes(pathname)) return
+      if (skipProfileCheck.includes(pathname)) {
+        setHasValidProfile(true)
+        setIsCheckingProfile(false)
+        return
+      }
 
       try {
         console.log('🔍 [ProfileGuard] Verificando perfil para usuário:', user.id)
@@ -99,37 +108,72 @@ function ProfileGuardWrapper({ children }: { children: React.ReactNode }) {
         const result = await response.json()
 
         if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
-          console.log('❌ [ProfileGuard] Perfil não encontrado - fazendo logout')
+          console.log('❌ [ProfileGuard] Perfil não encontrado - FORÇANDO LOGOUT IMEDIATO')
           
-          // Fazer logout através do contexto
-          await signOut()
-          
-          // Limpar storage
+          // Limpar tudo imediatamente
           localStorage.clear()
           sessionStorage.clear()
           
-          // Redirecionar para login
-          router.replace('/login')
+          // Limpar cookies
+          document.cookie.split(";").forEach(function(c) { 
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+          });
+          
+          // Fazer logout
+          await signOut()
+          
+          // Forçar redirecionamento imediato
+          window.location.replace('/login')
           return
         }
 
         if (!response.ok) {
-          console.log('❌ [ProfileGuard] Erro ao verificar perfil:', result.error)
+          console.log('❌ [ProfileGuard] Erro ao verificar perfil - FORÇANDO LOGOUT')
+          
+          // Limpar tudo
+          localStorage.clear()
+          sessionStorage.clear()
+          
           await signOut()
-          router.replace('/login')
+          window.location.replace('/login')
           return
         }
 
         console.log('✅ [ProfileGuard] Perfil encontrado - acesso liberado')
+        setHasValidProfile(true)
       } catch (error) {
-        console.error('❌ [ProfileGuard] Erro ao verificar perfil:', error)
+        console.error('❌ [ProfileGuard] Erro ao verificar perfil - FORÇANDO LOGOUT:', error)
+        
+        // Limpar tudo em caso de erro
+        localStorage.clear()
+        sessionStorage.clear()
+        
         await signOut()
-        router.replace('/login')
+        window.location.replace('/login')
+      } finally {
+        setIsCheckingProfile(false)
       }
     }
 
     checkProfile()
   }, [user, signOut, router, pathname])
+
+  // Mostrar loading enquanto verifica perfil
+  if (isCheckingProfile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Verificando perfil...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Se não tem perfil válido, não mostrar nada (será redirecionado)
+  if (!hasValidProfile) {
+    return null
+  }
 
   return <>{children}</>
 }

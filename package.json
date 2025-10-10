@@ -17,6 +17,8 @@
     "start": "next start",
     "start:prod": "cross-env NODE_ENV=production next start",
     "setup-db": "node scripts/setup-database.js",
+    "setup-database": "node scripts/setup-database.js",
+    "create-tables": "node scripts/create-missing-tables.js",
     "clean": "rimraf .next && rimraf node_modules/.cache",
     "cleanup-auth": "node scripts/cleanup-auth.js",
     "prepare-production": "node scripts/prepare-production.js",

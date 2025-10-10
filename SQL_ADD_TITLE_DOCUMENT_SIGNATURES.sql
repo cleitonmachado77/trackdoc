@@ -12,10 +12,13 @@ COMMENT ON COLUMN public.document_signatures.title IS 'Título do documento assi
 UPDATE public.document_signatures 
 SET title = CASE 
     WHEN signature_url IS NOT NULL THEN 
-        -- Extrair nome do arquivo da URL de assinatura
+        -- Extrair nome do arquivo da URL de assinatura (remove path e extensões .pdf)
         REGEXP_REPLACE(
-            REGEXP_REPLACE(signature_url, '^.*/', ''), -- Remove path
-            '\\.(pdf|PDF)$', '', 'g' -- Remove extensão
+            REGEXP_REPLACE(
+                REGEXP_REPLACE(signature_url, '^.*/', ''), -- Remove path
+                '\\.pdf\\.pdf$', '', 'gi' -- Remove .pdf.pdf duplo
+            ),
+            '\\.pdf$', '', 'gi' -- Remove .pdf simples
         )
     WHEN arqsign_document_id IS NOT NULL THEN 
         -- Usar ID do documento como fallback
@@ -24,6 +27,8 @@ SET title = CASE
         'Documento sem título'
 END
 WHERE title IS NULL;
+
+
 
 -- 4. Verificar resultados
 SELECT 

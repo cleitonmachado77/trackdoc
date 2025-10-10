@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       valueLength: typeof value === 'object' && 'size' in value ? (value as any).size : String(value).length
     })))
 
-    const action = formData.get('action') as string
+    const action = formData.get('action') as 'upload' | 'existing' | 'multi_signature'
     const documentId = formData.get('documentId') as string || formData.get('document_id') as string
     const file = formData.get('file') as any // Usar 'any' para evitar problemas com File
     const signatureTemplateStr = formData.get('signature_template') as string
@@ -697,12 +697,30 @@ export async function POST(request: NextRequest) {
              // Registrar a operação de assinatura no banco
        console.log('💾 Salvando dados da assinatura...')
        try {
+         // Extrair título do nome do arquivo
+         const extractTitle = (fileName: string) => {
+           if (!fileName) return null
+           
+           // Remove o path e a extensão .pdf
+           const nameWithoutPath = fileName.replace(/^.*\//, '') // Remove path
+           const nameWithoutExtension = nameWithoutPath.replace(/\.pdf$/i, '') // Remove .pdf
+           
+           // Se ainda tem .pdf no meio (como signed_xxx.pdf.pdf), remove novamente
+           const cleanName = nameWithoutExtension.replace(/\.pdf$/i, '')
+           
+           return cleanName || null
+         }
+         
+         const documentTitle = extractTitle(signedFileName)
+         console.log('📝 Título extraído:', documentTitle, 'do arquivo:', signedFileName)
+
          const { error: insertError } = await supabase.from('document_signatures').insert({
            user_id: user.id,
            document_id: documentId || null,
            arqsign_document_id: signature.id,
            status: 'completed',
            signature_url: signedFileName,
+           title: documentTitle, // ✅ NOVO CAMPO
            verification_code: signature.verificationCode,
            verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/${signature.verificationCode}`,
            qr_code_data: JSON.stringify({
@@ -812,7 +830,8 @@ export async function POST(request: NextRequest) {
             let docSignedPdf: Buffer
             let docSignature: any
 
-            if (action === 'multi_signature') {
+            const isMultiSignature = (action as string) === 'multi_signature'
+            if (isMultiSignature) {
               const { signedPdf, signatures } = await digitalSignatureService.createMultiSignature(
                 docPdfBuffer,
                 multiSignatureUsers,
@@ -909,7 +928,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: responseData,
-        message: action === 'multi_signature'
+        message: (action as string) === 'multi_signature'
           ? `Documento enviado para assinatura de ${multiSignatureUsers.length} usuário(s)!`
           : 'Documento assinado com sucesso!'
       })
@@ -968,6 +987,9 @@ export async function GET(request: NextRequest) {
     console.log('🔍 Buscando documentos da entidade:', user.id)
     
     // Buscar documentos disponíveis para assinatura múltipla
+    const { data: processDocumentIds, error: processIdsError } = await supabase
+      .from('process_documents')
+      .select('document_id')
 
     if (processIdsError) {
       console.warn('Erro ao buscar IDs de documentos de processos:', processIdsError)

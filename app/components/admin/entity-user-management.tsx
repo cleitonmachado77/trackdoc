@@ -551,19 +551,40 @@ export default function EntityUserManagement() {
 
     try {
       setError('')
+      setIsCreatingUser(true)
       console.log('🔍 [approveInvitation] Aprovando convite:', invitation.email)
+
+      // Primeiro buscar dados completos do convite
+      const { data: invitationData, error: fetchError } = await supabase
+        .from('entity_invitations')
+        .select('*')
+        .eq('id', invitation.invitation_id)
+        .single()
+
+      if (fetchError || !invitationData) {
+        console.error('❌ [approveInvitation] Erro ao buscar convite:', fetchError)
+        setError('Erro ao buscar dados do convite')
+        return
+      }
+
+      console.log('📋 [approveInvitation] Dados do convite:', invitationData)
+
+      // Extrair dados do message
+      const messageData = invitationData.message ? JSON.parse(invitationData.message) : {}
+      
+      console.log('🚀 [approveInvitation] Criando usuário real...')
 
       // Criar usuário real usando a API de registro do Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: invitation.email!,
-        password: invitation.password!,
+        email: invitationData.email,
+        password: messageData.password,
         options: {
           data: {
-            full_name: invitation.full_name,
-            entity_id: invitation.invitation_id, // Usar entity_id do convite
-            entity_role: invitation.entity_role,
-            phone: invitation.phone,
-            position: invitation.position,
+            full_name: messageData.full_name,
+            entity_id: invitationData.entity_id,
+            entity_role: invitationData.entity_role,
+            phone: messageData.phone,
+            position: messageData.position,
             created_by_admin: true,
             registration_type: 'entity_user'
           }
@@ -581,68 +602,113 @@ export default function EntityUserManagement() {
         return
       }
 
-      console.log('✅ [approveInvitation] Usuário criado, atualizando perfil...')
+      console.log('✅ [approveInvitation] Usuário criado no auth:', authData.user.id)
 
       // Aguardar trigger criar o perfil
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('⏳ [approveInvitation] Aguardando trigger criar perfil...')
+      await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // Buscar entity_id do convite
-      const { data: invitationData } = await supabase
-        .from('entity_invitations')
-        .select('entity_id')
-        .eq('id', invitation.invitation_id)
+      // Verificar se perfil foi criado pelo trigger
+      const { data: profileCheck } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authData.user.id)
         .single()
 
-      if (invitationData) {
-        // Atualizar perfil com dados da entidade
-        await supabase
+      if (!profileCheck) {
+        console.log('⚠️ [approveInvitation] Perfil não foi criado pelo trigger, criando manualmente...')
+        
+        // Criar perfil manualmente se o trigger não funcionou
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            full_name: messageData.full_name,
+            email: invitationData.email,
+            entity_id: invitationData.entity_id,
+            entity_role: invitationData.entity_role,
+            phone: messageData.phone,
+            position: messageData.position,
+            registration_type: 'entity_user',
+            registration_completed: true,
+            status: 'active',
+            role: 'user',
+            permissions: ['read', 'write']
+          }])
+
+        if (insertError) {
+          console.error('❌ [approveInvitation] Erro ao criar perfil:', insertError)
+          setError(`Erro ao criar perfil: ${insertError.message}`)
+          return
+        }
+        
+        console.log('✅ [approveInvitation] Perfil criado manualmente')
+      } else {
+        console.log('✅ [approveInvitation] Perfil já existe, atualizando...')
+        
+        // Atualizar perfil existente com dados da entidade
+        const { error: updateError } = await supabase
           .from('profiles')
           .update({
-            full_name: invitation.full_name,
+            full_name: messageData.full_name,
             entity_id: invitationData.entity_id,
-            entity_role: invitation.entity_role,
-            phone: invitation.phone,
-            position: invitation.position,
+            entity_role: invitationData.entity_role,
+            phone: messageData.phone,
+            position: messageData.position,
             registration_type: 'entity_user',
             registration_completed: true,
             status: 'active'
           })
           .eq('id', authData.user.id)
 
-        // Marcar convite como aceito
-        await supabase
-          .from('entity_invitations')
-          .update({
-            status: 'accepted',
-            accepted_at: new Date().toISOString()
-          })
-          .eq('id', invitation.invitation_id)
-
-        // Atualizar contador de usuários na entidade
-        const { data: entityData } = await supabase
-          .from('entities')
-          .select('current_users')
-          .eq('id', invitationData.entity_id)
-          .single()
-
-        if (entityData) {
-          await supabase
-            .from('entities')
-            .update({ 
-              current_users: (entityData.current_users || 0) + 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', invitationData.entity_id)
+        if (updateError) {
+          console.error('❌ [approveInvitation] Erro ao atualizar perfil:', updateError)
+          setError(`Erro ao atualizar perfil: ${updateError.message}`)
+          return
         }
+        
+        console.log('✅ [approveInvitation] Perfil atualizado')
+      }
+
+      // Marcar convite como aceito
+      const { error: acceptError } = await supabase
+        .from('entity_invitations')
+        .update({
+          status: 'accepted',
+          accepted_at: new Date().toISOString()
+        })
+        .eq('id', invitation.invitation_id)
+
+      if (acceptError) {
+        console.error('❌ [approveInvitation] Erro ao marcar convite como aceito:', acceptError)
+        // Não falhar aqui, o usuário foi criado
+      }
+
+      // Atualizar contador de usuários na entidade
+      const { data: entityData } = await supabase
+        .from('entities')
+        .select('current_users')
+        .eq('id', invitationData.entity_id)
+        .single()
+
+      if (entityData) {
+        await supabase
+          .from('entities')
+          .update({ 
+            current_users: (entityData.current_users || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', invitationData.entity_id)
       }
 
       console.log('✅ [approveInvitation] Convite aprovado com sucesso!')
       
       setSuccess(`✅ Convite aprovado com sucesso!
 
-👤 Usuário: ${invitation.full_name}
-📧 Email: ${invitation.email}
-🔑 Senha: ${invitation.password}
+👤 Usuário: ${messageData.full_name}
+📧 Email: ${invitationData.email}
+🔑 Senha: ${messageData.password}
+🆔 ID: ${authData.user.id}
 🎯 Status: Ativo e pronto para login
 
 O usuário já pode fazer login no sistema.`)
@@ -653,6 +719,8 @@ O usuário já pode fazer login no sistema.`)
     } catch (err) {
       console.error('❌ [approveInvitation] Erro geral:', err)
       setError('Erro interno do servidor. Tente novamente.')
+    } finally {
+      setIsCreatingUser(false)
     }
   }
 

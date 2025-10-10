@@ -615,60 +615,33 @@ export default function EntityUserManagement() {
         .eq('id', authData.user.id)
         .single()
 
-      if (!profileCheck) {
-        console.log('⚠️ [approveInvitation] Perfil não foi criado pelo trigger, criando manualmente...')
-        
-        // Criar perfil manualmente se o trigger não funcionou
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            full_name: messageData.full_name,
-            email: invitationData.email,
-            entity_id: invitationData.entity_id,
-            entity_role: invitationData.entity_role,
-            phone: messageData.phone,
-            position: messageData.position,
-            registration_type: 'entity_user',
-            registration_completed: true,
-            status: 'active',
-            role: 'user',
-            permissions: ['read', 'write']
-          }])
+      // Usar função do banco para criar/atualizar perfil (bypass RLS)
+      console.log('🔧 [approveInvitation] Criando perfil via função do banco...')
+      
+      const { data: profileResult, error: profileError } = await supabase
+        .rpc('create_entity_user_profile', {
+          user_id: authData.user.id,
+          user_email: invitationData.email,
+          full_name: messageData.full_name,
+          entity_id: invitationData.entity_id,
+          entity_role: invitationData.entity_role,
+          phone: messageData.phone,
+          position: messageData.position
+        })
 
-        if (insertError) {
-          console.error('❌ [approveInvitation] Erro ao criar perfil:', insertError)
-          setError(`Erro ao criar perfil: ${insertError.message}`)
-          return
-        }
-        
-        console.log('✅ [approveInvitation] Perfil criado manualmente')
-      } else {
-        console.log('✅ [approveInvitation] Perfil já existe, atualizando...')
-        
-        // Atualizar perfil existente com dados da entidade
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: messageData.full_name,
-            entity_id: invitationData.entity_id,
-            entity_role: invitationData.entity_role,
-            phone: messageData.phone,
-            position: messageData.position,
-            registration_type: 'entity_user',
-            registration_completed: true,
-            status: 'active'
-          })
-          .eq('id', authData.user.id)
-
-        if (updateError) {
-          console.error('❌ [approveInvitation] Erro ao atualizar perfil:', updateError)
-          setError(`Erro ao atualizar perfil: ${updateError.message}`)
-          return
-        }
-        
-        console.log('✅ [approveInvitation] Perfil atualizado')
+      if (profileError) {
+        console.error('❌ [approveInvitation] Erro ao chamar função:', profileError)
+        setError(`Erro ao criar perfil: ${profileError.message}`)
+        return
       }
+
+      if (!profileResult?.success) {
+        console.error('❌ [approveInvitation] Função retornou erro:', profileResult?.error)
+        setError(`Erro ao criar perfil: ${profileResult?.error || 'Erro desconhecido'}`)
+        return
+      }
+
+      console.log('✅ [approveInvitation] Perfil criado/atualizado via função:', profileResult.action)
 
       // Marcar convite como aceito
       const { error: acceptError } = await supabase

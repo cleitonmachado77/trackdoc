@@ -362,15 +362,15 @@ const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 interface EntityUser {
   id: string
-  full_name: string
-  email: string
+  full_name: string | null
+  email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
   status: 'active' | 'inactive' | 'suspended'
   created_at: string
-  last_login?: string
-  phone?: string
-  department?: string
-  position?: string
+  last_login?: string | null
+  phone?: string | null
+  department_id?: string | null  // UUID, não texto
+  position?: string | null
 }
 
 // Função para gerar iniciais do nome completo
@@ -428,7 +428,6 @@ export default function EntityUserManagement() {
     email: "",
     entity_role: "user" as 'user' | 'admin' | 'manager' | 'viewer',
     phone: "",
-    department: "",
     position: "",
     password: ""
   })
@@ -463,10 +462,21 @@ export default function EntityUserManagement() {
         return
       }
 
-      // Buscar todos os usuários da entidade com campos básicos
+      // Buscar todos os usuários da entidade
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, entity_role, status, created_at')
+        .select(`
+          id, 
+          full_name, 
+          email, 
+          entity_role, 
+          status, 
+          created_at,
+          last_login,
+          phone,
+          department_id,
+          position
+        `)
         .eq('entity_id', profileData.entity_id)
         .order('created_at', { ascending: false })
 
@@ -493,7 +503,6 @@ export default function EntityUserManagement() {
     email: string
     entity_role: 'user' | 'admin' | 'manager' | 'viewer'
     phone?: string
-    department?: string
     position?: string
     password: string
   }) => {
@@ -542,7 +551,6 @@ export default function EntityUserManagement() {
         email: userData.email.trim().toLowerCase(),
         entity_role: userData.entity_role,
         phone: userData.phone?.trim() || null,
-        department: userData.department?.trim() || null,
         position: userData.position?.trim() || null,
         password: userData.password,
         entity_id: profileData.entity_id
@@ -598,7 +606,6 @@ export default function EntityUserManagement() {
         email: "",
         entity_role: "user",
         phone: "",
-        department: "",
         position: "",
         password: ""
       })
@@ -653,7 +660,6 @@ export default function EntityUserManagement() {
           entity_role: userData.entity_role,
           status: userData.status,
           phone: userData.phone,
-          department: userData.department,
           position: userData.position
         })
         .eq('id', userData.id)
@@ -943,9 +949,7 @@ export default function EntityUserManagement() {
                         <Badge className={statusColors[user.status]}>
                           {user.status === 'active' ? 'Ativo' : user.status === 'inactive' ? 'Inativo' : 'Suspenso'}
                         </Badge>
-                        {user.department && (
-                          <Badge variant="outline">{user.department}</Badge>
-                        )}
+
                       </div>
                     </div>
                   </div>
@@ -1069,15 +1073,7 @@ export default function EntityUserManagement() {
                 placeholder="Ex: (11) 99999-9999"
               />
             </div>
-            <div>
-              <Label htmlFor="department">Departamento (opcional)</Label>
-              <Input
-                id="department"
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                placeholder="Ex: Vendas, TI, RH"
-              />
-            </div>
+
             <div>
               <Label htmlFor="position">Cargo (opcional)</Label>
               <Input
@@ -1097,7 +1093,6 @@ export default function EntityUserManagement() {
                   email: formData.email,
                   entity_role: formData.entity_role,
                   phone: formData.phone,
-                  department: formData.department,
                   position: formData.position,
                   password: formData.password
                 })}
@@ -1180,15 +1175,7 @@ export default function EntityUserManagement() {
                   placeholder="Ex: (11) 99999-9999"
                 />
               </div>
-              <div>
-                <Label htmlFor="department">Departamento</Label>
-                <Input
-                  id="department"
-                  value={selectedUser.department || ""}
-                  onChange={(e) => setSelectedUser({ ...selectedUser, department: e.target.value })}
-                  placeholder="Ex: Vendas, TI, RH"
-                />
-              </div>
+
               <div>
                 <Label htmlFor="position">Cargo</Label>
                 <Input

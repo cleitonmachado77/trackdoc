@@ -55,11 +55,19 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
   const [isCreating, setIsCreating] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    type: 'company' as 'company' | 'organization' | 'startup' | 'freelancer',
+    legal_name: '',
+    cnpj: '',
+    email: '',
+    type: 'company' as 'company' | 'organization' | 'individual',
     description: '',
-    website: '',
     phone: '',
-    address: ''
+    address: {
+      street: '',
+      city: '',
+      state: '',
+      zip_code: '',
+      country: 'Brasil'
+    }
   })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -71,25 +79,38 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
 
   const handleCreateEntity = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user?.id || !formData.name.trim()) return
+    if (!user?.id || !formData.name.trim() || !formData.email.trim()) return
 
     setIsCreating(true)
     setError('')
     setSuccess('')
 
     try {
+      // Preparar endereço como JSONB
+      const addressData = formData.address.street.trim() ? {
+        street: formData.address.street.trim(),
+        city: formData.address.city.trim(),
+        state: formData.address.state.trim(),
+        zip_code: formData.address.zip_code.trim(),
+        country: formData.address.country
+      } : null
+
       // Criar a entidade
       const { data: entityData, error: entityError } = await supabase
         .from('entities')
         .insert([{
           name: formData.name.trim(),
+          legal_name: formData.legal_name.trim() || null,
+          cnpj: formData.cnpj.trim() || null,
+          email: formData.email.trim(),
           type: formData.type,
           description: formData.description.trim() || null,
-          website: formData.website.trim() || null,
           phone: formData.phone.trim() || null,
-          address: formData.address.trim() || null,
+          address: addressData,
           admin_user_id: user.id,
-          status: 'active'
+          status: 'active',
+          max_users: 5,
+          current_users: 1
         }])
         .select()
         .single()
@@ -146,7 +167,45 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Ex: Minha Empresa"
+                required
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Razão Social */}
+            <div>
+              <Label htmlFor="legal_name">Razão Social</Label>
+              <Input
+                id="legal_name"
+                value={formData.legal_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, legal_name: e.target.value }))}
                 placeholder="Ex: Minha Empresa Ltda"
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* CNPJ */}
+            <div>
+              <Label htmlFor="cnpj">CNPJ</Label>
+              <Input
+                id="cnpj"
+                value={formData.cnpj}
+                onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
+                placeholder="00.000.000/0000-00"
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Email da Entidade */}
+            <div>
+              <Label htmlFor="email">Email da Entidade *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="contato@minhaempresa.com"
                 required
                 disabled={isCreating}
               />
@@ -166,35 +225,9 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
                 <SelectContent>
                   <SelectItem value="company">Empresa</SelectItem>
                   <SelectItem value="organization">Organização</SelectItem>
-                  <SelectItem value="startup">Startup</SelectItem>
-                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {/* Descrição */}
-            <div>
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Descreva brevemente sua entidade..."
-                disabled={isCreating}
-              />
-            </div>
-
-            {/* Website */}
-            <div>
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-                placeholder="https://www.exemplo.com"
-                disabled={isCreating}
-              />
             </div>
 
             {/* Telefone */}
@@ -209,16 +242,59 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
               />
             </div>
 
-            {/* Endereço */}
+            {/* Descrição */}
             <div>
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                placeholder="Rua, número, cidade, estado"
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Descreva brevemente sua entidade..."
                 disabled={isCreating}
               />
+            </div>
+
+            {/* Endereço Estruturado */}
+            <div className="space-y-3">
+              <Label>Endereço</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  placeholder="Rua e número"
+                  value={formData.address.street}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    address: { ...prev.address, street: e.target.value }
+                  }))}
+                  disabled={isCreating}
+                />
+                <Input
+                  placeholder="Cidade"
+                  value={formData.address.city}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    address: { ...prev.address, city: e.target.value }
+                  }))}
+                  disabled={isCreating}
+                />
+                <Input
+                  placeholder="Estado"
+                  value={formData.address.state}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    address: { ...prev.address, state: e.target.value }
+                  }))}
+                  disabled={isCreating}
+                />
+                <Input
+                  placeholder="CEP"
+                  value={formData.address.zip_code}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    address: { ...prev.address, zip_code: e.target.value }
+                  }))}
+                  disabled={isCreating}
+                />
+              </div>
             </div>
 
             {/* Mensagens */}
@@ -237,7 +313,11 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
             )}
 
             {/* Botão */}
-            <Button type="submit" className="w-full" disabled={isCreating || !formData.name.trim()}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isCreating || !formData.name.trim() || !formData.email.trim()}
+            >
               {isCreating ? (
                 <>
                   <Clock className="h-4 w-4 mr-2 animate-spin" />

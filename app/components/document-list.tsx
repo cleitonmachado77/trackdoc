@@ -108,6 +108,20 @@ export default function DocumentList() {
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, any[]>>({})
   const [approvalStatusesLoading, setApprovalStatusesLoading] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+
+  // Carregar preferência de visualização do localStorage
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('documents-view-mode') as 'grid' | 'list'
+    if (savedViewMode && (savedViewMode === 'grid' || savedViewMode === 'list')) {
+      setViewMode(savedViewMode)
+    }
+  }, [])
+
+  // Função para alterar modo de visualização e salvar no localStorage
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode)
+    localStorage.setItem('documents-view-mode', mode)
+  }
   
   // Estados removidos - documentos de processos não são mais exibidos nesta página
   // Documentos anexados em processos são exibidos apenas dentro do respectivo processo
@@ -647,7 +661,7 @@ export default function DocumentList() {
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setViewMode('grid')}
+              onClick={() => handleViewModeChange('grid')}
               className="h-8 px-3"
             >
               <Grid3X3 className="h-4 w-4" />
@@ -655,7 +669,7 @@ export default function DocumentList() {
             <Button
               variant={viewMode === 'list' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setViewMode('list')}
+              onClick={() => handleViewModeChange('list')}
               className="h-8 px-3"
             >
               <List className="h-4 w-4" />

@@ -48,7 +48,233 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { createBrowserClient } from '@supabase/ssr'
 import { checkSimpleEntityAdminStatus } from "@/lib/simple-entity-admin-utils"
-import { EntityAdminDebug } from "../entity-admin-debug"
+
+// Componente para criar entidade quando o usuário não tem uma
+function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => void }) {
+  const { user } = useAuth()
+  const [isCreating, setIsCreating] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'company' as 'company' | 'organization' | 'startup' | 'freelancer',
+    description: '',
+    website: '',
+    phone: '',
+    address: ''
+  })
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const handleCreateEntity = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!user?.id || !formData.name.trim()) return
+
+    setIsCreating(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      // Criar a entidade
+      const { data: entityData, error: entityError } = await supabase
+        .from('entities')
+        .insert([{
+          name: formData.name.trim(),
+          type: formData.type,
+          description: formData.description.trim() || null,
+          website: formData.website.trim() || null,
+          phone: formData.phone.trim() || null,
+          address: formData.address.trim() || null,
+          admin_user_id: user.id,
+          status: 'active'
+        }])
+        .select()
+        .single()
+
+      if (entityError) throw entityError
+
+      // Atualizar o perfil do usuário para associá-lo à entidade
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          entity_id: entityData.id,
+          entity_role: 'admin',
+          registration_type: 'entity_admin'
+        })
+        .eq('id', user.id)
+
+      if (profileError) throw profileError
+
+      setSuccess('Entidade criada com sucesso! Redirecionando...')
+      setTimeout(() => {
+        onEntityCreated()
+      }, 2000)
+
+    } catch (err) {
+      console.error('Erro ao criar entidade:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao criar entidade')
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center">
+        <Building2 className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Criar Entidade</h1>
+        <p className="text-gray-600">
+          Você ainda não possui uma entidade. Crie uma para gerenciar usuários e documentos.
+        </p>
+      </div>
+
+      {/* Formulário */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Informações da Entidade</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreateEntity} className="space-y-4">
+            {/* Nome da Entidade */}
+            <div>
+              <Label htmlFor="name">Nome da Entidade *</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Ex: Minha Empresa Ltda"
+                required
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Tipo */}
+            <div>
+              <Label htmlFor="type">Tipo de Entidade</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}
+                disabled={isCreating}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="company">Empresa</SelectItem>
+                  <SelectItem value="organization">Organização</SelectItem>
+                  <SelectItem value="startup">Startup</SelectItem>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Descrição */}
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Descreva brevemente sua entidade..."
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Website */}
+            <div>
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                placeholder="https://www.exemplo.com"
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Telefone */}
+            <div>
+              <Label htmlFor="phone">Telefone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                placeholder="(11) 99999-9999"
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Endereço */}
+            <div>
+              <Label htmlFor="address">Endereço</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                placeholder="Rua, número, cidade, estado"
+                disabled={isCreating}
+              />
+            </div>
+
+            {/* Mensagens */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {success && (
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700">{success}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Botão */}
+            <Button type="submit" className="w-full" disabled={isCreating || !formData.name.trim()}>
+              {isCreating ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Criando Entidade...
+                </>
+              ) : (
+                <>
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Criar Entidade
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Informações adicionais */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-4">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium mb-1">O que acontece após criar a entidade?</p>
+              <ul className="space-y-1 text-blue-700">
+                <li>• Você se tornará o administrador da entidade</li>
+                <li>• Poderá convidar e gerenciar outros usuários</li>
+                <li>• Terá acesso completo aos recursos de gestão</li>
+                <li>• Poderá criar departamentos e definir permissões</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -380,19 +606,7 @@ export default function EntityUserManagement() {
   }, [user?.id])
 
   if (!isEntityAdmin) {
-    return (
-      <div className="space-y-6">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Voce nao esta associado a nenhuma entidade como administrador. Apenas administradores de entidades podem gerenciar usuarios.
-          </AlertDescription>
-        </Alert>
-        
-        {/* Componente de diagnóstico para ajudar a resolver o problema */}
-        <EntityAdminDebug />
-      </div>
-    )
+    return <CreateEntityInterface onEntityCreated={() => window.location.reload()} />
   }
 
   return (

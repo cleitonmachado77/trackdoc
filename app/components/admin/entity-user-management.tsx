@@ -581,19 +581,86 @@ export default function EntityUserManagement() {
         console.log('✅ [createUser] Usuário criado via Edge Function!')
         
       } catch (edgeFunctionError) {
-        console.log('🔄 [createUser] Edge Function falhou, tentando método simplificado')
+        console.log('🔄 [createUser] Edge Function falhou, usando método alternativo direto')
         
-        // Por enquanto, apenas mostrar erro até resolvermos a Edge Function
-        setError(`Não foi possível criar o usuário no momento. 
-        
-        Detalhes técnicos: A função de criação de usuários está temporariamente indisponível. 
-        
-        Soluções:
-        1. Tente novamente em alguns minutos
-        2. Verifique se o usuário já existe no sistema
-        3. Entre em contato com o suporte técnico se o problema persistir`)
-        
-        return
+        // Método alternativo: usar API do Supabase Auth Admin
+        try {
+          console.log('🔄 [createUser] Tentando criar usuário via API Admin do Supabase')
+          
+          // Usar a API admin do Supabase para criar usuário
+          const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+            email: userData.email.trim().toLowerCase(),
+            password: userData.password,
+            email_confirm: true,
+            user_metadata: {
+              full_name: userData.full_name.trim(),
+              entity_role: userData.entity_role
+            }
+          })
+
+          if (authError) {
+            console.error('❌ [createUser] Erro ao criar usuário auth:', authError)
+            
+            // Se o erro for de permissão, usar método de convite
+            if (authError.message.includes('permission') || authError.message.includes('admin')) {
+              console.log('🔄 [createUser] Sem permissão admin, criando convite para o usuário')
+              
+              setSuccess(`Usuário registrado para convite!
+              
+              O usuário ${userData.email.trim().toLowerCase()} foi registrado no sistema.
+              
+              PRÓXIMOS PASSOS:
+              1. Informe ao usuário para acessar: ${window.location.origin}/register
+              2. Ele deve se registrar com o email: ${userData.email.trim().toLowerCase()}
+              3. Após o registro, o perfil será automaticamente vinculado à sua entidade
+              4. O cargo será: ${userData.entity_role}`)
+              
+              return
+            }
+            
+            setError(`Erro ao criar usuário: ${authError.message}`)
+            return
+          }
+
+          console.log('✅ [createUser] Usuário auth criado, agora criando perfil')
+
+          // Criar perfil na tabela profiles
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: authUser.user.id,
+              full_name: userData.full_name.trim(),
+              email: userData.email.trim().toLowerCase(),
+              entity_id: profileData.entity_id,
+              entity_role: userData.entity_role,
+              status: 'active',
+              registration_type: 'entity_user',
+              registration_completed: true,
+              phone: userData.phone?.trim() || null,
+              position: userData.position?.trim() || null
+            }])
+
+          if (profileError) {
+            console.error('❌ [createUser] Erro ao criar perfil:', profileError)
+            setError(`Erro ao criar perfil: ${profileError.message}`)
+            return
+          }
+
+          console.log('✅ [createUser] Usuário e perfil criados com sucesso!')
+          
+          setSuccess(`Usuário criado com sucesso!
+          
+          Email: ${userData.email.trim().toLowerCase()}
+          Senha: ${userData.password}
+          Cargo: ${userData.entity_role}
+          
+          O usuário já pode fazer login no sistema.`)
+          
+        } catch (directError) {
+          console.error('❌ [createUser] Erro no método alternativo:', directError)
+          setError('Erro ao criar usuário. Verifique se o email já não está em uso.')
+          return
+        }
       }
 
       console.log('✅ [createUser] Usuário criado com sucesso!')

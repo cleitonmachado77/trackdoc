@@ -118,8 +118,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
       },
     ]
 
-    // Adicionar item de administração se for admin
-    if (profile?.role === 'admin') {
+    // ✅ MUDANÇA: Adicionar item de administração para todos os usuários autenticados
+    // Isso permite que usuários sem entidade possam criar uma entidade
+    if (profile) {
       baseItems.push({
         id: "admin",
         label: "Administração",

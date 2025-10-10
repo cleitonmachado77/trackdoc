@@ -421,6 +421,7 @@ export default function EntityUserManagement() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [selectedUserForPassword, setSelectedUserForPassword] = useState<EntityUser | null>(null)
+  const [isCreatingUser, setIsCreatingUser] = useState(false)
 
   // Formulario para novo usuario
   const [formData, setFormData] = useState({
@@ -516,7 +517,8 @@ export default function EntityUserManagement() {
 
     try {
       setError('')
-      console.log('🔍 [createUser] Iniciando criação simplificada de usuário:', userData.email)
+      setIsCreatingUser(true)
+      console.log('🔍 [createUser] Iniciando criação de usuário virtual:', userData.email)
 
       // Validações básicas
       if (!userData.full_name.trim()) {
@@ -544,99 +546,100 @@ export default function EntityUserManagement() {
         return
       }
 
-      console.log('🚀 [createUser] Criando usuário diretamente no banco...')
+      console.log('🔍 [createUser] Verificando se email já existe...')
 
-      // ETAPA 1: Criar usuário no auth.users
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email.trim().toLowerCase(),
-        password: userData.password,
-        email_confirm: true, // Email já confirmado
-        user_metadata: {
-          full_name: userData.full_name.trim()
-        }
-      })
+      // Verificar se email já existe na tabela profiles
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', userData.email.trim().toLowerCase())
+        .maybeSingle()
 
-      if (authError) {
-        console.error('❌ [createUser] Erro ao criar usuário auth:', authError)
-        
-        if (authError.message.includes('already registered')) {
-          setError('Este email já está cadastrado no sistema')
-        } else {
-          setError(`Erro ao criar usuário: ${authError.message}`)
-        }
+      if (existingProfile) {
+        setError('Este email já está cadastrado no sistema')
         return
       }
 
-      console.log('✅ [createUser] Usuário auth criado:', authUser.user.id)
+      // Verificar se email já existe na tabela auth.users (via RPC se disponível)
+      try {
+        const { data: existingAuth } = await supabase.auth.getUser()
+        // Não podemos verificar diretamente outros usuários sem API admin
+        // Vamos confiar na verificação da tabela profiles
+      } catch (authCheckError) {
+        console.log('⚠️ [createUser] Não foi possível verificar auth.users, continuando...')
+      }
 
-      // ETAPA 2: Criar perfil na tabela profiles
+      console.log('🚀 [createUser] Criando usuário virtual (sem API admin)...')
+
+      // Gerar ID único para o usuário virtual
+      const virtualUserId = crypto.randomUUID()
+      
+      // Criar entrada na tabela profiles como "usuário virtual"
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([{
-          id: authUser.user.id,
+          id: virtualUserId,
           full_name: userData.full_name.trim(),
           email: userData.email.trim().toLowerCase(),
           entity_id: userData.entity_id,
           entity_role: userData.entity_role,
           role: 'user',
-          status: 'active',
-          registration_type: 'entity_user',
-          registration_completed: true,
+          status: 'pending', // Status pending até fazer primeiro login
+          registration_type: 'entity_invitation',
+          registration_completed: false,
           phone: userData.phone?.trim() || null,
           position: userData.position?.trim() || null,
-          permissions: ['read', 'write']
+          permissions: ['read', 'write'],
+          // Armazenar dados temporários para ativação
+          metadata: {
+            temporary_password: userData.password,
+            invited_by: user.id,
+            invitation_date: new Date().toISOString(),
+            activation_required: true
+          }
         }])
 
       if (profileError) {
-        console.error('❌ [createUser] Erro ao criar perfil:', profileError)
-        
-        // Se falhou ao criar perfil, tentar deletar o usuário auth criado
-        try {
-          await supabase.auth.admin.deleteUser(authUser.user.id)
-          console.log('🔄 [createUser] Usuário auth removido após erro no perfil')
-        } catch (deleteError) {
-          console.error('❌ [createUser] Erro ao remover usuário auth:', deleteError)
-        }
-        
-        setError(`Erro ao criar perfil: ${profileError.message}`)
+        console.error('❌ [createUser] Erro ao criar perfil virtual:', profileError)
+        setError(`Erro ao criar usuário: ${profileError.message}`)
         return
       }
 
-      console.log('✅ [createUser] Perfil criado com sucesso!')
+      console.log('✅ [createUser] Usuário virtual criado com sucesso!')
 
-      // ETAPA 3: Atualizar contador de usuários na entidade
-      // Buscar contador atual e incrementar
-      const { data: entityData, error: fetchError } = await supabase
+      // Atualizar contador de usuários na entidade
+      const { data: entityData } = await supabase
         .from('entities')
         .select('current_users')
         .eq('id', userData.entity_id)
         .single()
 
-      if (!fetchError && entityData) {
-        const { error: updateError } = await supabase
+      if (entityData) {
+        await supabase
           .from('entities')
           .update({ 
             current_users: (entityData.current_users || 0) + 1,
             updated_at: new Date().toISOString()
           })
           .eq('id', userData.entity_id)
-
-        if (updateError) {
-          console.warn('⚠️ [createUser] Erro ao atualizar contador da entidade:', updateError)
-          // Não falhar por causa disso
-        }
       }
 
-      console.log('✅ [createUser] Usuário criado completamente!')
+      console.log('✅ [createUser] Processo concluído!')
       
-      setSuccess(`✅ Usuário criado com sucesso!
+      setSuccess(`✅ Usuário virtual criado com sucesso!
 
 📧 Email: ${userData.email.trim().toLowerCase()}
-🔑 Senha: ${userData.password}
+🔑 Senha temporária: ${userData.password}
 👤 Cargo: ${userData.entity_role}
 🏢 Entidade: ${availableEntities.find(e => e.id === userData.entity_id)?.name}
 
-O usuário já pode fazer login no sistema.`)
+📋 INSTRUÇÕES PARA ATIVAÇÃO:
+1. O usuário deve acessar: ${window.location.origin}/register
+2. Fazer cadastro normal com o email: ${userData.email.trim().toLowerCase()}
+3. Após o cadastro, o sistema automaticamente vinculará ao perfil da entidade
+4. A senha temporária será substituída pela senha escolhida no registro
+
+⚠️ IMPORTANTE: O usuário aparecerá como "Pendente" até completar o registro.`)
       
       setShowCreateModal(false)
       
@@ -657,6 +660,8 @@ O usuário já pode fazer login no sistema.`)
     } catch (err) {
       console.error('❌ [createUser] Erro geral:', err)
       setError('Erro interno do servidor. Tente novamente.')
+    } finally {
+      setIsCreatingUser(false)
     }
   }
 

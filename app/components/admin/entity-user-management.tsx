@@ -438,28 +438,51 @@ export default function EntityUserManagement() {
 
     try {
       setLoading(true)
+      setError('')
+      
+      console.log('🔍 [fetchEntityUsers] Buscando usuários da entidade para:', user.id)
+      
       // Primeiro buscar o entity_id do perfil do usuário logado
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('entity_id')
+        .select('entity_id, entity_role')
         .eq('id', user.id)
         .single()
 
-      if (profileError || !profileData?.entity_id) {
-        console.log('Usuario nao esta associado a uma entidade')
+      console.log('📊 [fetchEntityUsers] Perfil do usuário:', profileData)
+
+      if (profileError) {
+        console.error('❌ [fetchEntityUsers] Erro ao buscar perfil:', profileError)
+        setError('Erro ao verificar perfil do usuário')
         return
       }
 
+      if (!profileData?.entity_id) {
+        console.log('⚠️ [fetchEntityUsers] Usuário não está associado a uma entidade')
+        setError('Usuário não está associado a uma entidade')
+        return
+      }
+
+      // Buscar todos os usuários da entidade
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, email, entity_role, status, created_at, last_login, phone, department, position')
         .eq('entity_id', profileData.entity_id)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      console.log('👥 [fetchEntityUsers] Usuários encontrados:', data?.length || 0)
+
+      if (error) {
+        console.error('❌ [fetchEntityUsers] Erro ao buscar usuários:', error)
+        throw error
+      }
+
       setEntityUsers(data || [])
+      console.log('✅ [fetchEntityUsers] Usuários carregados com sucesso')
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar usuarios')
+      console.error('❌ [fetchEntityUsers] Erro geral:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
     } finally {
       setLoading(false)
     }
@@ -477,45 +500,76 @@ export default function EntityUserManagement() {
     if (!user?.id) return
 
     try {
+      setError('')
+      console.log('🔍 [createUser] Iniciando criação de usuário:', userData.email)
+
+      // Validações básicas
+      if (!userData.full_name.trim() || !userData.email.trim() || !userData.password.trim()) {
+        setError('Nome, email e senha são obrigatórios')
+        return
+      }
+
+      if (userData.password.length < 6) {
+        setError('A senha deve ter pelo menos 6 caracteres')
+        return
+      }
+
       // Primeiro buscar o entity_id do perfil do usuário logado
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('entity_id')
+        .select('entity_id, entity_role')
         .eq('id', user.id)
         .single()
 
+      console.log('📊 [createUser] Perfil do admin:', profileData)
+
       if (profileError || !profileData?.entity_id) {
-        setError('Usuario nao esta associado a uma entidade')
+        console.error('❌ [createUser] Erro ao buscar perfil do admin:', profileError)
+        setError('Usuário não está associado a uma entidade')
         return
       }
+
+      // Verificar se o usuário tem permissão para criar usuários
+      if (profileData.entity_role !== 'admin' && profileData.entity_role !== 'manager') {
+        setError('Você não tem permissão para criar usuários')
+        return
+      }
+
+      console.log('🚀 [createUser] Chamando Edge Function...')
 
       // Chamar a Edge Function para criar o usuário
       const { data, error } = await supabase.functions.invoke('create-entity-user', {
         body: {
-          full_name: userData.full_name,
-          email: userData.email,
+          full_name: userData.full_name.trim(),
+          email: userData.email.trim().toLowerCase(),
           entity_role: userData.entity_role,
-          phone: userData.phone,
-          department: userData.department,
-          position: userData.position,
+          phone: userData.phone?.trim() || null,
+          department: userData.department?.trim() || null,
+          position: userData.position?.trim() || null,
           password: userData.password,
           entity_id: profileData.entity_id
         }
       })
 
+      console.log('📊 [createUser] Resposta da Edge Function:', { data, error })
+
       if (error) {
-        console.error('Erro na Edge Function:', error)
-        setError('Erro ao cadastrar usuario. Tente novamente.')
+        console.error('❌ [createUser] Erro na Edge Function:', error)
+        setError('Erro ao cadastrar usuário. Tente novamente.')
         return
       }
 
-      if (data.error) {
+      if (data?.error) {
+        console.error('❌ [createUser] Erro retornado pela função:', data.error)
         setError(data.error)
         return
       }
 
-      setSuccess('Usuario cadastrado com sucesso! Email com dados de acesso foi enviado.')
+      console.log('✅ [createUser] Usuário criado com sucesso!')
+      setSuccess('Usuário cadastrado com sucesso! Email com dados de acesso foi enviado.')
       setShowCreateModal(false)
+      
+      // Limpar formulário
       setFormData({
         full_name: "",
         email: "",
@@ -528,8 +582,9 @@ export default function EntityUserManagement() {
       
       // Recarregar lista de usuários
       await fetchEntityUsers()
+      
     } catch (err) {
-      console.error('Erro ao cadastrar usuario:', err)
+      console.error('❌ [createUser] Erro geral:', err)
       setError('Erro interno do servidor. Tente novamente.')
     }
   }
@@ -726,7 +781,9 @@ export default function EntityUserManagement() {
               <Users className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Total de Usuarios</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : stats.total}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -738,7 +795,9 @@ export default function EntityUserManagement() {
               <UserCheck className="h-8 w-8 text-green-600" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Ativos</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : stats.active}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -750,12 +809,16 @@ export default function EntityUserManagement() {
               <Shield className="h-8 w-8 text-red-600" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Administradores</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.admins}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {loading ? '...' : stats.admins}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+
 
       {/* Lista de Usuarios */}
       <Card>

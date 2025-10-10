@@ -362,15 +362,20 @@ const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 interface EntityUser {
   id: string
+  invitation_id?: string // Para convites pendentes
   full_name: string | null
   email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended'
+  status: 'active' | 'inactive' | 'suspended' | 'pending'
   created_at: string
   last_login?: string | null
   phone?: string | null
   department_id?: string | null  // UUID, não texto
   position?: string | null
+  invitation_token?: string // Para convites pendentes
+  expires_at?: string // Para convites pendentes
+  password?: string // Para aprovação
+  invited_by?: string // Quem convidou
 }
 
 // Função para gerar iniciais do nome completo
@@ -393,6 +398,7 @@ const statusColors = {
   active: "bg-green-100 text-green-800",
   inactive: "bg-red-100 text-red-800",
   suspended: "bg-yellow-100 text-yellow-800",
+  pending: "bg-orange-100 text-orange-800",
 }
 
 const roleLabels = {
@@ -493,14 +499,160 @@ export default function EntityUserManagement() {
         throw error
       }
 
-      setEntityUsers(data || [])
-      console.log('✅ [fetchEntityUsers] Usuários carregados com sucesso')
+      // Buscar também convites pendentes
+      const { data: invitations } = await supabase
+        .from('entity_invitations')
+        .select('*')
+        .eq('entity_id', profileData.entity_id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+
+      console.log('📨 [fetchEntityUsers] Convites pendentes:', invitations?.length || 0)
+
+      // Converter convites em formato de usuário para exibição
+      const pendingUsers = (invitations || []).map(invitation => {
+        const messageData = invitation.message ? JSON.parse(invitation.message) : {}
+        return {
+          id: `invitation-${invitation.id}`,
+          invitation_id: invitation.id,
+          full_name: messageData.full_name || 'Usuário Convidado',
+          email: invitation.email,
+          entity_role: invitation.entity_role || invitation.role,
+          status: 'pending' as const,
+          created_at: invitation.created_at,
+          last_login: null,
+          phone: messageData.phone || null,
+          department_id: null,
+          position: messageData.position || null,
+          invitation_token: invitation.token,
+          expires_at: invitation.expires_at,
+          password: messageData.password, // Para aprovação
+          invited_by: invitation.invited_by
+        }
+      })
+
+      // Combinar usuários reais com convites pendentes
+      const allUsers = [...(data || []), ...pendingUsers]
+      setEntityUsers(allUsers)
+      
+      console.log('✅ [fetchEntityUsers] Usuários e convites carregados:', allUsers.length)
       
     } catch (err) {
       console.error('❌ [fetchEntityUsers] Erro geral:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Função para aprovar convite e criar usuário real
+  const approveInvitation = async (invitation: EntityUser) => {
+    if (!user?.id || !invitation.invitation_id) return
+
+    try {
+      setError('')
+      console.log('🔍 [approveInvitation] Aprovando convite:', invitation.email)
+
+      // Criar usuário real usando a API de registro do Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: invitation.email!,
+        password: invitation.password!,
+        options: {
+          data: {
+            full_name: invitation.full_name,
+            entity_id: invitation.invitation_id, // Usar entity_id do convite
+            entity_role: invitation.entity_role,
+            phone: invitation.phone,
+            position: invitation.position,
+            created_by_admin: true,
+            registration_type: 'entity_user'
+          }
+        }
+      })
+
+      if (authError) {
+        console.error('❌ [approveInvitation] Erro ao criar usuário:', authError)
+        setError(`Erro ao aprovar convite: ${authError.message}`)
+        return
+      }
+
+      if (!authData.user) {
+        setError('Erro: Usuário não foi criado corretamente')
+        return
+      }
+
+      console.log('✅ [approveInvitation] Usuário criado, atualizando perfil...')
+
+      // Aguardar trigger criar o perfil
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Buscar entity_id do convite
+      const { data: invitationData } = await supabase
+        .from('entity_invitations')
+        .select('entity_id')
+        .eq('id', invitation.invitation_id)
+        .single()
+
+      if (invitationData) {
+        // Atualizar perfil com dados da entidade
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: invitation.full_name,
+            entity_id: invitationData.entity_id,
+            entity_role: invitation.entity_role,
+            phone: invitation.phone,
+            position: invitation.position,
+            registration_type: 'entity_user',
+            registration_completed: true,
+            status: 'active'
+          })
+          .eq('id', authData.user.id)
+
+        // Marcar convite como aceito
+        await supabase
+          .from('entity_invitations')
+          .update({
+            status: 'accepted',
+            accepted_at: new Date().toISOString()
+          })
+          .eq('id', invitation.invitation_id)
+
+        // Atualizar contador de usuários na entidade
+        const { data: entityData } = await supabase
+          .from('entities')
+          .select('current_users')
+          .eq('id', invitationData.entity_id)
+          .single()
+
+        if (entityData) {
+          await supabase
+            .from('entities')
+            .update({ 
+              current_users: (entityData.current_users || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', invitationData.entity_id)
+        }
+      }
+
+      console.log('✅ [approveInvitation] Convite aprovado com sucesso!')
+      
+      setSuccess(`✅ Convite aprovado com sucesso!
+
+👤 Usuário: ${invitation.full_name}
+📧 Email: ${invitation.email}
+🔑 Senha: ${invitation.password}
+🎯 Status: Ativo e pronto para login
+
+O usuário já pode fazer login no sistema.`)
+
+      // Recarregar lista
+      await fetchEntityUsers()
+
+    } catch (err) {
+      console.error('❌ [approveInvitation] Erro geral:', err)
+      setError('Erro interno do servidor. Tente novamente.')
     }
   }
 
@@ -569,98 +721,59 @@ export default function EntityUserManagement() {
         console.log('⚠️ [createUser] Não foi possível verificar auth.users, continuando...')
       }
 
-      console.log('🚀 [createUser] Criando usuário real via API de registro...')
+      console.log('🚀 [createUser] Criando convite para aprovação...')
 
-      // Criar usuário real usando a API de registro do Supabase
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email.trim().toLowerCase(),
-        password: userData.password,
-        options: {
-          data: {
+      // Gerar token único para o convite
+      const invitationToken = crypto.randomUUID()
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 30) // Expira em 30 dias
+      
+      // Criar convite na tabela entity_invitations
+      const { error: invitationError } = await supabase
+        .from('entity_invitations')
+        .insert([{
+          entity_id: userData.entity_id,
+          email: userData.email.trim().toLowerCase(),
+          role: userData.entity_role,
+          status: 'pending',
+          invited_by: user.id,
+          token: invitationToken,
+          expires_at: expiresAt.toISOString(),
+          entity_role: userData.entity_role,
+          message: JSON.stringify({
             full_name: userData.full_name.trim(),
-            entity_id: userData.entity_id,
-            entity_role: userData.entity_role,
+            password: userData.password,
             phone: userData.phone?.trim() || null,
             position: userData.position?.trim() || null,
-            created_by_admin: true,
-            registration_type: 'entity_user'
-          }
-        }
-      })
-
-      if (authError) {
-        console.error('❌ [createUser] Erro ao criar usuário:', authError)
-        setError(`Erro ao criar usuário: ${authError.message}`)
-        return
-      }
-
-      if (!authData.user) {
-        setError('Erro: Usuário não foi criado corretamente')
-        return
-      }
-
-      console.log('✅ [createUser] Usuário criado no auth, atualizando perfil...')
-
-      // Aguardar um pouco para o trigger criar o perfil
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Atualizar o perfil criado automaticamente pelo trigger
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: userData.full_name.trim(),
-          entity_id: userData.entity_id,
-          entity_role: userData.entity_role,
-          phone: userData.phone?.trim() || null,
-          position: userData.position?.trim() || null,
-          registration_type: 'entity_user',
-          registration_completed: true,
-          status: 'active' // ✅ Ativo imediatamente
-        })
-        .eq('id', authData.user.id)
-
-      if (profileError) {
-        console.error('❌ [createUser] Erro ao atualizar perfil:', profileError)
-        // Não falhar aqui, o usuário foi criado
-        console.log('⚠️ [createUser] Usuário criado mas perfil não foi atualizado completamente')
-      }
-
-      console.log('✅ [createUser] Usuário criado com sucesso!')
-
-      // Atualizar contador de usuários na entidade
-      const { data: entityData } = await supabase
-        .from('entities')
-        .select('current_users')
-        .eq('id', userData.entity_id)
-        .single()
-
-      if (entityData) {
-        await supabase
-          .from('entities')
-          .update({ 
-            current_users: (entityData.current_users || 0) + 1,
-            updated_at: new Date().toISOString()
+            created_by_admin: true
           })
-          .eq('id', userData.entity_id)
+        }])
+
+      if (invitationError) {
+        console.error('❌ [createUser] Erro ao criar convite:', invitationError)
+        setError(`Erro ao criar convite: ${invitationError.message}`)
+        return
       }
+
+      console.log('✅ [createUser] Convite criado com sucesso!')
 
       console.log('✅ [createUser] Processo concluído!')
       
-      setSuccess(`✅ Usuário criado com sucesso!
+      setSuccess(`✅ Convite de usuário criado com sucesso!
 
 📧 Email: ${userData.email.trim().toLowerCase()}
 🔑 Senha: ${userData.password}
 👤 Cargo: ${userData.entity_role}
 🏢 Entidade: ${availableEntities.find(e => e.id === userData.entity_id)?.name}
-🆔 ID: ${authData.user.id}
+🎫 Token: ${invitationToken}
 
-✅ USUÁRIO PRONTO PARA LOGIN:
-- O usuário já pode fazer login imediatamente
-- Email: ${userData.email.trim().toLowerCase()}
-- Senha: ${userData.password}
-- Status: Ativo na entidade
+⏳ AGUARDANDO APROVAÇÃO:
+- O convite aparecerá na lista com status "Pendente"
+- Clique em "Aprovar" para criar o usuário real
+- Após aprovação, o usuário poderá fazer login
+- Convite expira em 30 dias
 
-🎯 O usuário aparecerá na lista de usuários da entidade.`)
+🎯 O convite aparecerá na lista para aprovação.`)
       
       setShowCreateModal(false)
       
@@ -1050,34 +1163,53 @@ export default function EntityUserManagement() {
                           {roleLabels[user.entity_role]}
                         </Badge>
                         <Badge className={statusColors[user.status]}>
-                          {user.status === 'active' ? 'Ativo' : user.status === 'inactive' ? 'Inativo' : 'Suspenso'}
+                          {user.status === 'active' ? 'Ativo' : 
+                           user.status === 'inactive' ? 'Inativo' : 
+                           user.status === 'suspended' ? 'Suspenso' : 
+                           user.status === 'pending' ? 'Aguardando Aprovação' : user.status}
                         </Badge>
 
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUser(user)
-                        setShowUserModal(true)
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUserForPassword(user)
-                        setShowPasswordModal(true)
-                      }}
-                    >
-                      <Key className="h-4 w-4" />
-                    </Button>
-                    {user.id !== user?.id && (
+                    {user.status === 'pending' ? (
+                      // Botão de aprovação para convites pendentes
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => approveInvitation(user)}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Aprovar
+                      </Button>
+                    ) : (
+                      // Botões normais para usuários ativos
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user)
+                            setShowUserModal(true)
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUserForPassword(user)
+                            setShowPasswordModal(true)
+                          }}
+                        >
+                          <Key className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
+                    {user.id !== user?.id && user.status !== 'pending' && (
                       <Button
                         variant="outline"
                         size="sm"

@@ -443,6 +443,18 @@ export default function EntityUserManagement() {
   // Lista de entidades disponíveis para o usuário logado
   const [availableEntities, setAvailableEntities] = useState<Array<{id: string, name: string}>>([])
   const [loadingEntities, setLoadingEntities] = useState(false)
+  
+  // Informações da entidade do usuário
+  const [entityInfo, setEntityInfo] = useState<{
+    id: string
+    name: string
+    legal_name: string | null
+    email: string
+    type: string
+    current_users: number
+    max_users: number
+    created_at: string
+  } | null>(null)
 
   const fetchEntityUsers = async () => {
     if (!user?.id) return
@@ -1066,10 +1078,19 @@ O usuário já pode fazer login no sistema.`)
         if (profileData.entity_id) {
           setIsEntityAdmin(true)
           setUserEntityId(profileData.entity_id)
-          setDebugInfo(`Usuário é admin da entidade: ${profileData.entity_id}`)
+          
+          // Buscar informações completas da entidade
+          const { data: entityData, error: entityError } = await supabase
+            .from('entities')
+            .select('id, name, legal_name, email, type, current_users, max_users, created_at')
+            .eq('id', profileData.entity_id)
+            .single()
+
+          if (entityData && !entityError) {
+            setEntityInfo(entityData)
+          }
         } else {
           setIsEntityAdmin(false)
-          setDebugInfo('Usuário não está associado a uma entidade')
         }
 
       } catch (err) {
@@ -1085,14 +1106,6 @@ O usuário já pode fazer login no sistema.`)
     return (
       <div className="space-y-4">
         <CreateEntityInterface onEntityCreated={() => window.location.reload()} />
-        
-        {/* Debug temporário */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="font-medium text-yellow-800 mb-2">Debug Info:</h3>
-          <p className="text-sm text-yellow-700">{debugInfo}</p>
-          <p className="text-sm text-yellow-700 mt-1">Usuário ID: {user?.id}</p>
-          <p className="text-sm text-yellow-700 mt-1">Is Entity Admin: {isEntityAdmin ? 'Sim' : 'Não'}</p>
-        </div>
       </div>
     )
   }
@@ -1126,17 +1139,57 @@ O usuário já pode fazer login no sistema.`)
         </Alert>
       )}
 
-      {/* Debug Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <h3 className="font-medium text-blue-800 mb-2">Status do Sistema:</h3>
-        <div className="text-sm text-blue-700 space-y-1">
-          <p>• Loading: {loading ? 'Sim' : 'Não'}</p>
-          <p>• Usuários carregados: {entityUsers.length}</p>
-          <p>• Entity ID: {userEntityId}</p>
-          <p>• Erro: {error || 'Nenhum'}</p>
-          <p>• Debug: {debugInfo}</p>
-        </div>
-      </div>
+      {/* Informações da Entidade */}
+      {entityInfo && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+              Informações da Entidade
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">{entityInfo.name}</h3>
+                {entityInfo.legal_name && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    <span className="font-medium">Razão Social:</span> {entityInfo.legal_name}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600 mt-1">
+                  <span className="font-medium">Email:</span> {entityInfo.email}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  <span className="font-medium">Tipo:</span> {
+                    entityInfo.type === 'company' ? 'Empresa' :
+                    entityInfo.type === 'organization' ? 'Organização' : 'Individual'
+                  }
+                </p>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-600">Usuários</span>
+                  <span className="text-sm text-gray-900">
+                    {entityInfo.current_users} / {entityInfo.max_users}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full" 
+                    style={{ 
+                      width: `${Math.min((entityInfo.current_users / entityInfo.max_users) * 100, 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Criada em {new Date(entityInfo.created_at).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Estatisticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

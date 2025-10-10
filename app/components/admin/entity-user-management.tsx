@@ -585,18 +585,13 @@ export default function EntityUserManagement() {
           entity_role: userData.entity_role,
           role: 'user',
           status: 'pending', // Status pending até fazer primeiro login
-          registration_type: 'entity_invitation',
+          registration_type: 'entity_user',
           registration_completed: false,
           phone: userData.phone?.trim() || null,
           position: userData.position?.trim() || null,
           permissions: ['read', 'write'],
-          // Armazenar dados temporários para ativação
-          metadata: {
-            temporary_password: userData.password,
-            invited_by: user.id,
-            invitation_date: new Date().toISOString(),
-            activation_required: true
-          }
+          // Usar campo company para armazenar senha temporária (será removida após ativação)
+          company: `TEMP_PWD:${userData.password}:INVITED_BY:${user.id}:${new Date().toISOString()}`
         }])
 
       if (profileError) {

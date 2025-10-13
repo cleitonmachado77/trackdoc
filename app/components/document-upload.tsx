@@ -25,6 +25,7 @@ import {
   User,
 } from "lucide-react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import { getFileIcon } from "@/lib/utils/file-icons"
 import { useDocuments } from "@/hooks/use-documents"
 import { useCategories } from "@/hooks/use-categories"
 import { useDepartments } from "@/hooks/use-departments"
@@ -104,12 +105,8 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
     setUploadFiles(prev => prev.filter(file => file.id !== id))
   }
 
-  const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return <FileText className="h-4 w-4" />
-    if (fileType.includes('image')) return <FileImage className="h-4 w-4" />
-    if (fileType.includes('video')) return <FileVideo className="h-4 w-4" />
-    if (fileType.includes('audio')) return <FileAudio className="h-4 w-4" />
-    return <File className="h-4 w-4" />
+  const getFileIconComponent = (fileType: string, fileName: string) => {
+    return getFileIcon(fileType, fileName, "h-4 w-4")
   }
 
   const formatFileSize = (bytes: number) => {
@@ -346,7 +343,7 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               className="flex items-center justify-between p-2 border rounded text-sm"
             >
               <div className="flex items-center space-x-2 min-w-0 flex-1">
-                {getFileIcon(uploadFile.file.type)}
+                {getFileIconComponent(uploadFile.file.type, uploadFile.file.name)}
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{uploadFile.file.name}</p>
                   <p className="text-xs text-gray-500">

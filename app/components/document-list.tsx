@@ -64,6 +64,7 @@ import { AnimatedDocumentRow } from "./animated-document-row"
 import { DocumentViewer } from "./document-viewer"
 import { DocumentVersionManager } from "./document-version-manager"
 import { DocumentVersionBadge } from "./document-version-badge"
+import { getFileIconWithBackground } from "@/lib/utils/file-icons"
 import { createBrowserClient } from "@supabase/ssr"
 
 const supabase = createBrowserClient(
@@ -391,9 +392,12 @@ export default function DocumentList() {
                   <TableRow className="hover:bg-muted/50">
                     <TableCell className="w-[40%]">
                       <div className="flex items-center gap-2">
-                        <div className="p-1 bg-trackdoc-blue-light rounded">
-                          <FileText className="h-3 w-3 text-trackdoc-blue" />
-                        </div>
+                        {getFileIconWithBackground(
+                          document.file_type || '',
+                          document.file_name || '',
+                          "h-3 w-3",
+                          "p-1"
+                        )}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-sm truncate">{document.title}</p>
@@ -532,9 +536,12 @@ export default function DocumentList() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-trackdoc-blue-light rounded-lg">
-                        <FileText className="h-6 w-6 text-trackdoc-blue" />
-                      </div>
+                      {getFileIconWithBackground(
+                        document.file_type || '',
+                        document.file_name || '',
+                        "h-6 w-6",
+                        "p-2"
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>

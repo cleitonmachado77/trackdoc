@@ -22,6 +22,7 @@ import {
   X,
 } from "lucide-react"
 import { Document as DocumentType } from "@/hooks/use-documents"
+import { getFileIcon } from "@/lib/utils/file-icons"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -161,10 +162,8 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
     }
   }
 
-  const getFileIcon = () => {
-    if (isPDF) return <FileText className="h-8 w-8 text-red-500" />
-    if (isImage) return <Image className="h-8 w-8 text-blue-500" />
-    return <File className="h-8 w-8 text-gray-500" />
+  const getFileIconComponent = () => {
+    return getFileIcon(document.file_type, document.file_name, "h-8 w-8")
   }
 
   const formatFileSize = (bytes: number) => {
@@ -422,7 +421,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
           {/* Header da Visualização */}
           <div className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center gap-3">
-              {getFileIcon()}
+              {getFileIconComponent()}
                              <div>
                  <h2 className="text-lg font-semibold">{doc.title}</h2>
                  <p className="text-sm text-muted-foreground">

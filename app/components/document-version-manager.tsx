@@ -38,6 +38,7 @@ import {
   History,
   AlertCircle,
 } from "lucide-react"
+import { getFileIcon } from "@/lib/utils/file-icons"
 import { useDocumentVersions, type DocumentVersion } from "@/hooks/use-document-versions"
 import { toast } from "@/hooks/use-toast"
 import { formatDistanceToNow } from "date-fns"
@@ -298,9 +299,12 @@ export function DocumentVersionManager({
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium text-sm">{version.file_name}</p>
-                            <p className="text-xs text-gray-500">{formatFileSize(version.file_size)}</p>
+                          <div className="flex items-center gap-2">
+                            {getFileIcon(version.file_type, version.file_name, "h-4 w-4")}
+                            <div>
+                              <p className="font-medium text-sm">{version.file_name}</p>
+                              <p className="text-xs text-gray-500">{formatFileSize(version.file_size)}</p>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>

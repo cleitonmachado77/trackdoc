@@ -2,12 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
-import { useUserProfile, usePlans } from "@/hooks/use-database-data"
-import { useUserSubscription } from "@/hooks/use-subscriptions"
-import { useAccessStatus } from "@/hooks/use-access-status"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@supabase/ssr"
-import AvatarUpload from "../components/avatar-upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,26 +12,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   User, 
   Mail, 
   Phone, 
   Building, 
-  CreditCard, 
   Shield, 
-  Settings, 
   Key, 
   Calendar,
   CheckCircle,
   AlertCircle,
-  Crown,
-  Zap,
   Loader2,
   Edit,
   Save,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  MapPin,
+  Briefcase,
+  Clock,
+  UserCheck,
+  Settings,
+  Lock
 } from "lucide-react"
 
 const supabase = createBrowserClient(
@@ -43,27 +42,47 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+interface Profile {
+  id: string
+  full_name: string | null
+  email: string | null
+  phone: string | null
+  company: string | null
+  role: string | null
+  status: string | null
+  permissions: any
+  avatar_url: string | null
+  entity_id: string | null
+  department_id: string | null
+  position: string | null
+  last_login: string | null
+  registration_type: string | null
+  entity_role: string | null
+  registration_completed: boolean | null
+  selected_plan_id: string | null
+  created_at: string | null
+  updated_at: string | null
+  entity?: {
+    name: string
+    legal_name?: string
+  }
+  department?: {
+    name: string
+  }
+}
+
 export default function MinhaContaPage() {
-  const { user, updatePassword } = useAuth()
-  const { profile, loading: profileLoading, error: profileError } = useUserProfile(user?.id)
-  const { plans, loading: plansLoading } = usePlans()
-  const { subscription, loading: subscriptionLoading } = useUserSubscription()
-  const { accessStatus, loading: accessLoading } = useAccessStatus()
+  const { user } = useAuth()
   const { toast } = useToast()
 
-  // Estados para edição de perfil
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
-  const [profileData, setProfileData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    role: '',
-    department: '',
-    position: ''
-  })
+  // Estados para perfil
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   // Estados para alteração de senha
-  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -74,116 +93,89 @@ export default function MinhaContaPage() {
     new: false,
     confirm: false
   })
+  const [changingPassword, setChangingPassword] = useState(false)
 
-  // Estados de loading
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
-  const [isChangingPasswordLoading, setIsChangingPasswordLoading] = useState(false)
-  
-  // Estado para avatar
-  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null)
+  // Estados para edição do perfil
+  const [editedProfile, setEditedProfile] = useState<Partial<Profile>>({})
 
-  // Carregar dados do perfil quando disponível
+  // Carregar perfil do usuário
   useEffect(() => {
-    if (profile) {
-      setProfileData({
-        full_name: profile.full_name || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        role: profile.role || '',
-        department: profile.department || '',
-        position: profile.position || ''
-      })
-      setCurrentAvatarUrl(profile.avatar_url)
+    if (user?.id) {
+      fetchProfile()
     }
-  }, [profile])
+  }, [user?.id])
 
-  // Função para salvar perfil usando API
-  const handleSaveProfile = async () => {
-    if (!user?.id) return
-
-    setIsSavingProfile(true)
+  const fetchProfile = async () => {
     try {
-      console.log('🔍 [MinhaConta] Iniciando atualização do perfil via API...')
-      console.log('👤 [MinhaConta] User ID:', user.id)
-      console.log('📝 [MinhaConta] Dados a serem atualizados:', {
-        full_name: profileData.full_name,
-        phone: profileData.phone,
-        company: profileData.company,
-        role: profileData.role
-      })
+      setLoading(true)
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          entity:entities(name, legal_name),
+          department:departments(name)
+        `)
+        .eq('id', user?.id)
+        .single()
 
-      const response = await fetch('/api/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          full_name: profileData.full_name,
-          phone: profileData.phone,
-          role: profileData.role,
-          department: profileData.department,
-          position: profileData.position
-        })
-      })
+      if (error) throw error
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erro na requisição')
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao salvar perfil')
-      }
-
-      console.log('✅ [MinhaConta] Perfil atualizado com sucesso via API:', result.profile)
-
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas informações foram salvas com sucesso.",
-      })
-
-      setIsEditingProfile(false)
+      setProfile(data)
+      setEditedProfile(data)
     } catch (error: any) {
-      console.error('❌ [MinhaConta] Erro ao atualizar perfil:', error)
-      
-      let errorMessage = "Não foi possível salvar suas informações. Tente novamente."
-      
-      if (error.message?.includes('permission denied')) {
-        errorMessage = "Você não tem permissão para atualizar este perfil."
-      } else if (error.message?.includes('not found')) {
-        errorMessage = "Perfil não encontrado. Entre em contato com o suporte."
-      } else if (error.message?.includes('duplicate key')) {
-        errorMessage = "Já existe um perfil com essas informações."
-      } else if (error.message) {
-        errorMessage = `Erro: ${error.message}`
-      }
-
+      console.error('Erro ao carregar perfil:', error)
       toast({
-        title: "Erro ao atualizar perfil",
-        description: errorMessage,
+        title: "Erro ao carregar perfil",
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       })
     } finally {
-      setIsSavingProfile(false)
+      setLoading(false)
     }
   }
 
-  // Função para alterar senha
-  const handleChangePassword = async () => {
-    if (!passwordData.newPassword || !passwordData.confirmPassword) {
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true)
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editedProfile.full_name,
+          phone: editedProfile.phone,
+          company: editedProfile.company,
+          position: editedProfile.position,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user?.id)
+
+      if (error) throw error
+
+      setProfile({ ...profile!, ...editedProfile })
+      setEditing(false)
+      
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos de senha.",
+        title: "Perfil atualizado",
+        description: "Suas informações foram atualizadas com sucesso.",
+      })
+    } catch (error: any) {
+      console.error('Erro ao salvar perfil:', error)
+      toast({
+        title: "Erro ao salvar",
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       })
-      return
+    } finally {
+      setSaving(false)
     }
+  }
 
+  const handleChangePassword = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
-        title: "Senhas não coincidem",
-        description: "A nova senha e a confirmação não são iguais.",
+        title: "Erro na confirmação",
+        description: "A nova senha e a confirmação não coincidem.",
         variant: "destructive",
       })
       return
@@ -198,579 +190,450 @@ export default function MinhaContaPage() {
       return
     }
 
-    setIsChangingPasswordLoading(true)
     try {
-      await updatePassword(passwordData.newPassword)
-      
-      toast({
-        title: "Senha alterada",
-        description: "Sua senha foi alterada com sucesso.",
+      setChangingPassword(true)
+
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
       })
+
+      if (error) throw error
 
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       })
-      setIsChangingPassword(false)
-    } catch (error) {
+      setShowPasswordForm(false)
+      
+      toast({
+        title: "Senha alterada",
+        description: "Sua senha foi alterada com sucesso.",
+      })
+    } catch (error: any) {
       console.error('Erro ao alterar senha:', error)
       toast({
         title: "Erro ao alterar senha",
-        description: "Não foi possível alterar sua senha. Tente novamente.",
+        description: error.message || "Ocorreu um erro inesperado.",
         variant: "destructive",
       })
     } finally {
-      setIsChangingPasswordLoading(false)
+      setChangingPassword(false)
     }
   }
 
-  // Função para cancelar edição
-  const handleCancelEdit = () => {
-    if (profile) {
-      setProfileData({
-        full_name: profile.full_name || '',
-        email: profile.email || '',
-        phone: profile.phone || '',
-        role: profile.role || '',
-        department: profile.department || '',
-        position: profile.position || ''
-      })
-    }
-    setIsEditingProfile(false)
-  }
-
-  // Função para cancelar alteração de senha
-  const handleCancelPasswordChange = () => {
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     })
-    setIsChangingPassword(false)
   }
 
-  if (profileLoading || subscriptionLoading || accessLoading) {
+  const getStatusBadge = (status: string | null) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Ativo</Badge>
+      case 'inactive':
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Inativo</Badge>
+      case 'suspended':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Suspenso</Badge>
+      default:
+        return <Badge variant="outline">N/A</Badge>
+    }
+  }
+
+  const getRoleBadge = (role: string | null) => {
+    switch (role) {
+      case 'super_admin':
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Super Admin</Badge>
+      case 'admin':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Administrador</Badge>
+      case 'manager':
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">Gerente</Badge>
+      case 'user':
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Usuário</Badge>
+      case 'viewer':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Visualizador</Badge>
+      default:
+        return <Badge variant="outline">N/A</Badge>
+    }
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: 'hsl(217 91% 92% / 0.3)' }}>
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Carregando informações da conta...</span>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando informações...</p>
         </div>
       </div>
     )
   }
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Alert className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Não foi possível carregar as informações do perfil.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   return (
-    <div 
-      className="min-h-screen" 
-      style={{ 
-        backgroundColor: 'hsl(217 91% 92% / 0.3)',
-        backgroundImage: 'none'
-      }}
-    >
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Minha Conta</h1>
-          <p className="text-gray-600">Gerencie suas informações pessoais, plano de assinatura e configurações de segurança</p>
-        </div>
+    <div className="container mx-auto p-6 max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
+        <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
+      </div>
 
-        <Tabs defaultValue="perfil" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border border-gray-200/50 shadow-lg">
-            <TabsTrigger value="perfil" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-              <User className="h-4 w-4" />
-              Perfil
-            </TabsTrigger>
-            <TabsTrigger value="plano" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-              <Crown className="h-4 w-4" />
-              Plano
-            </TabsTrigger>
-            <TabsTrigger value="seguranca" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-              <Shield className="h-4 w-4" />
-              Segurança
-            </TabsTrigger>
-            <TabsTrigger value="configuracoes" className="flex items-center gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
-              <Settings className="h-4 w-4" />
-              Configurações
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="profile" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="profile" className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Informações Pessoais
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            Segurança
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Aba Perfil */}
-          <TabsContent value="perfil" className="space-y-6">
-            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
-              <CardHeader className="bg-transparent border-b border-blue-200/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-gray-900">
-                      <User className="h-6 w-6 text-blue-600" />
-                      Informações Pessoais
-                    </CardTitle>
-                    <CardDescription className="text-gray-600">
-                      Gerencie suas informações de perfil e dados de contato
-                    </CardDescription>
-                  </div>
-                  {!isEditingProfile ? (
-                    <Button 
-                      onClick={() => setIsEditingProfile(true)} 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white/80 hover:bg-gray-50 border-gray-200 text-gray-700 hover:text-gray-800 shadow-sm"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
+        <TabsContent value="profile" className="space-y-6">
+          {/* Informações Básicas */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Informações Básicas
+                  </CardTitle>
+                  <CardDescription>
+                    Suas informações pessoais e de contato
+                  </CardDescription>
+                </div>
+                <Button
+                  variant={editing ? "outline" : "default"}
+                  onClick={() => {
+                    if (editing) {
+                      setEditedProfile(profile)
+                    }
+                    setEditing(!editing)
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  {editing ? (
+                    <>
+                      <X className="h-4 w-4" />
+                      Cancelar
+                    </>
                   ) : (
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSaveProfile} 
-                        disabled={isSavingProfile} 
-                        size="sm"
-                        className="bg-gray-700 hover:bg-gray-800 text-white shadow-sm"
-                      >
-                        {isSavingProfile ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
-                        Salvar
-                      </Button>
-                      <Button 
-                        onClick={handleCancelEdit} 
-                        variant="outline" 
-                        size="sm"
-                        className="bg-white/80 hover:bg-gray-50 border-gray-200 text-gray-700 hover:text-gray-800 shadow-sm"
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        Cancelar
-                      </Button>
+                    <>
+                      <Edit className="h-4 w-4" />
+                      Editar
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Nome Completo</Label>
+                  {editing ? (
+                    <Input
+                      id="full_name"
+                      value={editedProfile.full_name || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, full_name: e.target.value })}
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span>{profile.full_name || 'N/A'}</span>
                     </div>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Avatar e informações básicas */}
-                <div className="flex items-start gap-6">
-                  <AvatarUpload
-                    currentAvatarUrl={currentAvatarUrl}
-                    userName={profile?.full_name}
-                    onAvatarChange={setCurrentAvatarUrl}
-                    size="xl"
-                    showUploadButton={true}
-                  />
-                  <div className="flex-1 pt-4">
-                    <h3 className="text-xl font-semibold">{profile?.full_name || 'Usuário'}</h3>
-                    <p className="text-gray-600">{profile?.email}</p>
-                    <Badge variant="outline" className="mt-1">
-                      {profile?.role || 'Usuário'}
-                    </Badge>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Clique na câmera para alterar sua foto de perfil
-                    </p>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <Mail className="h-4 w-4 text-gray-500" />
+                    <span>{profile.email || 'N/A'}</span>
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    O email não pode ser alterado
+                  </p>
                 </div>
 
-                <Separator />
-
-                {/* Formulário de edição */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name">Nome Completo</Label>
-                    <Input
-                      id="full_name"
-                      value={profileData.full_name}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, full_name: e.target.value }))}
-                      disabled={!isEditingProfile}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      value={profileData.email}
-                      disabled
-                      className="bg-gray-50"
-                    />
-                    <p className="text-xs text-gray-500">O email não pode ser alterado</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone</Label>
+                  {editing ? (
                     <Input
                       id="phone"
-                      value={profileData.phone}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
-                      disabled={!isEditingProfile}
+                      value={editedProfile.phone || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
                       placeholder="(11) 99999-9999"
                     />
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span>{profile.phone || 'N/A'}</span>
+                    </div>
+                  )}
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Cargo</Label>
-                    <select
-                      id="role"
-                      value={profileData.role}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, role: e.target.value }))}
-                      disabled={!isEditingProfile}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="user">Usuário</option>
-                      <option value="admin">Administrador</option>
-                      <option value="manager">Gerente</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="department">Departamento</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="company">Empresa</Label>
+                  {editing ? (
                     <Input
-                      id="department"
-                      value={profileData.department}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, department: e.target.value }))}
-                      disabled={!isEditingProfile}
-                      placeholder="Seu departamento"
+                      id="company"
+                      value={editedProfile.company || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, company: e.target.value })}
+                      placeholder="Nome da empresa"
                     />
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Building className="h-4 w-4 text-gray-500" />
+                      <span>{profile.company || 'N/A'}</span>
+                    </div>
+                  )}
+                </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="position">Posição</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="position">Cargo</Label>
+                  {editing ? (
                     <Input
                       id="position"
-                      value={profileData.position}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, position: e.target.value }))}
-                      disabled={!isEditingProfile}
-                      placeholder="Sua posição na empresa"
+                      value={editedProfile.position || ''}
+                      onChange={(e) => setEditedProfile({ ...editedProfile, position: e.target.value })}
+                      placeholder="Seu cargo na empresa"
                     />
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Briefcase className="h-4 w-4 text-gray-500" />
+                      <span>{profile.position || 'N/A'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <Shield className="h-4 w-4 text-gray-500" />
+                    {getStatusBadge(profile.status)}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
 
-          {/* Aba Plano */}
-          <TabsContent value="plano" className="space-y-6">
-            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
-              <CardHeader className="bg-transparent border-b border-yellow-200/30">
-                <CardTitle className="flex items-center gap-2 text-gray-900">
-                  <Crown className="h-6 w-6 text-yellow-600" />
-                  Plano Atual
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Informações sobre seu plano de assinatura atual
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {subscription ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-gray-100 rounded-full">
-                          <Crown className="h-6 w-6 text-gray-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">{subscription.plan?.name}</h3>
-                          <p className="text-gray-600">{subscription.plan?.description}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-blue-600">
-                          R$ {subscription.plan?.price_monthly}
-                        </div>
-                        <div className="text-sm text-gray-500">por mês</div>
-                      </div>
-                    </div>
-
-                    {/* Status da assinatura */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Calendar className="h-4 w-4 text-green-600" />
-                          <span className="font-medium">Status</span>
-                        </div>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Ativo
-                        </Badge>
-                      </div>
-
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                          <span className="font-medium">Próxima Cobrança</span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          {new Date(subscription.current_period_end).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
-
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Zap className="h-4 w-4 text-purple-600" />
-                          <span className="font-medium">Recursos</span>
-                        </div>
-                        <p className="text-sm text-gray-600">
-                          {subscription.plan?.features?.length || 0} recursos incluídos
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Features do plano */}
-                    {subscription.plan?.features && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Recursos Incluídos:</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {subscription.plan.features.map((feature: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                              <span>{feature}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+              {editing && (
+                <div className="flex items-center gap-2 pt-4 border-t">
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="flex items-center gap-2"
+                  >
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
                     )}
+                    Salvar Alterações
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                    {/* Botões de ação */}
-                    <div className="flex gap-2 pt-4">
-                      <Button variant="outline">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Gerenciar Pagamento
-                      </Button>
-                      <Button variant="outline">
-                        <Crown className="h-4 w-4 mr-2" />
-                        Alterar Plano
+          {/* Informações do Sistema */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Informações do Sistema
+              </CardTitle>
+              <CardDescription>
+                Informações sobre sua conta e permissões
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Função</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <UserCheck className="h-4 w-4 text-gray-500" />
+                    {getRoleBadge(profile.role)}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Entidade</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <Building className="h-4 w-4 text-gray-500" />
+                    <span>{profile.entity?.name || 'Usuário Individual'}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Departamento</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <MapPin className="h-4 w-4 text-gray-500" />
+                    <span>{profile.department?.name || 'N/A'}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tipo de Registro</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <UserCheck className="h-4 w-4 text-gray-500" />
+                    <Badge variant="outline">
+                      {profile.registration_type === 'individual' ? 'Individual' :
+                       profile.registration_type === 'entity_admin' ? 'Admin da Entidade' :
+                       profile.registration_type === 'entity_user' ? 'Usuário da Entidade' : 'N/A'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Último Login</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <Clock className="h-4 w-4 text-gray-500" />
+                    <span>{formatDate(profile.last_login)}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Conta Criada</Label>
+                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span>{formatDate(profile.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          {/* Alteração de Senha */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="h-5 w-5" />
+                Alterar Senha
+              </CardTitle>
+              <CardDescription>
+                Mantenha sua conta segura alterando sua senha regularmente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!showPasswordForm ? (
+                <div className="text-center py-6">
+                  <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    Clique no botão abaixo para alterar sua senha
+                  </p>
+                  <Button
+                    onClick={() => setShowPasswordForm(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Key className="h-4 w-4" />
+                    Alterar Senha
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Nova Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showPasswords.new ? "text" : "password"}
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        placeholder="Digite sua nova senha"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                        onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                      >
+                        {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
                   </div>
-                ) : (
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showPasswords.confirm ? "text" : "password"}
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        placeholder="Confirme sua nova senha"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                        onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                      >
+                        {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Você não possui um plano ativo. <Button variant="link" className="p-0 h-auto">Escolha um plano</Button> para ter acesso a todos os recursos.
+                      A senha deve ter pelo menos 6 caracteres.
                     </AlertDescription>
                   </Alert>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Aba Segurança */}
-          <TabsContent value="seguranca" className="space-y-6">
-            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
-              <CardHeader className="bg-transparent border-b border-green-200/30">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-gray-900">
-                      <Shield className="h-6 w-6 text-green-600" />
-                      Segurança da Conta
-                    </CardTitle>
-                    <CardDescription className="text-gray-600">
-                      Gerencie sua senha e configurações de segurança
-                    </CardDescription>
-                  </div>
-                  {!isChangingPassword && (
-                    <Button 
-                      onClick={() => setIsChangingPassword(true)} 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white/80 hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800 shadow-sm"
+                  <div className="flex items-center gap-2 pt-4">
+                    <Button
+                      onClick={handleChangePassword}
+                      disabled={changingPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                      className="flex items-center gap-2"
                     >
-                      <Key className="h-4 w-4 mr-2" />
+                      {changingPassword ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
                       Alterar Senha
                     </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {isChangingPassword ? (
-                  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                    <h4 className="font-medium">Alterar Senha</h4>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Senha Atual</Label>
-                      <div className="relative">
-                        <Input
-                          id="currentPassword"
-                          type={showPasswords.current ? "text" : "password"}
-                          value={passwordData.currentPassword}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
-                        >
-                          {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">Nova Senha</Label>
-                      <div className="relative">
-                        <Input
-                          id="newPassword"
-                          type={showPasswords.new ? "text" : "password"}
-                          value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
-                        >
-                          {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirmPassword"
-                          type={showPasswords.confirm ? "text" : "password"}
-                          value={passwordData.confirmPassword}
-                          onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
-                        >
-                          {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        onClick={handleChangePassword} 
-                        disabled={isChangingPasswordLoading}
-                        className="flex-1"
-                      >
-                        {isChangingPasswordLoading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-4 w-4 mr-2" />
-                        )}
-                        Salvar Nova Senha
-                      </Button>
-                      <Button onClick={handleCancelPasswordChange} variant="outline">
-                        <X className="h-4 w-4 mr-2" />
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">Senha da Conta</h4>
-                          <p className="text-sm text-gray-600">Última alteração há mais de 30 dias</p>
-                        </div>
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                          Recomendado alterar
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="font-medium">Autenticação de Dois Fatores</h4>
-                          <p className="text-sm text-gray-600">Adicione uma camada extra de segurança</p>
-                        </div>
-                        <Button variant="outline" size="sm" disabled>
-                          Em breve
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Aba Configurações */}
-          <TabsContent value="configuracoes" className="space-y-6">
-            <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-xl">
-              <CardHeader className="bg-transparent border-b border-purple-200/30">
-                <CardTitle className="flex items-center gap-2 text-gray-900">
-                  <Settings className="h-6 w-6 text-purple-600" />
-                  Configurações da Conta
-                </CardTitle>
-                <CardDescription className="text-gray-600">
-                  Personalize sua experiência no TrackDoc
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Notificações por Email</h4>
-                        <p className="text-sm text-gray-600">Receba atualizações sobre seus documentos</p>
-                      </div>
-                      <Button variant="outline" size="sm" disabled>
-                        Configurar
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Tema da Interface</h4>
-                        <p className="text-sm text-gray-600">Personalize a aparência do sistema</p>
-                      </div>
-                      <Button variant="outline" size="sm" disabled>
-                        Em breve
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium">Idioma</h4>
-                        <p className="text-sm text-gray-600">Português (Brasil)</p>
-                      </div>
-                      <Button variant="outline" size="sm" disabled>
-                        Alterar
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-red-800">Zona Perigosa</h4>
-                      <p className="text-sm text-red-600">Ações irreversíveis para sua conta</p>
-                    </div>
-                    <Button variant="destructive" size="sm" disabled>
-                      Excluir Conta
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowPasswordForm(false)
+                        setPasswordData({
+                          currentPassword: '',
+                          newPassword: '',
+                          confirmPassword: ''
+                        })
+                      }}
+                    >
+                      Cancelar
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
-
-
-// Desabilitar prerendering para páginas com autenticação
-export const dynamic = 'force-dynamic'

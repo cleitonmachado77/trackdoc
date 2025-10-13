@@ -51,6 +51,7 @@ import {
   Grid3X3,
   List,
   History,
+  X,
 } from "lucide-react"
 // Importações removidas - não precisamos mais de Tabs nem Alert
 import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-documents"
@@ -79,6 +80,22 @@ const formatFileSize = (bytes: number) => {
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// Função para destacar texto pesquisado
+const highlightSearchTerm = (text: string, searchTerm: string) => {
+  if (!searchTerm.trim()) return text
+  
+  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  const parts = text.split(regex)
+  
+  return parts.map((part, index) => 
+    regex.test(part) ? (
+      <mark key={index} className="bg-yellow-200 text-yellow-900 px-1 rounded">
+        {part}
+      </mark>
+    ) : part
+  )
 }
 
 
@@ -396,7 +413,9 @@ export default function DocumentList() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">{document.title}</p>
+                          <p className="font-medium text-sm truncate">
+                            {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
+                          </p>
                         </div>
                       </div>
                       
@@ -528,7 +547,7 @@ export default function DocumentList() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                            {document.title}
+                            {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
                           </CardTitle>
                           <DocumentVersionBadge
                             documentId={document.id}
@@ -709,6 +728,27 @@ export default function DocumentList() {
         </div>
       </div>
 
+      {/* Campo de Pesquisa Principal */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Pesquisar documentos por nome..."
+          value={searchTerm}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="pl-10 h-12 text-base"
+        />
+        {searchTerm && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSearchChange('')}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
       {/* Filters */}
       <Card>
         <CardHeader>
@@ -718,15 +758,7 @@ export default function DocumentList() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Buscar</label>
-              <Input
-                placeholder="Buscar por título ou descrição..."
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-              />
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoria</label>
               <Select value={filters.category_id || 'all'} onValueChange={(value) => handleFilterChange('category_id', value)}>
@@ -779,19 +811,43 @@ export default function DocumentList() {
         </CardContent>
       </Card>
 
+      {/* Indicador de Resultados da Pesquisa */}
+      {searchTerm && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-800">
+              {documents.length === 0 
+                ? `Nenhum resultado encontrado para "${searchTerm}"`
+                : `${documents.length} documento(s) encontrado(s) para "${searchTerm}"`
+              }
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSearchChange('')}
+            className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Limpar
+          </Button>
+        </div>
+      )}
+
       {/* Lista de Documentos Armazenados */}
       {viewMode === 'grid' 
         ? renderDocumentsGrid(
             documents,
-            "Documentos Armazenados",
-            <FolderOpen className="h-5 w-5 text-success" />,
-            "Nenhum documento armazenado encontrado"
+            searchTerm ? "Resultados da Pesquisa" : "Documentos Armazenados",
+            searchTerm ? <Search className="h-5 w-5 text-blue-600" /> : <FolderOpen className="h-5 w-5 text-success" />,
+            searchTerm ? `Nenhum documento encontrado para "${searchTerm}"` : "Nenhum documento armazenado encontrado"
           )
         : renderDocumentsList(
             documents,
-            "Documentos Armazenados",
-            <FolderOpen className="h-5 w-5 text-success" />,
-            "Nenhum documento armazenado encontrado"
+            searchTerm ? "Resultados da Pesquisa" : "Documentos Armazenados",
+            searchTerm ? <Search className="h-5 w-5 text-blue-600" /> : <FolderOpen className="h-5 w-5 text-success" />,
+            searchTerm ? `Nenhum documento encontrado para "${searchTerm}"` : "Nenhum documento armazenado encontrado"
           )
       }
 

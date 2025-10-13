@@ -376,75 +376,88 @@ export default function DocumentList() {
         </div>
       ) : (
         <Card>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[35%]">Documento</TableHead>
-                <TableHead className="w-[15%]">Tipo</TableHead>
-                <TableHead className="w-[25%]">Autor</TableHead>
-                <TableHead className="w-[15%]">Status</TableHead>
-                <TableHead className="w-[10%] text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {documentsList.map((document) => (
-                <AnimatedDocumentRow key={document.id}>
-                  <TableRow className="hover:bg-muted/50">
-                    <TableCell className="w-[35%]">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          {getFileIconWithBackground(
-                            document.file_type || '',
-                            document.file_name || '',
-                            "h-3 w-3",
-                            "p-1"
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <p className="font-medium text-sm truncate flex-1">{document.title}</p>
-                            <DocumentVersionBadge
-                              documentId={document.id}
-                              currentVersion={document.version || 1}
-                              onClick={() => {
-                                setSelectedDocumentForVersions(document)
-                                setShowVersionManager(true)
-                              }}
-                              showTooltip={false}
-                            />
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '40%' }}>
+                    Documento
+                  </th>
+                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '15%' }}>
+                    Tipo
+                  </th>
+                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '25%' }}>
+                    Autor
+                  </th>
+                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '12%' }}>
+                    Status
+                  </th>
+                  <th className="text-right p-4 font-medium text-sm text-muted-foreground" style={{ width: '8%' }}>
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {documentsList.map((document) => (
+                  <AnimatedDocumentRow key={document.id}>
+                    <tr className="border-b hover:bg-muted/50">
+                      <td className="p-4" style={{ width: '40%' }}>
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 shrink-0">
+                            {getFileIconWithBackground(
+                              document.file_type || '',
+                              document.file_name || '',
+                              "h-3 w-3",
+                              "p-1"
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">{document.category?.name || 'N/A'}</span>
-                            <span>•</span>
-                            <span>{formatFileSize(document.file_size || 0)}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <p className="font-medium text-sm truncate flex-1">{document.title}</p>
+                              <div className="shrink-0">
+                                <DocumentVersionBadge
+                                  documentId={document.id}
+                                  currentVersion={document.version || 1}
+                                  onClick={() => {
+                                    setSelectedDocumentForVersions(document)
+                                    setShowVersionManager(true)
+                                  }}
+                                  showTooltip={false}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="truncate">{document.category?.name || 'N/A'}</span>
+                              <span>•</span>
+                              <span>{formatFileSize(document.file_size || 0)}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="w-[15%]">
-                      <Badge 
-                        variant="outline" 
-                        className="text-xs"
-                        style={{ 
-                          backgroundColor: `${document.document_type?.color || '#6B7280'}20`, 
-                          borderColor: document.document_type?.color || '#6B7280' 
-                        }}
-                      >
-                        {document.document_type?.name || 'N/A'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="w-[25%]">
-                      <div className="min-w-0">
-                        <p className="text-sm truncate">{document.author?.full_name || 'N/A'}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {document.department?.name || 'N/A'}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="w-[15%]">
-                      {renderApprovalStatus(document.id)}
-                    </TableCell>
-                    <TableCell className="w-[10%] text-right">
+                      </td>
+                      <td className="p-4" style={{ width: '15%' }}>
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs"
+                          style={{ 
+                            backgroundColor: `${document.document_type?.color || '#6B7280'}20`, 
+                            borderColor: document.document_type?.color || '#6B7280' 
+                          }}
+                        >
+                          {document.document_type?.name || 'N/A'}
+                        </Badge>
+                      </td>
+                      <td className="p-4" style={{ width: '25%' }}>
+                        <div className="min-w-0">
+                          <p className="text-sm truncate">{document.author?.full_name || 'N/A'}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {document.department?.name || 'N/A'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="p-4" style={{ width: '12%' }}>
+                        {renderApprovalStatus(document.id)}
+                      </td>
+                      <td className="p-4 text-right" style={{ width: '8%' }}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -489,12 +502,13 @@ export default function DocumentList() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                </AnimatedDocumentRow>
-              ))}
-            </TableBody>
-          </Table>
+                      </td>
+                    </tr>
+                  </AnimatedDocumentRow>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </div>

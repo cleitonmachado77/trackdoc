@@ -376,128 +376,104 @@ export default function DocumentList() {
         </div>
       ) : (
         <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '40%' }}>
-                    Documento
-                  </th>
-                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '15%' }}>
-                    Tipo
-                  </th>
-                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '25%' }}>
-                    Autor
-                  </th>
-                  <th className="text-left p-4 font-medium text-sm text-muted-foreground" style={{ width: '12%' }}>
-                    Status
-                  </th>
-                  <th className="text-right p-4 font-medium text-sm text-muted-foreground" style={{ width: '8%' }}>
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {documentsList.map((document) => (
-                  <AnimatedDocumentRow key={document.id}>
-                    <tr className="border-b hover:bg-muted/50">
-                      <td className="p-4" style={{ width: '40%' }}>
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5 shrink-0">
-                            {getFileIconWithBackground(
-                              document.file_type || '',
-                              document.file_name || '',
-                              "h-3 w-3",
-                              "p-1"
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-medium text-sm truncate flex-1">{document.title}</p>
-                              <div className="shrink-0">
-                                <DocumentVersionBadge
-                                  documentId={document.id}
-                                  currentVersion={document.version || 1}
-                                  onClick={() => {
-                                    setSelectedDocumentForVersions(document)
-                                    setShowVersionManager(true)
-                                  }}
-                                  showTooltip={false}
-                                />
-                              </div>
-                            </div>
-                          </div>
+          <div className="p-4">
+            <div className="space-y-2">
+              {documentsList.map((document) => (
+                <AnimatedDocumentRow key={document.id}>
+                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                       onClick={() => {
+                         setSelectedDocument(document)
+                         setShowViewer(true)
+                       }}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="shrink-0">
+                          {getFileIconWithBackground(
+                            document.file_type || '',
+                            document.file_name || '',
+                            "h-4 w-4",
+                            "p-2"
+                          )}
                         </div>
-                      </td>
-                      <td className="p-4" style={{ width: '15%' }}>
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs"
-                          style={{ 
-                            backgroundColor: `${document.document_type?.color || '#6B7280'}20`, 
-                            borderColor: document.document_type?.color || '#6B7280' 
-                          }}
-                        >
-                          {document.document_type?.name || 'N/A'}
-                        </Badge>
-                      </td>
-                      <td className="p-4" style={{ width: '25%' }}>
-                        <p className="text-sm truncate">{document.author?.full_name || 'N/A'}</p>
-                      </td>
-                      <td className="p-4" style={{ width: '12%' }}>
-                        {renderApprovalStatus(document.id)}
-                      </td>
-                      <td className="p-4 text-right" style={{ width: '8%' }}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedDocument(document)
-                              setShowViewer(true)
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Visualizar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => downloadDocument(document)}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedDocumentForVersions(document)
-                              setShowVersionManager(true)
-                            }}
-                          >
-                            <History className="h-4 w-4 mr-2" />
-                            Versões
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                deleteDocument(document.id)
-                              }
-                            }}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      </td>
-                    </tr>
-                  </AnimatedDocumentRow>
-                ))}
-              </tbody>
-            </table>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{document.title}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedDocumentForVersions(document)
+                          setShowVersionManager(true)
+                        }}>
+                          <DocumentVersionBadge
+                            documentId={document.id}
+                            currentVersion={document.version || 1}
+                            showTooltip={false}
+                          />
+                        </div>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedDocument(document)
+                                setShowViewer(true)
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Visualizar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                downloadDocument(document)
+                              }}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedDocumentForVersions(document)
+                                setShowVersionManager(true)
+                              }}
+                            >
+                              <History className="h-4 w-4 mr-2" />
+                              Versões
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                  deleteDocument(document.id)
+                                }
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </div>
+                </AnimatedDocumentRow>
+              ))}
+            </div>
           </div>
         </Card>
       )}

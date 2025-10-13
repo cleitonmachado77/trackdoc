@@ -412,7 +412,7 @@ export default function DocumentList() {
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex items-center justify-between gap-2">
                               <p className="font-medium text-sm truncate flex-1">{document.title}</p>
                               <div className="shrink-0">
                                 <DocumentVersionBadge
@@ -425,11 +425,6 @@ export default function DocumentList() {
                                   showTooltip={false}
                                 />
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="truncate">{document.category?.name || 'N/A'}</span>
-                              <span>•</span>
-                              <span>{formatFileSize(document.file_size || 0)}</span>
                             </div>
                           </div>
                         </div>
@@ -447,12 +442,7 @@ export default function DocumentList() {
                         </Badge>
                       </td>
                       <td className="p-4" style={{ width: '25%' }}>
-                        <div className="min-w-0">
-                          <p className="text-sm truncate">{document.author?.full_name || 'N/A'}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {document.department?.name || 'N/A'}
-                          </p>
-                        </div>
+                        <p className="text-sm truncate">{document.author?.full_name || 'N/A'}</p>
                       </td>
                       <td className="p-4" style={{ width: '12%' }}>
                         {renderApprovalStatus(document.id)}
@@ -628,7 +618,7 @@ export default function DocumentList() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Badges de Tipo e Categoria */}
+                  {/* Badge de Tipo */}
                   <div className="flex flex-wrap gap-2">
                     <Badge 
                       variant="outline" 
@@ -637,29 +627,12 @@ export default function DocumentList() {
                     >
                       {document.document_type?.name || 'N/A'}
                     </Badge>
-                    <Badge variant="outline" className="text-xs">
-                      {document.category?.name || 'N/A'}
-                    </Badge>
                   </div>
 
-                  {/* Informações do Arquivo */}
-                  {document.file_name && (
-                    <div className="text-xs text-muted-foreground">
-                      <p className="truncate">{document.file_name}</p>
-                      <p>{formatFileSize(document.file_size || 0)}</p>
-                    </div>
-                  )}
-
-                  {/* Autor e Departamento */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
-                      <span className="truncate">{document.author?.full_name || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Building2 className="h-3 w-3" />
-                      <span className="truncate">{document.department?.name || 'N/A'}</span>
-                    </div>
+                  {/* Autor */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <User className="h-3 w-3" />
+                    <span className="truncate">{document.author?.full_name || 'N/A'}</span>
                   </div>
 
                   {/* Status de Aprovação */}

@@ -34,7 +34,11 @@ import {
   Clock,
   UserCheck,
   Settings,
-  Lock
+  Lock,
+  Camera,
+  Upload,
+  Trash2,
+  Image
 } from "lucide-react"
 
 const supabase = createBrowserClient(
@@ -97,6 +101,10 @@ export default function MinhaContaPage() {
 
   // Estados para edição do perfil
   const [editedProfile, setEditedProfile] = useState<Partial<Profile>>({})
+
+  // Estados para foto de perfil
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Carregar perfil do usuário
   useEffect(() => {
@@ -222,6 +230,140 @@ export default function MinhaContaPage() {
     }
   }
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Arquivo inválido",
+        description: "Por favor, selecione uma imagem válida.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "A imagem deve ter no máximo 5MB.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setUploadingAvatar(true)
+
+      // Gerar nome único para o arquivo
+      const fileExtension = file.name.split('.').pop()
+      const fileName = `avatar-${user?.id}-${Date.now()}.${fileExtension}`
+      const filePath = `avatars/${fileName}`
+
+      // Upload para o Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      // Atualizar perfil no banco
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user?.id)
+
+      if (updateError) throw updateError
+
+      // Atualizar estado local
+      setProfile({ ...profile!, avatar_url: publicUrl })
+      setAvatarPreview(null)
+
+      toast({
+        title: "Foto atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso.",
+      })
+    } catch (error: any) {
+      console.error('Erro ao fazer upload do avatar:', error)
+      toast({
+        title: "Erro no upload",
+        description: error.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    if (!profile?.avatar_url) return
+
+    try {
+      setUploadingAvatar(true)
+
+      // Remover do banco
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user?.id)
+
+      if (updateError) throw updateError
+
+      // Tentar remover do storage (não é crítico se falhar)
+      try {
+        const fileName = profile.avatar_url.split('/').pop()
+        if (fileName) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`avatars/${fileName}`])
+        }
+      } catch (storageError) {
+        console.warn('Erro ao remover arquivo do storage:', storageError)
+      }
+
+      // Atualizar estado local
+      setProfile({ ...profile, avatar_url: null })
+
+      toast({
+        title: "Foto removida",
+        description: "Sua foto de perfil foi removida com sucesso.",
+      })
+    } catch (error: any) {
+      console.error('Erro ao remover avatar:', error)
+      toast({
+        title: "Erro ao remover foto",
+        description: error.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
+  const handleAvatarPreview = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -307,6 +449,93 @@ export default function MinhaContaPage() {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
+          {/* Foto de Perfil */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Foto de Perfil
+              </CardTitle>
+              <CardDescription>
+                Personalize seu perfil com uma foto
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                {/* Avatar atual */}
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                  {uploadingAvatar && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Controles */}
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      accept="image/*"
+                      onChange={(e) => {
+                        handleAvatarPreview(e)
+                        handleAvatarUpload(e)
+                      }}
+                      className="hidden"
+                      disabled={uploadingAvatar}
+                    />
+                    <Button
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                      disabled={uploadingAvatar}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {profile.avatar_url ? 'Alterar Foto' : 'Adicionar Foto'}
+                    </Button>
+                    
+                    {profile.avatar_url && (
+                      <Button
+                        variant="outline"
+                        onClick={handleRemoveAvatar}
+                        disabled={uploadingAvatar}
+                        className="flex items-center gap-2 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    <p>• Formatos aceitos: JPG, PNG, GIF</p>
+                    <p>• Tamanho máximo: 5MB</p>
+                    <p>• Recomendado: 400x400 pixels</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Informações Básicas */}
           <Card>
             <CardHeader>

@@ -18,6 +18,7 @@ export interface Document {
   document_number?: string
   status: 'draft' | 'pending' | 'approved' | 'rejected'
   is_public: boolean
+  version: number
   created_at: string
   updated_at: string
   author_id: string

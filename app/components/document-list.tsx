@@ -50,6 +50,7 @@ import {
   MoreHorizontal,
   Grid3X3,
   List,
+  History,
 } from "lucide-react"
 // Importações removidas - não precisamos mais de Tabs nem Alert
 import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-documents"
@@ -61,6 +62,8 @@ import { toast } from "@/hooks/use-toast"
 import DocumentUploadWithApproval from "./document-upload-with-approval"
 import { AnimatedDocumentRow } from "./animated-document-row"
 import { DocumentViewer } from "./document-viewer"
+import { DocumentVersionManager } from "./document-version-manager"
+import { DocumentVersionBadge } from "./document-version-badge"
 import { createBrowserClient } from "@supabase/ssr"
 
 const supabase = createBrowserClient(
@@ -108,6 +111,8 @@ export default function DocumentList() {
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, any[]>>({})
   const [approvalStatusesLoading, setApprovalStatusesLoading] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [showVersionManager, setShowVersionManager] = useState(false)
+  const [selectedDocumentForVersions, setSelectedDocumentForVersions] = useState<Document | null>(null)
 
   // Carregar preferência de visualização do localStorage
   useEffect(() => {
@@ -390,7 +395,17 @@ export default function DocumentList() {
                           <FileText className="h-3 w-3 text-trackdoc-blue" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">{document.title}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate">{document.title}</p>
+                            <DocumentVersionBadge
+                              documentId={document.id}
+                              currentVersion={document.version || 1}
+                              onClick={() => {
+                                setSelectedDocumentForVersions(document)
+                                setShowVersionManager(true)
+                              }}
+                            />
+                          </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span className="truncate">{document.category?.name || 'N/A'}</span>
                             <span>•</span>
@@ -444,6 +459,15 @@ export default function DocumentList() {
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Download
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedDocumentForVersions(document)
+                              setShowVersionManager(true)
+                            }}
+                          >
+                            <History className="h-4 w-4 mr-2" />
+                            Versões
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -512,9 +536,20 @@ export default function DocumentList() {
                         <FileText className="h-6 w-6 text-trackdoc-blue" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {document.title}
-                        </CardTitle>
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                            {document.title}
+                          </CardTitle>
+                          <DocumentVersionBadge
+                            documentId={document.id}
+                            currentVersion={document.version || 1}
+                            onClick={() => {
+                              setSelectedDocumentForVersions(document)
+                              setShowVersionManager(true)
+                            }}
+                            showTooltip={false}
+                          />
+                        </div>
                         <p className="text-xs text-trackdoc-gray mt-1 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                           {document.description || 'Sem descrição'}
                         </p>
@@ -543,6 +578,15 @@ export default function DocumentList() {
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedDocumentForVersions(document)
+                            setShowVersionManager(true)
+                          }}
+                        >
+                          <History className="h-4 w-4 mr-2" />
+                          Versões
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -803,6 +847,23 @@ export default function DocumentList() {
            onClose={() => {
              setShowViewer(false)
              setSelectedDocument(null)
+           }}
+         />
+       )}
+
+       {/* Document Version Manager */}
+       {selectedDocumentForVersions && (
+         <DocumentVersionManager
+           documentId={selectedDocumentForVersions.id}
+           documentTitle={selectedDocumentForVersions.title}
+           currentVersion={selectedDocumentForVersions.version || 1}
+           isOpen={showVersionManager}
+           onClose={() => {
+             setShowVersionManager(false)
+             setSelectedDocumentForVersions(null)
+           }}
+           onVersionUpdated={() => {
+             refetch() // Atualizar a lista de documentos quando uma versão for criada/restaurada
            }}
          />
        )}

@@ -18,7 +18,7 @@ export interface FileTypeInfo {
 }
 
 export function getFileTypeInfo(fileType: string, fileName?: string): FileTypeInfo {
-  const type = fileType.toLowerCase()
+  const type = (fileType || '').toLowerCase()
   const extension = fileName?.split('.').pop()?.toLowerCase() || ''
 
   // PDF - Vermelho

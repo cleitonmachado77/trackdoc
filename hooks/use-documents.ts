@@ -12,8 +12,8 @@ export interface Document {
   title: string
   description?: string
   file_path: string
-  file_name: string
-  file_type: string
+  file_name?: string
+  file_type?: string
   file_size: number
   document_number?: string
   status: 'draft' | 'pending' | 'approved' | 'rejected'

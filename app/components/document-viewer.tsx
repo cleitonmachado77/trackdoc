@@ -63,9 +63,9 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [generatedDownloadUrl, setGeneratedDownloadUrl] = useState<string | null>(null)
 
-  const isPDF = doc.file_type === "application/pdf"
-  const isImage = doc.file_type?.startsWith("image/")
-  const isText = doc.file_type?.startsWith("text/")
+  const isPDF = (doc.file_type || '') === "application/pdf"
+  const isImage = (doc.file_type || '').startsWith("image/")
+  const isText = (doc.file_type || '').startsWith("text/")
 
   // Função para gerar URL de download dinamicamente
   const generateDownloadUrl = async (filePath: string): Promise<string> => {
@@ -163,7 +163,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   }
 
   const getFileIconComponent = () => {
-    return getFileIcon(document.file_type, document.file_name, "h-8 w-8")
+    return getFileIcon(document.file_type || '', document.file_name || '', "h-8 w-8")
   }
 
   const formatFileSize = (bytes: number) => {

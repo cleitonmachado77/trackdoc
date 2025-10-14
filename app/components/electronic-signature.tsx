@@ -52,6 +52,10 @@ export default function ElectronicSignature() {
   // Estados para histórico de assinaturas
   const [signatureHistory, setSignatureHistory] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
+  
+  // Estados para histórico de assinaturas múltiplas
+  const [multiSignatureHistory, setMultiSignatureHistory] = useState<any[]>([])
+  const [loadingMultiHistory, setLoadingMultiHistory] = useState(false)
 
   // Estados para configuração do modelo de assinatura
   const [signatureTemplate, setSignatureTemplate] = useState({
@@ -611,10 +615,106 @@ export default function ElectronicSignature() {
     }
   }
 
+  // Função para buscar histórico de assinaturas múltiplas
+  const fetchMultiSignatureHistory = async () => {
+    if (!user?.id) return
+
+    try {
+      setLoadingMultiHistory(true)
+      console.log('🔍 [fetchMultiSignatureHistory] Buscando assinaturas múltiplas do usuário:', user.id)
+
+      // Buscar solicitações criadas pelo usuário
+      const { data: requests, error: requestsError } = await supabase
+        .from('multi_signature_requests')
+        .select('*')
+        .eq('requester_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (requestsError) {
+        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar solicitações:', requestsError)
+        return
+      }
+
+      // Buscar aprovações do usuário
+      const { data: approvals, error: approvalsError } = await supabase
+        .from('multi_signature_approvals')
+        .select(`
+          *,
+          multi_signature_requests (
+            id,
+            document_name,
+            document_path,
+            status,
+            created_at,
+            completed_at,
+            signed_file_path,
+            metadata
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+
+      if (approvalsError) {
+        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar aprovações:', approvalsError)
+        return
+      }
+
+      // Buscar assinaturas múltiplas individuais na tabela document_signatures
+      const { data: individualSignatures, error: individualError } = await supabase
+        .from('document_signatures')
+        .select('*')
+        .eq('user_id', user.id)
+        .contains('qr_code_data', '"signatureType":"multiple"')
+        .order('created_at', { ascending: false })
+
+      if (individualError) {
+        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar assinaturas individuais:', individualError)
+      }
+
+      // Combinar e organizar os dados
+      const combinedHistory = [
+        // Solicitações criadas pelo usuário
+        ...(requests || []).map(req => ({
+          ...req,
+          type: 'created',
+          display_name: req.document_name,
+          action_date: req.created_at
+        })),
+        // Documentos que o usuário aprovou/assinou (método antigo)
+        ...(approvals || []).filter(app => app.multi_signature_requests).map(app => ({
+          ...app.multi_signature_requests,
+          type: 'signed',
+          display_name: app.multi_signature_requests.document_name,
+          action_date: app.created_at,
+          approval_id: app.id
+        })),
+        // Assinaturas múltiplas individuais (método novo)
+        ...(individualSignatures || []).map(sig => ({
+          ...sig,
+          type: 'signed_individual',
+          display_name: sig.title || 'Documento sem título',
+          action_date: sig.created_at,
+          verification_code: sig.verification_code,
+          verification_url: sig.verification_url
+        }))
+      ].sort((a, b) => new Date(b.action_date).getTime() - new Date(a.action_date).getTime())
+
+      console.log('✅ [fetchMultiSignatureHistory] Histórico múltiplo encontrado:', combinedHistory.length)
+      setMultiSignatureHistory(combinedHistory)
+
+    } catch (err) {
+      console.error('❌ [fetchMultiSignatureHistory] Erro geral:', err)
+    } finally {
+      setLoadingMultiHistory(false)
+    }
+  }
+
   // Carregar histórico quando o componente montar
   useEffect(() => {
     if (user?.id) {
       fetchSignatureHistory()
+      fetchMultiSignatureHistory()
     }
   }, [user?.id])
 
@@ -1055,14 +1155,15 @@ export default function ElectronicSignature() {
         </TabsContent>
 
         <TabsContent value="history" className="space-y-6">
+          {/* Histórico de Assinaturas Simples */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                Histórico de Assinaturas
+                <FileText className="h-5 w-5" />
+                Histórico de Assinaturas Simples
               </CardTitle>
               <CardDescription>
-                Visualize todos os documentos que você assinou
+                Documentos assinados individualmente por você
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1077,17 +1178,17 @@ export default function ElectronicSignature() {
                 <div className="flex flex-col items-center justify-center py-16">
                   <FileText className="h-16 w-16 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                    Nenhuma assinatura encontrada
+                    Nenhuma assinatura simples encontrada
                   </h3>
                   <p className="text-muted-foreground text-center">
-                    Você ainda não assinou nenhum documento.
+                    Você ainda não assinou nenhum documento individualmente.
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
-                      {signatureHistory.length} assinatura(s) encontrada(s)
+                      {signatureHistory.length} assinatura(s) simples encontrada(s)
                     </p>
                     <Button
                       variant="outline"
@@ -1158,6 +1259,170 @@ export default function ElectronicSignature() {
                                 </Button>
                               )}
                             </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Histórico de Assinaturas Múltiplas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Histórico de Assinaturas Múltiplas
+              </CardTitle>
+              <CardDescription>
+                Documentos assinados de forma colaborativa com múltiplos usuários
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingMultiHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Clock className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground">Carregando histórico múltiplo...</p>
+                  </div>
+                </div>
+              ) : multiSignatureHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16">
+                  <Users className="h-16 w-16 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                    Nenhuma assinatura múltipla encontrada
+                  </h3>
+                  <p className="text-muted-foreground text-center">
+                    Você ainda não participou de nenhum processo de assinatura múltipla.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {multiSignatureHistory.length} documento(s) de assinatura múltipla encontrado(s)
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchMultiSignatureHistory}
+                      disabled={loadingMultiHistory}
+                    >
+                      Atualizar
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-4">
+                    {multiSignatureHistory.map((item) => (
+                      <Card key={`${item.type}-${item.id}`} className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <div className={`p-2 rounded-lg ${
+                              item.type === 'created' 
+                                ? 'bg-purple-100' 
+                                : item.type === 'signed_individual'
+                                ? 'bg-blue-100'
+                                : 'bg-green-100'
+                            }`}>
+                              {item.type === 'created' ? (
+                                <Users className="h-5 w-5 text-purple-600" />
+                              ) : item.type === 'signed_individual' ? (
+                                <FileCheck className="h-5 w-5 text-blue-600" />
+                              ) : (
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-medium text-gray-900 mb-1">
+                                {item.display_name || 'Documento sem título'}
+                              </h3>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={
+                                    item.type === 'created' 
+                                      ? 'bg-purple-100 text-purple-800' 
+                                      : item.type === 'signed_individual'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-green-100 text-green-800'
+                                  }>
+                                    {item.type === 'created' 
+                                      ? 'Solicitação Criada' 
+                                      : item.type === 'signed_individual'
+                                      ? 'Assinatura Individual'
+                                      : 'Documento Assinado'
+                                    }
+                                  </Badge>
+                                  <Badge className={getStatusColor(item.status)}>
+                                    {getStatusText(item.status)}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                  <span>Data: {formatDate(item.action_date)}</span>
+                                  {item.total_signatures && (
+                                    <span>
+                                      Assinaturas: {item.completed_signatures || 0}/{item.total_signatures}
+                                    </span>
+                                  )}
+                                  {item.completed_at && (
+                                    <span>Concluído: {formatDate(item.completed_at)}</span>
+                                  )}
+                                  {item.verification_code && (
+                                    <span>Código: {item.verification_code}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Botão para verificar assinatura individual */}
+                            {item.verification_url && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(item.verification_url, '_blank')}
+                                title="Verificar assinatura"
+                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                              >
+                                <Search className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Botão para visualizar documento original */}
+                            {item.document_path && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(`https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${item.document_path}`, '_blank')}
+                                title="Visualizar documento original"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {/* Botão para baixar documento assinado */}
+                            {(item.status === 'completed' && item.signed_file_path) || (item.type === 'signed_individual' && item.signature_url) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const link = document.createElement('a')
+                                  if (item.type === 'signed_individual') {
+                                    link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${item.signature_url}`
+                                  } else {
+                                    link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/signed-documents/${item.signed_file_path}`
+                                  }
+                                  link.download = `assinado_${item.display_name}`
+                                  link.click()
+                                }}
+                                title="Baixar documento assinado"
+                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
@@ -1253,11 +1518,18 @@ export default function ElectronicSignature() {
                         <div><strong>Status:</strong> {verificationResult.signature.status || 'Não informado'}</div>
                         <div><strong>Hash:</strong> {verificationResult.signature.hash ? `${verificationResult.signature.hash.substring(0, 16)}...` : 'Não informado'}</div>
                         <div><strong>Código:</strong> {verificationResult.signature.verificationCode || 'Não informado'}</div>
-                        {verificationResult.signature.signatureType === 'multiple' && (
+                        {(verificationResult.signature.signatureType === 'multiple' || verificationResult.signature.isMultipleSignature) && (
                           <>
-                            <div><strong>Tipo:</strong> Assinatura Múltipla</div>
-                            <div><strong>Total de Assinaturas:</strong> {verificationResult.signature.totalSignatures || 'Não informado'}</div>
-                            <div><strong>Assinaturas Completadas:</strong> {verificationResult.signature.completedSignatures || 'Não informado'}</div>
+                            <div><strong>Tipo:</strong> Assinatura Múltipla Individual</div>
+                            <div className="text-xs text-blue-600 mt-1">
+                              Esta é uma assinatura individual dentro de um processo de assinatura múltipla.
+                            </div>
+                            {verificationResult.signature.totalSignatures && (
+                              <>
+                                <div><strong>Total de Assinaturas:</strong> {verificationResult.signature.totalSignatures}</div>
+                                <div><strong>Assinaturas Completadas:</strong> {verificationResult.signature.completedSignatures || 'Não informado'}</div>
+                              </>
+                            )}
                             {verificationResult.signature.signers && verificationResult.signature.signers.length > 0 && (
                               <div><strong>Signatários:</strong> {verificationResult.signature.signers.map((s: any) => s.name).join(', ')}</div>
                             )}
@@ -1269,7 +1541,7 @@ export default function ElectronicSignature() {
                             <div><strong>Email do Signatário:</strong> {verificationResult.signature.specificSigner.email || 'Não informado'}</div>
                           </>
                         )}
-                        {verificationResult.signature.signatureType === 'simple' && (
+                        {verificationResult.signature.signatureType === 'simple' && !verificationResult.signature.isMultipleSignature && (
                           <div><strong>Tipo:</strong> Assinatura Simples</div>
                         )}
                       </div>

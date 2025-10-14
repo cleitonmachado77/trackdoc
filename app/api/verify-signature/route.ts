@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
-    // Buscar assinatura simples pelo código de verificação
-    const { data: simpleSignatures, error: simpleSearchError } = await serviceRoleSupabase
+    // Buscar assinatura pelo código de verificação (simples ou múltipla individual)
+    const { data: signatures, error: searchError } = await serviceRoleSupabase
       .from('document_signatures')
       .select(`
         *,
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       `)
       .eq('verification_code', verificationCode.trim())
 
-    if (simpleSearchError) {
-      console.error('❌ Erro ao buscar assinatura simples:', simpleSearchError)
+    if (searchError) {
+      console.error('❌ Erro ao buscar assinatura:', searchError)
     }
 
     // Buscar assinatura múltipla pelo código de verificação no metadata
@@ -59,10 +59,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se encontrou alguma assinatura
-    const signatures = simpleSignatures || []
+    const foundSignatures = signatures || []
     const allMultiSigns = multiSignatures || []
     
-    // Filtrar assinaturas múltiplas pelo código de verificação no metadata
+    // Filtrar assinaturas múltiplas pelo código de verificação no metadata (fallback para assinaturas antigas)
     const multiSigns = allMultiSigns.filter((signature: any) => {
       if (!signature.metadata || !signature.metadata.signatures) {
         return false
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       )
     })
     
-    if (signatures.length === 0 && multiSigns.length === 0) {
+    if (foundSignatures.length === 0 && multiSigns.length === 0) {
       return NextResponse.json({
         success: false,
         error: 'Código de verificação não encontrado ou inválido'
@@ -82,9 +82,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Determinar se é assinatura simples ou múltipla
-    if (signatures.length > 0) {
-      // Assinatura simples
-      const signature = signatures[0]
+    if (foundSignatures.length > 0) {
+      // Assinatura encontrada na tabela document_signatures
+      const signature = foundSignatures[0]
+      
+      // Verificar se é uma assinatura múltipla individual (pelo qr_code_data)
+      let isMultipleSignature = false
+      try {
+        const qrData = JSON.parse(signature.qr_code_data || '{}')
+        isMultipleSignature = qrData.signatureType === 'multiple'
+      } catch (e) {
+        // Se não conseguir parsear, assume que é simples
+        isMultipleSignature = false
+      }
       
       // Verificar se a assinatura está válida (não expirada, etc.)
       const now = new Date()
@@ -111,11 +121,11 @@ export async function POST(request: NextRequest) {
         console.warn('⚠️ Erro ao buscar dados do usuário:', userError)
       }
 
-      // Retornar dados da assinatura simples verificada
+      // Retornar dados da assinatura verificada
       return NextResponse.json({
         success: true,
-        message: 'Assinatura simples verificada com sucesso',
-        signatureType: 'simple',
+        message: isMultipleSignature ? 'Assinatura múltipla verificada com sucesso' : 'Assinatura simples verificada com sucesso',
+        signatureType: isMultipleSignature ? 'multiple' : 'simple',
         signature: {
           id: signature.id,
           userName: userData?.full_name || 'Usuário não encontrado',
@@ -124,10 +134,11 @@ export async function POST(request: NextRequest) {
           documentId: signature.document_id || signature.arqsign_document_id,
           hash: signature.signature_hash,
           verificationCode: signature.verification_code,
-          documentTitle: signature.document?.title || 'Documento não encontrado',
+          documentTitle: signature.title || signature.document?.title || 'Documento não encontrado',
           documentPath: signature.document?.file_path || null,
           status: signature.status,
-          signatureUrl: signature.signature_url
+          signatureUrl: signature.signature_url,
+          isMultipleSignature: isMultipleSignature
         }
       })
     } else if (multiSigns.length > 0) {

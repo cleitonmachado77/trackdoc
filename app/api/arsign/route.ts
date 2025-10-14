@@ -722,10 +722,10 @@ export async function POST(request: NextRequest) {
            signature_url: signedFileName,
            title: documentTitle, // ✅ NOVO CAMPO
            verification_code: signature.verificationCode,
-           verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/${signature.verificationCode}`,
+           verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${signature.verificationCode}`,
            qr_code_data: JSON.stringify({
              code: signature.verificationCode,
-             url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify/${signature.verificationCode}`,
+             url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${signature.verificationCode}`,
              documentId: signature.documentId,
              timestamp: signature.digitalTimestamp
            }),
@@ -830,6 +830,23 @@ export async function POST(request: NextRequest) {
             let docSignedPdf: Buffer
             let docSignature: any
 
+            // Função para extrair título do nome do arquivo
+            const extractTitle = (fileName: string) => {
+              if (!fileName) return null
+              
+              // Remove o path e a extensão .pdf
+              const nameWithoutPath = fileName.replace(/^.*\//, '') // Remove path
+              const nameWithoutExtension = nameWithoutPath.replace(/\.pdf$/i, '') // Remove .pdf
+              
+              // Se ainda tem .pdf no meio (como signed_xxx.pdf.pdf), remove novamente
+              const cleanName = nameWithoutExtension.replace(/\.pdf$/i, '')
+              
+              return cleanName || null
+            }
+
+            // Gerar nome do arquivo assinado
+            const docSignedFileName = `signed_${Date.now()}_${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+
             const isMultiSignature = (action as string) === 'multi_signature'
             if (isMultiSignature) {
               const { signedPdf, signatures } = await digitalSignatureService.createMultiSignature(
@@ -840,6 +857,42 @@ export async function POST(request: NextRequest) {
               )
               docSignedPdf = signedPdf
               docSignature = signatures
+
+              // Salvar cada assinatura individual na tabela document_signatures
+              console.log('💾 Salvando assinaturas múltiplas individuais no banco...')
+              for (const individualSignature of signatures) {
+                try {
+                  const documentTitle = extractTitle(docSignedFileName)
+                  
+                  const { error: insertError } = await supabase.from('document_signatures').insert({
+                    user_id: individualSignature.userId,
+                    document_id: docId || null,
+                    arqsign_document_id: individualSignature.id,
+                    status: 'completed',
+                    signature_url: docSignedFileName,
+                    title: documentTitle,
+                    verification_code: individualSignature.verificationCode,
+                    verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${individualSignature.verificationCode}`,
+                    qr_code_data: JSON.stringify({
+                      code: individualSignature.verificationCode,
+                      url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${individualSignature.verificationCode}`,
+                      documentId: individualSignature.documentId,
+                      timestamp: individualSignature.digitalTimestamp,
+                      signatureType: 'multiple'
+                    }),
+                    document_hash: individualSignature.documentHash,
+                    signature_hash: individualSignature.hash
+                  })
+
+                  if (insertError) {
+                    console.warn(`⚠️ Erro ao salvar assinatura individual de ${individualSignature.userName}:`, insertError)
+                  } else {
+                    console.log(`✅ Assinatura individual de ${individualSignature.userName} salva com sucesso`)
+                  }
+                } catch (dbError) {
+                  console.warn(`⚠️ Erro ao salvar assinatura individual de ${individualSignature.userName}:`, dbError)
+                }
+              }
             } else {
               const { signedPdf, signature } = await digitalSignatureService.createSignature(
                 docPdfBuffer,
@@ -854,7 +907,6 @@ export async function POST(request: NextRequest) {
             }
 
             // Salvar documento assinado
-            const docSignedFileName = `signed_${Date.now()}_${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
             const { error: docUploadError } = await serviceRoleSupabase.storage
               .from('documents')
               .upload(docSignedFileName, docSignedPdf, {

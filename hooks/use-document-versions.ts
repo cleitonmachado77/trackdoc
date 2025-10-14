@@ -157,10 +157,14 @@ export function useDocumentVersions(documentId?: string) {
       if (versionError) throw versionError
 
       // Atualizar o documento principal com a nova versão
+      // Extrair o título do nome do arquivo (sem extensão)
+      const newTitle = file.name.replace(/\.[^/.]+$/, "")
+      
       const { data: updatedDoc, error: updateError } = await supabase
         .from('documents')
         .update({
           version: newVersionNumber,
+          title: newTitle, // Atualizar o título com o nome do novo arquivo
           file_path: newFilePath,
           file_name: file.name,
           file_size: file.size,
@@ -246,10 +250,14 @@ export function useDocumentVersions(documentId?: string) {
       if (uploadError) throw uploadError
 
       // Atualizar o documento principal com a nova versão
+      // Extrair o título do nome do arquivo (sem extensão)
+      const newTitle = versionData.file_name.replace(/\.[^/.]+$/, "")
+      
       const { data: updatedDoc, error: updateError } = await supabase
         .from('documents')
         .update({
           version: newVersionNumber,
+          title: newTitle, // Atualizar o título com o nome do arquivo restaurado
           file_path: newFilePath,
           file_name: versionData.file_name,
           file_size: versionData.file_size,

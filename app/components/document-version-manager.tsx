@@ -236,6 +236,9 @@ export function DocumentVersionManager({
                     onChange={(e) => setChangeDescription(e.target.value)}
                     className="mt-1"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 O título do documento será atualizado automaticamente com o nome do novo arquivo
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

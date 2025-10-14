@@ -891,8 +891,13 @@ export default function DocumentList() {
              setShowVersionManager(false)
              setSelectedDocumentForVersions(null)
            }}
-           onVersionUpdated={() => {
-             refetch() // Atualizar a lista de documentos quando uma versão for criada/restaurada
+           onVersionUpdated={async () => {
+             // Atualizar a lista de documentos quando uma versão for criada/restaurada
+             await refetch()
+             // Forçar uma nova busca para garantir que os dados estejam atualizados
+             setTimeout(() => {
+               refetch()
+             }, 500)
            }}
          />
        )}

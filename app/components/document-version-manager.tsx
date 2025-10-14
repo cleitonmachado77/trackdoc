@@ -95,20 +95,27 @@ export function DocumentVersionManager({
 
     try {
       setUploading(true)
-      await createNewVersion(documentId, selectedFile, changeDescription)
+      const result = await createNewVersion(documentId, selectedFile, changeDescription)
       
-      toast({
-        title: "Nova versão criada",
-        description: `Versão V${currentVersion + 1} foi criada com sucesso.`,
-      })
+      if (result && result.success) {
+        toast({
+          title: "Nova versão criada",
+          description: `Versão V${result.newVersionNumber} foi criada com sucesso.`,
+        })
 
-      // Limpar formulário
-      setSelectedFile(null)
-      setChangeDescription("")
-      setShowUploadForm(false)
-      
-      // Notificar componente pai
-      onVersionUpdated?.()
+        // Limpar formulário
+        setSelectedFile(null)
+        setChangeDescription("")
+        setShowUploadForm(false)
+        
+        // Notificar componente pai
+        onVersionUpdated?.()
+        
+        // Fechar o modal para forçar uma atualização completa
+        onClose()
+      } else {
+        throw new Error('Falha na criação da nova versão')
+      }
     } catch (error: any) {
       console.error('Erro ao criar nova versão:', error)
       toast({
@@ -127,15 +134,22 @@ export function DocumentVersionManager({
     }
 
     try {
-      await restoreVersion(version.id)
+      const result = await restoreVersion(version.id)
       
-      toast({
-        title: "Versão restaurada",
-        description: `A versão V${version.version_number} foi restaurada com sucesso.`,
-      })
+      if (result && result.success) {
+        toast({
+          title: "Versão restaurada",
+          description: `A versão V${version.version_number} foi restaurada como V${result.newVersion}.`,
+        })
 
-      // Notificar componente pai
-      onVersionUpdated?.()
+        // Notificar componente pai com os dados atualizados
+        onVersionUpdated?.()
+        
+        // Fechar o modal para forçar uma atualização completa
+        onClose()
+      } else {
+        throw new Error('Falha na restauração da versão')
+      }
     } catch (error: any) {
       console.error('Erro ao restaurar versão:', error)
       toast({

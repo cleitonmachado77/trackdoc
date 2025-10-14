@@ -82,8 +82,8 @@ export function useDocumentVersions(documentId?: string) {
   }, [fetchVersions])
 
   const createNewVersion = async (
-    documentId: string, 
-    file: File, 
+    documentId: string,
+    file: File,
     changeDescription?: string
   ) => {
     try {
@@ -104,7 +104,7 @@ export function useDocumentVersions(documentId?: string) {
       const fileExtension = file.name.split('.').pop()
       const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
       const newFilePath = `documents/${user.id}/${uniqueFileName}`
-      
+
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .upload(newFilePath, file)
@@ -157,7 +157,7 @@ export function useDocumentVersions(documentId?: string) {
       if (versionError) throw versionError
 
       // Atualizar o documento principal com a nova versão
-      const { error: updateError } = await supabase
+      const { data: updatedDoc, error: updateError } = await supabase
         .from('documents')
         .update({
           version: newVersionNumber,
@@ -168,13 +168,20 @@ export function useDocumentVersions(documentId?: string) {
           updated_at: new Date().toISOString()
         })
         .eq('id', documentId)
+        .select()
+        .single()
 
       if (updateError) throw updateError
 
       // Atualizar a lista de versões
       await fetchVersions()
 
-      return newVersion
+      return {
+        success: true,
+        newVersion: newVersion,
+        updatedDocument: updatedDoc,
+        newVersionNumber: newVersionNumber
+      }
     } catch (error: any) {
       console.error('Erro ao criar nova versão:', error)
       throw error
@@ -206,7 +213,7 @@ export function useDocumentVersions(documentId?: string) {
       const newVersionNumber = (currentDoc.version || 1) + 1
 
       // Salvar a versão atual antes de restaurar
-      await supabase
+      const { error: backupError } = await supabase
         .from('document_versions')
         .insert({
           document_id: versionData.document_id,
@@ -218,6 +225,8 @@ export function useDocumentVersions(documentId?: string) {
           author_id: user.id,
           change_description: `Backup antes da restauração da V${versionData.version_number}`
         })
+
+      if (backupError) throw backupError
 
       // Copiar o arquivo da versão para um novo local
       const { data: fileData } = await supabase.storage
@@ -236,8 +245,8 @@ export function useDocumentVersions(documentId?: string) {
 
       if (uploadError) throw uploadError
 
-      // Atualizar o documento principal
-      const { error: updateError } = await supabase
+      // Atualizar o documento principal com a nova versão
+      const { data: updatedDoc, error: updateError } = await supabase
         .from('documents')
         .update({
           version: newVersionNumber,
@@ -248,11 +257,13 @@ export function useDocumentVersions(documentId?: string) {
           updated_at: new Date().toISOString()
         })
         .eq('id', versionData.document_id)
+        .select()
+        .single()
 
       if (updateError) throw updateError
 
       // Criar registro da versão restaurada
-      await supabase
+      const { error: versionInsertError } = await supabase
         .from('document_versions')
         .insert({
           document_id: versionData.document_id,
@@ -265,10 +276,17 @@ export function useDocumentVersions(documentId?: string) {
           change_description: `Restaurado da V${versionData.version_number}`
         })
 
+      if (versionInsertError) throw versionInsertError
+
       // Atualizar a lista de versões
       await fetchVersions()
 
-      return true
+      // Retornar os dados atualizados do documento para que o componente pai possa atualizar
+      return {
+        success: true,
+        updatedDocument: updatedDoc,
+        newVersion: newVersionNumber
+      }
     } catch (error: any) {
       console.error('Erro ao restaurar versão:', error)
       throw error

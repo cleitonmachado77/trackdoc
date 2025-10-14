@@ -62,21 +62,50 @@ export default function PendingApprovalDocuments() {
         .from('approval_requests')
         .select(`
           *,
-          document:documents!approval_requests_document_id_fkey(
+          documents!inner (
             id,
             title,
             description,
             file_name,
-            author:profiles!documents_author_id_fkey(full_name)
+            author_id,
+            created_by
           )
         `)
         .eq('approver_id', user?.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
 
+      // Buscar nomes dos autores separadamente
+      const enrichedData = await Promise.all(
+        (data || []).map(async (item) => {
+          let authorName = 'Autor desconhecido'
+          const authorId = item.documents.author_id || item.documents.created_by
+          
+          if (authorId) {
+            const { data: authorData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', authorId)
+              .single()
+            
+            authorName = authorData?.full_name || 'Autor desconhecido'
+          }
+          
+          return {
+            ...item,
+            document: {
+              ...item.documents,
+              author: {
+                full_name: authorName
+              }
+            }
+          }
+        })
+      )
+
       if (error) throw error
 
-      setPendingDocuments(data || [])
+      setPendingDocuments(enrichedData || [])
     } catch (error) {
       console.error('Erro ao buscar documentos pendentes:', error)
       toast({

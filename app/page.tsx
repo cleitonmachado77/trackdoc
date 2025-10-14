@@ -86,6 +86,7 @@ import ChatPage from "./chat/page"
 import MinhaContaPage from "./minha-conta/page"
 import { useDocuments } from "@/hooks/use-documents"
 import { useApprovals } from "@/hooks/use-approvals"
+import DebugApprovalSystem from "./components/debug-approval-system"
 import { useDepartments } from "@/hooks/use-departments"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useCategories } from "@/hooks/use-categories"
@@ -225,7 +226,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   // Ler parâmetros de URL para definir a view inicial
   useEffect(() => {
     const viewParam = searchParams.get('view')
-    if (viewParam && ['dashboard', 'documents', 'approvals', 'ai-create', 'notifications', 'admin', 'help', 'chat'].includes(viewParam)) {
+    if (viewParam && ['dashboard', 'documents', 'approvals', 'ai-create', 'notifications', 'admin', 'help', 'chat', 'debug-approvals'].includes(viewParam)) {
       setActiveView(viewParam)
     }
     
@@ -555,6 +556,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return <UnifiedNotificationsPage />
       case "chat":
         return <ChatPage />
+      case "debug-approvals":
+        return <DebugApprovalSystem />
       case "admin":
         return (
           <AdminGuard>

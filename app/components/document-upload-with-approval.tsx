@@ -171,10 +171,14 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           recipients: [approverData.email],
           channels: ['email'],
           status: 'sent',
-          created_by: user?.id
+          created_by: user?.id,
+          user_id: approverId // Adicionar user_id para o aprovador
         })
 
-      if (notificationError) throw notificationError
+      if (notificationError) {
+        console.warn('Erro ao criar notificação:', notificationError)
+        // Não falhar a aprovação se a notificação falhar
+      }
 
       toast({
         title: "Aprovação solicitada!",

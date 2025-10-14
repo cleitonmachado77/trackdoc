@@ -64,7 +64,7 @@ export function useApprovals() {
         .from('approval_requests')
         .select('*')
         .eq('approver_id', user!.id)
-        .order('step_order', { ascending: true })
+        .order('created_at', { ascending: false })
 
       if (myError) throw myError
 

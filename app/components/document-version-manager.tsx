@@ -129,29 +129,43 @@ export function DocumentVersionManager({
   }
 
   const handleRestoreVersion = async (version: DocumentVersion) => {
+    console.log('🔄 [COMPONENT] Iniciando restauração da versão:', {
+      versionId: version.id,
+      versionNumber: version.version_number,
+      fileName: version.file_name
+    })
+
     if (!confirm(`Tem certeza que deseja restaurar a versão V${version.version_number}? Isso criará uma nova versão com o conteúdo selecionado.`)) {
+      console.log('❌ [COMPONENT] Restauração cancelada pelo usuário')
       return
     }
 
     try {
+      console.log('📞 [COMPONENT] Chamando função restoreVersion...')
       const result = await restoreVersion(version.id)
       
+      console.log('📋 [COMPONENT] Resultado da restauração:', result)
+      
       if (result && result.success) {
+        console.log('✅ [COMPONENT] Restauração bem-sucedida')
         toast({
           title: "Versão restaurada",
           description: `A versão V${version.version_number} foi restaurada como V${result.newVersion}.`,
         })
 
         // Notificar componente pai com os dados atualizados
+        console.log('🔄 [COMPONENT] Notificando componente pai...')
         onVersionUpdated?.()
         
         // Fechar o modal para forçar uma atualização completa
+        console.log('🚪 [COMPONENT] Fechando modal...')
         onClose()
       } else {
+        console.error('❌ [COMPONENT] Resultado inválido:', result)
         throw new Error('Falha na restauração da versão')
       }
     } catch (error: any) {
-      console.error('Erro ao restaurar versão:', error)
+      console.error('💥 [COMPONENT] Erro ao restaurar versão:', error)
       toast({
         title: "Erro ao restaurar versão",
         description: error.message || "Ocorreu um erro inesperado.",

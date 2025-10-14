@@ -138,12 +138,31 @@ export async function POST(request: NextRequest) {
     // Salvar documento assinado
     const signedFileName = `multi_signed_${Date.now()}_${signatureRequest.document_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
     
-    const { error: uploadError } = await serviceRoleSupabase.storage
+    // Tentar salvar no bucket signed-documents, se falhar usar o bucket documents
+    let uploadError: any = null
+    let bucketUsed = 'signed-documents'
+    
+    const uploadResult = await serviceRoleSupabase.storage
       .from('signed-documents')
       .upload(signedFileName, signedPdf, {
         contentType: 'application/pdf',
         upsert: false
       })
+
+    if (uploadResult.error) {
+      console.warn('⚠️ Bucket signed-documents não disponível, usando bucket documents:', uploadResult.error)
+      
+      // Fallback: usar bucket documents
+      const fallbackResult = await serviceRoleSupabase.storage
+        .from('documents')
+        .upload(signedFileName, signedPdf, {
+          contentType: 'application/pdf',
+          upsert: false
+        })
+      
+      uploadError = fallbackResult.error
+      bucketUsed = 'documents'
+    }
 
     if (uploadError) {
       console.error('❌ Erro ao fazer upload do documento assinado:', uploadError)
@@ -152,6 +171,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    console.log(`✅ Documento salvo no bucket: ${bucketUsed}`)
 
     console.log('💾 Salvando assinaturas individuais no banco...')
 
@@ -229,7 +250,8 @@ export async function POST(request: NextRequest) {
         requestId: signatureRequest.id,
         documentName: signatureRequest.document_name,
         signedFilePath: signedFileName,
-        downloadUrl: `${supabaseConfig.url}/storage/v1/object/public/signed-documents/${signedFileName}`,
+        downloadUrl: `${supabaseConfig.url}/storage/v1/object/public/${bucketUsed}/${signedFileName}`,
+        bucketUsed: bucketUsed,
         totalSignatures: signatures.length,
         signatures: signatures.map(sig => ({
           userName: sig.userName,

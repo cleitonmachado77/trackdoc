@@ -1410,9 +1410,19 @@ export default function ElectronicSignature() {
                                 onClick={() => {
                                   const link = document.createElement('a')
                                   if (item.type === 'signed_individual') {
+                                    // Assinatura individual - sempre no bucket documents
                                     link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${item.signature_url}`
                                   } else {
-                                    link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/signed-documents/${item.signed_file_path}`
+                                    // Assinatura múltipla - tentar signed-documents primeiro, fallback para documents
+                                    const fileName = item.signed_file_path
+                                    if (fileName && fileName.startsWith('multi_signed_')) {
+                                      // Tentar bucket signed-documents primeiro
+                                      link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/signed-documents/${fileName}`
+                                      // Se falhar, o usuário pode tentar manualmente com documents
+                                    } else {
+                                      // Fallback para bucket documents
+                                      link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${fileName}`
+                                    }
                                   }
                                   link.download = `assinado_${item.display_name}`
                                   link.click()

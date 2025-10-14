@@ -195,7 +195,7 @@ export function useDocumentVersions(documentId?: string) {
   const restoreVersion = async (versionId: string) => {
     try {
       console.log('🔄 [RESTORE_VERSION] Iniciando restauração da versão:', versionId)
-      
+
       if (!user?.id) throw new Error('Usuário não autenticado')
 
       // Buscar dados da versão a ser restaurada
@@ -298,7 +298,7 @@ export function useDocumentVersions(documentId?: string) {
       // Atualizar o documento principal com a nova versão
       // Extrair o título do nome do arquivo (sem extensão)
       const newTitle = versionData.file_name.replace(/\.[^/.]+$/, "")
-      
+
       console.log('📝 [RESTORE_VERSION] Atualizando documento principal:', {
         newVersion: newVersionNumber,
         newTitle: newTitle,

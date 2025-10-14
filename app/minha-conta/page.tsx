@@ -13,13 +13,13 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Building, 
-  Shield, 
-  Key, 
+import {
+  User,
+  Mail,
+  Phone,
+  Building,
+  Shield,
+  Key,
   Calendar,
   CheckCircle,
   AlertCircle,
@@ -116,7 +116,7 @@ export default function MinhaContaPage() {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      
+
       const { data, error } = await supabase
         .from('profiles')
         .select(`
@@ -162,7 +162,7 @@ export default function MinhaContaPage() {
 
       setProfile({ ...profile!, ...editedProfile })
       setEditing(false)
-      
+
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso.",
@@ -213,7 +213,7 @@ export default function MinhaContaPage() {
         confirmPassword: ''
       })
       setShowPasswordForm(false)
-      
+
       toast({
         title: "Senha alterada",
         description: "Sua senha foi alterada com sucesso.",
@@ -512,7 +512,7 @@ export default function MinhaContaPage() {
                       <Upload className="h-4 w-4" />
                       {profile.avatar_url ? 'Alterar Foto' : 'Adicionar Foto'}
                     </Button>
-                    
+
                     {profile.avatar_url && (
                       <Button
                         variant="outline"
@@ -525,7 +525,7 @@ export default function MinhaContaPage() {
                       </Button>
                     )}
                   </div>
-                  
+
                   <div className="text-sm text-muted-foreground">
                     <p>• Formatos aceitos: JPG, PNG, GIF</p>
                     <p>• Tamanho máximo: 5MB</p>
@@ -724,8 +724,8 @@ export default function MinhaContaPage() {
                     <UserCheck className="h-4 w-4 text-gray-500" />
                     <Badge variant="outline">
                       {profile.registration_type === 'individual' ? 'Individual' :
-                       profile.registration_type === 'entity_admin' ? 'Admin da Entidade' :
-                       profile.registration_type === 'entity_user' ? 'Usuário da Entidade' : 'N/A'}
+                        profile.registration_type === 'entity_admin' ? 'Admin da Entidade' :
+                          profile.registration_type === 'entity_user' ? 'Usuário da Entidade' : 'N/A'}
                     </Badge>
                   </div>
                 </div>

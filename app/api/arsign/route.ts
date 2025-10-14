@@ -858,41 +858,8 @@ export async function POST(request: NextRequest) {
               docSignedPdf = signedPdf
               docSignature = signatures
 
-              // Salvar cada assinatura individual na tabela document_signatures
-              console.log('💾 Salvando assinaturas múltiplas individuais no banco...')
-              for (const individualSignature of signatures) {
-                try {
-                  const documentTitle = extractTitle(docSignedFileName)
-                  
-                  const { error: insertError } = await supabase.from('document_signatures').insert({
-                    user_id: individualSignature.userId,
-                    document_id: docId || null,
-                    arqsign_document_id: individualSignature.id,
-                    status: 'completed',
-                    signature_url: docSignedFileName,
-                    title: documentTitle,
-                    verification_code: individualSignature.verificationCode,
-                    verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${individualSignature.verificationCode}`,
-                    qr_code_data: JSON.stringify({
-                      code: individualSignature.verificationCode,
-                      url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${individualSignature.verificationCode}`,
-                      documentId: individualSignature.documentId,
-                      timestamp: individualSignature.digitalTimestamp,
-                      signatureType: 'multiple'
-                    }),
-                    document_hash: individualSignature.documentHash,
-                    signature_hash: individualSignature.hash
-                  })
-
-                  if (insertError) {
-                    console.warn(`⚠️ Erro ao salvar assinatura individual de ${individualSignature.userName}:`, insertError)
-                  } else {
-                    console.log(`✅ Assinatura individual de ${individualSignature.userName} salva com sucesso`)
-                  }
-                } catch (dbError) {
-                  console.warn(`⚠️ Erro ao salvar assinatura individual de ${individualSignature.userName}:`, dbError)
-                }
-              }
+              // As assinaturas individuais serão salvas apenas quando a assinatura múltipla for finalizada
+              console.log('✅ Assinatura múltipla criada, aguardando aprovações para finalização')
             } else {
               const { signedPdf, signature } = await digitalSignatureService.createSignature(
                 docPdfBuffer,

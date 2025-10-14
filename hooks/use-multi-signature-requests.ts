@@ -223,7 +223,7 @@ export function useMultiSignatureRequests() {
     if (rejected > 0) {
       status = 'cancelled'
     } else if (total > 0 && approved === total) {
-      status = 'completed'
+      status = 'ready_for_signature' // Pronto para finalizar, mas ainda não finalizado
     } else if (approved > 0) {
       status = 'in_progress'
     } else {
@@ -243,6 +243,49 @@ export function useMultiSignatureRequests() {
 
     return status
   }, [])
+
+  const finalizeSignature = useCallback(async (requestId: string): Promise<OperationResult> => {
+    if (!user) {
+      return { success: false, error: 'Usuário não autenticado' }
+    }
+
+    startLoading()
+    setError(null)
+
+    try {
+      console.log('🔄 Finalizando assinatura múltipla:', requestId)
+
+      // Chamar a nova API de finalização
+      const response = await fetch('/api/finalize-multi-signature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ requestId })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao finalizar assinatura múltipla')
+      }
+
+      console.log('✅ Assinatura múltipla finalizada:', result)
+
+      return {
+        success: true,
+        status: 'completed',
+        data: result.data
+      }
+    } catch (err) {
+      console.error('Erro ao finalizar assinatura múltipla:', err)
+      const message = err instanceof Error ? err.message : 'Erro ao finalizar assinatura múltipla'
+      setError(message)
+      return { success: false, error: message }
+    } finally {
+      stopLoading()
+    }
+  }, [user, startLoading, stopLoading])
 
   const approveSignature = useCallback(async (
     requestId: string,
@@ -275,6 +318,23 @@ export function useMultiSignatureRequests() {
 
       const status = await updateRequestStatus(requestId)
 
+      // Se todas as aprovações foram concluídas, finalizar automaticamente
+      if (status === 'ready_for_signature') {
+        console.log('🚀 Todas as aprovações concluídas, finalizando automaticamente...')
+        try {
+          const finalizeResult = await finalizeSignature(requestId)
+          if (finalizeResult.success) {
+            return { success: true, status: 'completed', data: finalizeResult.data }
+          } else {
+            console.warn('⚠️ Erro ao finalizar automaticamente:', finalizeResult.error)
+            return { success: true, status: 'ready_for_signature' }
+          }
+        } catch (finalizeError) {
+          console.warn('⚠️ Erro ao finalizar automaticamente:', finalizeError)
+          return { success: true, status: 'ready_for_signature' }
+        }
+      }
+
       return { success: true, status }
     } catch (err) {
       console.error('Erro ao registrar decisão de assinatura múltipla:', err)
@@ -289,7 +349,7 @@ export function useMultiSignatureRequests() {
     } finally {
       stopLoading()
     }
-  }, [user, toast, startLoading, stopLoading, updateRequestStatus])
+  }, [user, toast, startLoading, stopLoading, updateRequestStatus, finalizeSignature])
 
   const cleanupOrphanedApprovals = useCallback(async () => {
     if (!user) return
@@ -319,31 +379,6 @@ export function useMultiSignatureRequests() {
       console.warn('Erro inesperado durante limpeza de aprovações órfãs:', err)
     }
   }, [user])
-
-  const finalizeSignature = useCallback(async (requestId: string): Promise<OperationResult> => {
-    if (!user) {
-      return { success: false, error: 'Usuário não autenticado' }
-    }
-
-    startLoading()
-    setError(null)
-
-    try {
-      const status = await updateRequestStatus(requestId)
-      return {
-        success: status === 'completed',
-        status,
-        error: status === 'completed' ? undefined : 'Solicitação ainda não concluída'
-      }
-    } catch (err) {
-      console.error('Erro ao finalizar assinatura múltipla:', err)
-      const message = 'Erro ao finalizar assinatura múltipla'
-      setError(message)
-      return { success: false, error: message }
-    } finally {
-      stopLoading()
-    }
-  }, [user, startLoading, stopLoading, updateRequestStatus])
 
   return {
     loading,

@@ -73,7 +73,7 @@ import DepartmentManagement from "./components/admin/department-management"
 import CategoryManagement from "./components/admin/category-management"
 import BillingManagement from "./components/admin/billing-management"
 import BillingStats from "./components/admin/billing-stats"
-import NotificationManagement from "./components/admin/notification-management"
+import SystemLogs from "./components/admin/system-logs"
 import UnifiedNotificationsPage from "./components/unified-notifications-page"
 import HelpCenter from "./components/help-center"
 import AIDocumentCreator from "./components/ai-document-creator"
@@ -1436,37 +1436,20 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     </CardContent>
                   </Card>
 
-                  {/* Relatórios */}
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("productivity-report")}>
+                  {/* Logs do Sistema */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("system-logs")}>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <BarChart3 className="h-5 w-5 text-indigo-600" />
-                        Relatórios
+                        Logs do Sistema
                       </CardTitle>
                       <CardDescription>
-                        Visualizar relatórios e métricas do sistema
+                        Logs completos para verificação e auditoria
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{entityStats?.total_documents || 0}</div>
-                      <p className="text-sm text-muted-foreground">documentos processados</p>
-                    </CardContent>
-                  </Card>
-
-                  {/* Notificações */}
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("notifications")}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bell className="h-5 w-5 text-yellow-600" />
-                        Notificações
-                      </CardTitle>
-                      <CardDescription>
-                        Gerenciar sistema de notificações
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{notificationStats?.total_sent || 0}</div>
-                      <p className="text-sm text-muted-foreground">notificações enviadas</p>
+                      <p className="text-sm text-muted-foreground">eventos registrados</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -1490,9 +1473,10 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {adminView === "document-access-report" && <DocumentAccessReport />}
               {adminView === "billing" && <BillingManagement />}
               {adminView === "billing-stats" && <BillingStats />}
-              {adminView === "notifications" && <NotificationManagement />}
+
               {adminView === "entity-users" && <EntityUserManagement />}
               {adminView === "entities" && <EntityManagement />}
+              {adminView === "system-logs" && <SystemLogs />}
 
               {/* Menu de Relatórios */}
               {adminView === "reports" && (
@@ -1570,10 +1554,10 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                       <Button
                         variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setAdminView("productivity-report")}
+                        onClick={() => setAdminView("system-logs")}
                       >
                         <BarChart3 className="h-6 w-6" />
-                        <span className="text-sm">Relatórios</span>
+                        <span className="text-sm">Logs do Sistema</span>
                       </Button>
 
                       <Button

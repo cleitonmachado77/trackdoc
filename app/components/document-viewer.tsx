@@ -32,22 +32,6 @@ const supabase = createBrowserClient(
 // Importação direta para teste
 import PDFViewer from './pdf-viewer'
 
-// Carregamento dinâmico do PDFViewer para evitar problemas de SSR (comentado para teste)
-// const PDFViewer = dynamic(() => import('./pdf-viewer'), {
-//   ssr: false,
-//   loading: () => {
-//     console.log('DocumentViewer - Carregando PDFViewer dinamicamente...')
-//     return (
-//       <div className="flex items-center justify-center h-64">
-//         <div className="text-center">
-//           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-//           <p className="text-muted-foreground">Carregando visualizador...</p>
-//         </div>
-//       </div>
-//     )
-//   }
-// })
-
 interface DocumentViewerProps {
   document: DocumentType
   onClose: () => void
@@ -163,7 +147,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   }
 
   const getFileIconComponent = () => {
-    return getFileIcon(document.file_type || '', document.file_name || '', "h-8 w-8")
+    return getFileIcon(document.file_type || '', document.file_name || '', "h-6 w-6 sm:h-8 sm:w-8")
   }
 
   const formatFileSize = (bytes: number) => {
@@ -187,41 +171,38 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3))
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.25))
   const handleRotate = () => setRotation(prev => (prev + 90) % 360)
-  const handlePreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1))
-  const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages))
 
-             const renderPDFViewer = () => {
-    
+  const renderPDFViewer = () => {
     return (
       <div className="w-full h-full flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between p-2 sm:p-4 border-b bg-gray-50">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleZoomOut}
                 disabled={scale <= 0.25}
               >
-                <ZoomOut className="h-4 w-4" />
+                <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
-              <Badge variant="outline">{Math.round(scale * 100)}%</Badge>
+              <Badge variant="outline" className="text-xs">{Math.round(scale * 100)}%</Badge>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleZoomIn}
                 disabled={scale >= 3}
               >
-                <ZoomIn className="h-4 w-4" />
+                <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
             <Button variant="outline" size="sm" onClick={handleRotate}>
-              <RotateCw className="h-4 w-4" />
+              <RotateCw className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
         
-        <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div className="flex-1 overflow-auto bg-gray-100 p-2 sm:p-4">
           <div className="flex justify-center">
             <div
               className="bg-white shadow-lg w-full max-w-4xl"
@@ -231,10 +212,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
                 transition: 'transform 0.2s ease-in-out'
               }}
             >
-              {console.log('DocumentViewer - Renderizando PDF com iframe simples, file_path:', doc.file_path)}
-              
-              {/* Implementação simples baseada no ApprovalReviewModal que funciona */}
-              <div className="w-full h-[800px] border border-gray-300 rounded overflow-hidden">
+              <div className="w-full h-[400px] sm:h-[600px] lg:h-[800px] border border-gray-300 rounded overflow-hidden">
                 <iframe
                   src={`https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${doc.file_path}`}
                   className="w-full h-full"
@@ -261,52 +239,52 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
 
   const renderImageViewer = () => (
     <div className="w-full h-full flex flex-col">
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between p-2 sm:p-4 border-b bg-gray-50">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleZoomOut}
               disabled={scale <= 0.25}
             >
-              <ZoomOut className="h-4 w-4" />
+              <ZoomOut className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
-            <Badge variant="outline">{Math.round(scale * 100)}%</Badge>
+            <Badge variant="outline" className="text-xs">{Math.round(scale * 100)}%</Badge>
             <Button
               variant="outline"
               size="sm"
               onClick={handleZoomIn}
               disabled={scale >= 3}
             >
-              <ZoomIn className="h-4 w-4" />
+              <ZoomIn className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
           <Button variant="outline" size="sm" onClick={handleRotate}>
-            <RotateCw className="h-4 w-4" />
+            <RotateCw className="h-3 w-3 sm:h-4 sm:w-4" />
           </Button>
         </div>
       </div>
       
-      <div className="flex-1 overflow-auto bg-gray-100 p-4">
+      <div className="flex-1 overflow-auto bg-gray-100 p-2 sm:p-4">
         <div className="flex justify-center">
-                                 <img
-             src={doc.download_url || generatedDownloadUrl || ''}
-             alt={doc.title}
-              className="max-w-full h-auto"
-              style={{
-                transform: `scale(${scale}) rotate(${rotation}deg)`,
-                transformOrigin: 'center center',
-                transition: 'transform 0.2s ease-in-out'
-              }}
-              onLoad={() => {
-                setLoading(false)
-              }}
-              onError={() => {
-                setLoading(false)
-                setError("Erro ao carregar a imagem")
-              }}
-            />
+          <img
+            src={doc.download_url || generatedDownloadUrl || ''}
+            alt={doc.title}
+            className="max-w-full h-auto"
+            style={{
+              transform: `scale(${scale}) rotate(${rotation}deg)`,
+              transformOrigin: 'center center',
+              transition: 'transform 0.2s ease-in-out'
+            }}
+            onLoad={() => {
+              setLoading(false)
+            }}
+            onError={() => {
+              setLoading(false)
+              setError("Erro ao carregar a imagem")
+            }}
+          />
         </div>
       </div>
     </div>
@@ -314,14 +292,14 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
 
   const renderTextPreview = () => (
     <div className="w-full h-full flex flex-col">
-      <div className="flex-1 overflow-auto bg-gray-50 p-4">
+      <div className="flex-1 overflow-auto bg-gray-50 p-2 sm:p-4">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="prose max-w-none">
-                             <h3>{doc.title}</h3>
-               <p className="text-muted-foreground">{doc.description}</p>
-              <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-                <p className="text-sm text-gray-600">
+              <h3 className="text-lg sm:text-xl">{doc.title}</h3>
+              <p className="text-muted-foreground text-sm sm:text-base">{doc.description}</p>
+              <div className="mt-4 p-3 sm:p-4 bg-gray-100 rounded-lg">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Para visualizar o conteúdo completo deste arquivo, 
                   faça o download ou abra em uma nova aba.
                 </p>
@@ -333,7 +311,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
     </div>
   )
 
-       const renderPreview = () => {
+  const renderPreview = () => {
     // Primeiro verificar se é PDF e tem file_path
     if (isPDF && doc.file_path) {
       console.log('DocumentViewer - renderPreview: PDF detectado, chamando renderPDFViewer')
@@ -348,29 +326,29 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
     
     // Se ainda está carregando e não é PDF, mostra loading genérico
     if (loading && !iframeLoaded) {
-       return (
-         <div className="flex items-center justify-center h-64">
-           <div className="text-center">
-             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-             <p className="text-muted-foreground">Carregando documento...</p>
-           </div>
-         </div>
-       )
-     }
-
-    if (error) {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <File className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <div className="flex gap-2 justify-center">
-              <Button variant="outline" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
+            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground text-sm sm:text-base">Carregando documento...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="flex items-center justify-center h-64 p-4">
+          <div className="text-center">
+            <File className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground mb-4 text-sm sm:text-base">{error}</p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button variant="outline" onClick={handleDownload} size="sm">
+                <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Baixar
               </Button>
-              <Button variant="outline" onClick={handleOpenInNewTab}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+              <Button variant="outline" onClick={handleOpenInNewTab} size="sm">
+                <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Abrir em Nova Aba
               </Button>
             </div>
@@ -379,22 +357,22 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
       )
     }
 
-         if (!doc.download_url && !generatedDownloadUrl) {
-       return (
-         <div className="flex items-center justify-center h-64">
-           <div className="text-center">
-             <File className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
-             <p className="text-muted-foreground mb-4">URL do documento não disponível</p>
-             <div className="flex gap-2 justify-center">
-               <Button variant="outline" onClick={handleDownload}>
-                 <Download className="h-4 w-4 mr-2" />
-                 Baixar
-               </Button>
-             </div>
-           </div>
-         </div>
-       )
-     }
+    if (!doc.download_url && !generatedDownloadUrl) {
+      return (
+        <div className="flex items-center justify-center h-64 p-4">
+          <div className="text-center">
+            <File className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground mb-4 text-sm sm:text-base">URL do documento não disponível</p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={handleDownload} size="sm">
+                <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                Baixar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
     if (isImage) {
       return renderImageViewer()
@@ -405,7 +383,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
 
   return (
     <div 
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose()
@@ -413,47 +391,93 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
       }}
     >
       <div 
-        className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex ml-16"
+        className="bg-white rounded-lg shadow-xl w-full h-full sm:h-[95vh] sm:max-w-7xl flex flex-col lg:flex-row overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Coluna da Esquerda - Visualização */}
-        <div className="flex-1 flex flex-col border-r">
+        <div className="flex-1 flex flex-col border-b lg:border-b-0 lg:border-r">
           {/* Header da Visualização */}
-          <div className="flex items-center justify-between p-4 border-b">
-            <div className="flex items-center gap-3">
-              {getFileIconComponent()}
-                             <div>
-                 <h2 className="text-lg font-semibold">{doc.title}</h2>
-                 <p className="text-sm text-muted-foreground">
-                   {doc.file_name} • {formatFileSize(doc.file_size || 0)}
-                 </p>
-               </div>
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b bg-gray-50">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="shrink-0">
+                {getFileIconComponent()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm sm:text-lg font-semibold truncate">{doc.title}</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                  {doc.file_name} • {formatFileSize(doc.file_size || 0)}
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            {/* Botão de fechar sempre visível no mobile */}
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <div className="hidden sm:flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDownload()
+                  }}
+                >
+                  <Download className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Baixar</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOpenInNewTab()
+                  }}
+                >
+                  <ExternalLink className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Nova Aba</span>
+                </Button>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={(e) => {
+                  console.log('Botão de fechar clicado')
                   e.stopPropagation()
-                  handleDownload()
+                  e.preventDefault()
+                  onClose()
                 }}
+                className="lg:hidden"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Baixar
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOpenInNewTab()
-                }}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Nova Aba
+                <X className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Botões de ação no mobile */}
+          <div className="flex sm:hidden items-center gap-2 p-3 border-b bg-gray-50">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDownload()
+              }}
+              className="flex-1"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Baixar
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation()
+                handleOpenInNewTab()
+              }}
+              className="flex-1"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Nova Aba
+            </Button>
           </div>
 
           {/* Área de Visualização */}
@@ -462,10 +486,10 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
           </div>
         </div>
 
-        {/* Coluna da Direita - Detalhes */}
-        <div className="w-80 flex flex-col">
+        {/* Coluna da Direita - Detalhes (oculta no mobile por padrão) */}
+        <div className="hidden lg:flex lg:w-80 flex-col">
           {/* Header dos Detalhes */}
-          <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center justify-between p-4 border-b bg-gray-50">
             <h3 className="font-semibold">Detalhes</h3>
             <Button 
               variant="outline" 
@@ -484,74 +508,74 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
           {/* Conteúdo dos Detalhes */}
           <div className="flex-1 overflow-auto p-4">
             <div className="space-y-4">
-                             <div>
-                 <label className="text-sm font-medium text-muted-foreground">Título</label>
-                 <p className="text-sm font-medium">{doc.title}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Número</label>
-                 <p className="text-sm">{doc.document_number}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Tipo</label>
-                 <p className="text-sm">{doc.document_type?.name || 'N/A'}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Categoria</label>
-                 <p className="text-sm">{doc.category?.name || 'N/A'}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Departamento</label>
-                 <p className="text-sm">{doc.department?.name || 'N/A'}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Autor</label>
-                 <p className="text-sm">{doc.author?.full_name || 'N/A'}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Status</label>
-                 <div className="mt-1">
-                   <Badge variant="outline">{doc.status}</Badge>
-                 </div>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Visibilidade</label>
-                 <div className="mt-1">
-                   <Badge variant="outline">
-                     {doc.is_public ? 'Público' : 'Privado'}
-                   </Badge>
-                 </div>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Criado em</label>
-                 <p className="text-sm">{formatDate(doc.created_at)}</p>
-               </div>
-               
-               <div>
-                 <label className="text-sm font-medium text-muted-foreground">Atualizado em</label>
-                 <p className="text-sm">{formatDate(doc.updated_at)}</p>
-               </div>
-               
-               {doc.description && (
-                 <div>
-                   <label className="text-sm font-medium text-muted-foreground">Descrição</label>
-                   <p className="text-sm mt-1">{doc.description}</p>
-                 </div>
-               )}
-               
-               {doc.tags && doc.tags.length > 0 && (
-                 <div>
-                   <label className="text-sm font-medium text-muted-foreground">Tags</label>
-                   <div className="flex flex-wrap gap-1 mt-1">
-                     {doc.tags.map((tag, index) => (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Título</label>
+                <p className="text-sm font-medium">{doc.title}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Número</label>
+                <p className="text-sm">{doc.document_number}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Tipo</label>
+                <p className="text-sm">{doc.document_type?.name || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Categoria</label>
+                <p className="text-sm">{doc.category?.name || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Departamento</label>
+                <p className="text-sm">{doc.department?.name || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Autor</label>
+                <p className="text-sm">{doc.author?.full_name || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Status</label>
+                <div className="mt-1">
+                  <Badge variant="outline">{doc.status}</Badge>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Visibilidade</label>
+                <div className="mt-1">
+                  <Badge variant="outline">
+                    {doc.is_public ? 'Público' : 'Privado'}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Criado em</label>
+                <p className="text-sm">{formatDate(doc.created_at)}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Atualizado em</label>
+                <p className="text-sm">{formatDate(doc.updated_at)}</p>
+              </div>
+              
+              {doc.description && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Descrição</label>
+                  <p className="text-sm mt-1">{doc.description}</p>
+                </div>
+              )}
+              
+              {doc.tags && doc.tags.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Tags</label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {doc.tags.map((tag, index) => (
                       <Badge key={index} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>

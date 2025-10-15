@@ -14,15 +14,11 @@ import {
   Filter, 
   RefreshCw, 
   Download,
-  Calendar,
   User,
   FileText,
   Settings,
-  Shield,
   AlertCircle,
-  CheckCircle,
-  Clock,
-  Eye
+  CheckCircle
 } from 'lucide-react'
 
 const supabase = createBrowserClient(
@@ -68,6 +64,7 @@ export default function SystemLogs() {
   const [actionFilter, setActionFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('today')
   const [userEntityId, setUserEntityId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -85,19 +82,36 @@ export default function SystemLogs() {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('entity_id')
+        .select('entity_id, entity_role, role')
         .eq('id', user?.id)
         .single()
+
+      // Verificar se o usuário é administrador da entidade
+      const isEntityAdmin = profile?.entity_role === 'admin' || profile?.role === 'admin'
+      
+      if (!isEntityAdmin) {
+        setError('Acesso negado. Apenas administradores da entidade podem visualizar os logs.')
+        setLoading(false)
+        return
+      }
 
       setUserEntityId(profile?.entity_id || null)
     } catch (error) {
       console.error('Erro ao carregar entidade do usuário:', error)
+      setError('Erro ao verificar permissões de acesso.')
+      setLoading(false)
     }
   }
 
   const loadLogs = async () => {
     try {
       setLoading(true)
+      setError(null)
+
+      if (!userEntityId) {
+        setError('Entidade não encontrada.')
+        return
+      }
 
       // Calcular data de início baseada no filtro
       let startDate = new Date()
@@ -116,82 +130,460 @@ export default function SystemLogs() {
           break
       }
 
-      // Buscar logs de auditoria
-      let query = supabase
-        .from('audit_logs')
-        .select(`
-          *,
-          profiles!audit_logs_user_id_fkey(full_name)
-        `)
-        .order('created_at', { ascending: false })
-        .gte('created_at', startDate.toISOString())
-        .limit(100)
+      const allLogs: LogEntry[] = []
 
-      // Filtrar por entidade se disponível
-      if (userEntityId) {
-        query = query.eq('entity_id', userEntityId)
+      // 1. Buscar logs de documentos
+      try {
+        const { data: documentLogs } = await supabase
+          .from('documents')
+          .select(`
+            id,
+            title,
+            status,
+            created_at,
+            updated_at,
+            author_id,
+            profiles!documents_author_id_fkey(full_name, email)
+          `)
+          .eq('entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+
+        documentLogs?.forEach(doc => {
+          const authorProfile = Array.isArray(doc.profiles) ? doc.profiles[0] : doc.profiles
+          
+          // Log de criação
+          allLogs.push({
+            id: `doc-create-${doc.id}`,
+            action: `Documento criado: ${doc.title}`,
+            user_id: doc.author_id,
+            entity_id: userEntityId,
+            resource_type: 'document',
+            resource_id: doc.id,
+            details: { document_title: doc.title, status: doc.status },
+            created_at: doc.created_at,
+            user_name: authorProfile?.full_name || 'Usuário desconhecido',
+            severity: 'info' as const
+          })
+
+          // Log de atualização se diferente da criação
+          if (doc.updated_at !== doc.created_at) {
+            allLogs.push({
+              id: `doc-update-${doc.id}`,
+              action: `Documento atualizado: ${doc.title}`,
+              user_id: doc.author_id,
+              entity_id: userEntityId,
+              resource_type: 'document',
+              resource_id: doc.id,
+              details: { document_title: doc.title, status: doc.status },
+              created_at: doc.updated_at,
+              user_name: authorProfile?.full_name || 'Usuário desconhecido',
+              severity: doc.status === 'approved' ? 'success' : doc.status === 'rejected' ? 'error' : 'info'
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de documentos:', err)
       }
 
+      // 2. Buscar logs de aprovações
+      try {
+        const { data: approvalLogs } = await supabase
+          .from('approval_requests')
+          .select(`
+            id,
+            status,
+            comments,
+            approved_at,
+            created_at,
+            updated_at,
+            approver_id,
+            document_id,
+            profiles!approval_requests_approver_id_fkey(full_name),
+            documents!approval_requests_document_id_fkey(title, entity_id)
+          `)
+          .eq('documents.entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+
+        approvalLogs?.forEach(approval => {
+          const approverProfile = Array.isArray(approval.profiles) ? approval.profiles[0] : approval.profiles
+          const document = Array.isArray(approval.documents) ? approval.documents[0] : approval.documents
+          
+          if (document?.entity_id === userEntityId) {
+            allLogs.push({
+              id: `approval-${approval.id}`,
+              action: `Aprovação ${approval.status}: ${document?.title || 'Documento'}`,
+              user_id: approval.approver_id,
+              entity_id: userEntityId,
+              resource_type: 'approval',
+              resource_id: approval.id,
+              details: { 
+                document_title: document?.title,
+                status: approval.status,
+                comments: approval.comments
+              },
+              created_at: approval.approved_at || approval.updated_at || approval.created_at,
+              user_name: approverProfile?.full_name || 'Aprovador desconhecido',
+              severity: approval.status === 'approved' ? 'success' : approval.status === 'rejected' ? 'error' : 'warning'
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de aprovações:', err)
+      }
+
+      // 3. Buscar logs de assinaturas eletrônicas
+      try {
+        const { data: signatureLogs } = await supabase
+          .from('document_signatures')
+          .select(`
+            id,
+            status,
+            created_at,
+            updated_at,
+            user_id,
+            document_id,
+            profiles!document_signatures_user_id_fkey(full_name),
+            documents!document_signatures_document_id_fkey(title, entity_id)
+          `)
+          .eq('documents.entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+
+        signatureLogs?.forEach(signature => {
+          const signerProfile = Array.isArray(signature.profiles) ? signature.profiles[0] : signature.profiles
+          const document = Array.isArray(signature.documents) ? signature.documents[0] : signature.documents
+          
+          if (document?.entity_id === userEntityId) {
+            allLogs.push({
+              id: `signature-${signature.id}`,
+              action: `Assinatura ${signature.status}: ${document?.title || 'Documento'}`,
+              user_id: signature.user_id,
+              entity_id: userEntityId,
+              resource_type: 'signature',
+              resource_id: signature.id,
+              details: { 
+                document_title: document?.title,
+                status: signature.status
+              },
+              created_at: signature.updated_at || signature.created_at,
+              user_name: signerProfile?.full_name || 'Usuário desconhecido',
+              severity: signature.status === 'completed' ? 'success' : signature.status === 'failed' ? 'error' : 'info'
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de assinaturas:', err)
+      }
+
+      // 4. Buscar logs de usuários da entidade
+      try {
+        const { data: userLogs } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            email,
+            status,
+            entity_role,
+            created_at,
+            updated_at,
+            last_login
+          `)
+          .eq('entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+
+        userLogs?.forEach(userProfile => {
+          // Log de criação de usuário
+          allLogs.push({
+            id: `user-create-${userProfile.id}`,
+            action: `Usuário criado: ${userProfile.full_name || userProfile.email}`,
+            user_id: userProfile.id,
+            entity_id: userEntityId,
+            resource_type: 'user',
+            resource_id: userProfile.id,
+            details: { 
+              user_name: userProfile.full_name,
+              email: userProfile.email,
+              role: userProfile.entity_role
+            },
+            created_at: userProfile.created_at,
+            user_name: userProfile.full_name || 'Sistema',
+            severity: 'info' as const
+          })
+
+          // Log de último login se disponível
+          if (userProfile.last_login && new Date(userProfile.last_login) >= startDate) {
+            allLogs.push({
+              id: `user-login-${userProfile.id}-${userProfile.last_login}`,
+              action: `Login realizado: ${userProfile.full_name || userProfile.email}`,
+              user_id: userProfile.id,
+              entity_id: userEntityId,
+              resource_type: 'auth',
+              resource_id: userProfile.id,
+              details: { 
+                user_name: userProfile.full_name,
+                email: userProfile.email
+              },
+              created_at: userProfile.last_login,
+              user_name: userProfile.full_name || 'Usuário',
+              severity: 'success' as const
+            })
+          }
+
+          // Log de alteração de status se diferente de ativo
+          if (userProfile.status !== 'active') {
+            allLogs.push({
+              id: `user-status-${userProfile.id}`,
+              action: `Status do usuário alterado: ${userProfile.full_name || userProfile.email} - ${userProfile.status}`,
+              user_id: userProfile.id,
+              entity_id: userEntityId,
+              resource_type: 'user',
+              resource_id: userProfile.id,
+              details: { 
+                user_name: userProfile.full_name,
+                email: userProfile.email,
+                status: userProfile.status
+              },
+              created_at: userProfile.updated_at || userProfile.created_at,
+              user_name: 'Sistema',
+              severity: userProfile.status === 'inactive' ? 'warning' : 'error'
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de usuários:', err)
+      }
+
+      // 5. Buscar logs de notificações enviadas
+      try {
+        const { data: notificationLogs } = await supabase
+          .from('notifications')
+          .select(`
+            id,
+            title,
+            type,
+            status,
+            created_at,
+            created_by,
+            profiles!notifications_created_by_fkey(full_name, entity_id)
+          `)
+          .eq('profiles.entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+
+        notificationLogs?.forEach(notification => {
+          const creatorProfile = Array.isArray(notification.profiles) ? notification.profiles[0] : notification.profiles
+          
+          if (creatorProfile?.entity_id === userEntityId) {
+            allLogs.push({
+              id: `notification-${notification.id}`,
+              action: `Notificação enviada: ${notification.title}`,
+              user_id: notification.created_by,
+              entity_id: userEntityId,
+              resource_type: 'notification',
+              resource_id: notification.id,
+              details: { 
+                title: notification.title,
+                type: notification.type,
+                status: notification.status
+              },
+              created_at: notification.created_at,
+              user_name: creatorProfile?.full_name || 'Sistema',
+              severity: notification.status === 'sent' ? 'success' : notification.status === 'failed' ? 'error' : 'info'
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de notificações:', err)
+      }
+
+      // 6. Buscar logs de uploads de arquivos
+      try {
+        const { data: fileLogs } = await supabase
+          .from('document_files')
+          .select(`
+            id,
+            filename,
+            file_size,
+            created_at,
+            uploaded_by,
+            document_id,
+            profiles!document_files_uploaded_by_fkey(full_name),
+            documents!document_files_document_id_fkey(title, entity_id)
+          `)
+          .eq('documents.entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+
+        fileLogs?.forEach(file => {
+          const uploaderProfile = Array.isArray(file.profiles) ? file.profiles[0] : file.profiles
+          const document = Array.isArray(file.documents) ? file.documents[0] : file.documents
+          
+          if (document?.entity_id === userEntityId) {
+            allLogs.push({
+              id: `file-upload-${file.id}`,
+              action: `Arquivo enviado: ${file.filename}`,
+              user_id: file.uploaded_by,
+              entity_id: userEntityId,
+              resource_type: 'file',
+              resource_id: file.id,
+              details: { 
+                filename: file.filename,
+                file_size: file.file_size,
+                document_title: document?.title
+              },
+              created_at: file.created_at,
+              user_name: uploaderProfile?.full_name || 'Usuário desconhecido',
+              severity: 'success' as const
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de arquivos:', err)
+      }
+
+      // 7. Buscar logs da tabela de auditoria (se existir)
+      try {
+        const { data: auditLogs } = await supabase
+          .from('audit_logs')
+          .select(`
+            id,
+            action,
+            user_id,
+            entity_id,
+            resource_type,
+            resource_id,
+            details,
+            severity,
+            ip_address,
+            created_at,
+            profiles!audit_logs_user_id_fkey(full_name)
+          `)
+          .eq('entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+
+        auditLogs?.forEach(log => {
+          const userProfile = Array.isArray(log.profiles) ? log.profiles[0] : log.profiles
+          
+          allLogs.push({
+            id: `audit-${log.id}`,
+            action: log.action,
+            user_id: log.user_id,
+            entity_id: log.entity_id,
+            resource_type: log.resource_type,
+            resource_id: log.resource_id,
+            details: log.details,
+            ip_address: log.ip_address,
+            created_at: log.created_at,
+            user_name: userProfile?.full_name || 'Sistema',
+            severity: log.severity || 'info'
+          })
+        })
+      } catch (err) {
+        console.warn('Tabela audit_logs não encontrada, usando logs das tabelas principais:', err)
+      }
+
+      // 8. Buscar logs de alterações na entidade
+      try {
+        const { data: entityLogs } = await supabase
+          .from('entities')
+          .select(`
+            id,
+            name,
+            settings,
+            created_at,
+            updated_at
+          `)
+          .eq('id', userEntityId)
+          .single()
+
+        if (entityLogs && entityLogs.updated_at !== entityLogs.created_at) {
+          allLogs.push({
+            id: `entity-update-${entityLogs.id}`,
+            action: `Configurações da entidade atualizadas: ${entityLogs.name}`,
+            user_id: user?.id || 'system',
+            entity_id: userEntityId,
+            resource_type: 'entity',
+            resource_id: entityLogs.id,
+            details: { 
+              entity_name: entityLogs.name,
+              settings: entityLogs.settings
+            },
+            created_at: entityLogs.updated_at,
+            user_name: 'Administrador',
+            severity: 'info' as const
+          })
+        }
+      } catch (err) {
+        console.warn('Erro ao buscar logs da entidade:', err)
+      }
+
+      // 9. Buscar logs de comentários em documentos
+      try {
+        const { data: commentLogs } = await supabase
+          .from('document_comments')
+          .select(`
+            id,
+            content,
+            created_at,
+            author_id,
+            document_id,
+            profiles!document_comments_author_id_fkey(full_name),
+            documents!document_comments_document_id_fkey(title, entity_id)
+          `)
+          .eq('documents.entity_id', userEntityId)
+          .gte('created_at', startDate.toISOString())
+
+        commentLogs?.forEach(comment => {
+          const authorProfile = Array.isArray(comment.profiles) ? comment.profiles[0] : comment.profiles
+          const document = Array.isArray(comment.documents) ? comment.documents[0] : comment.documents
+          
+          if (document?.entity_id === userEntityId) {
+            allLogs.push({
+              id: `comment-${comment.id}`,
+              action: `Comentário adicionado: ${document?.title || 'Documento'}`,
+              user_id: comment.author_id,
+              entity_id: userEntityId,
+              resource_type: 'comment',
+              resource_id: comment.id,
+              details: { 
+                document_title: document?.title,
+                comment_preview: comment.content?.substring(0, 100) + (comment.content?.length > 100 ? '...' : '')
+              },
+              created_at: comment.created_at,
+              user_name: authorProfile?.full_name || 'Usuário desconhecido',
+              severity: 'info' as const
+            })
+          }
+        })
+      } catch (err) {
+        console.warn('Erro ao buscar logs de comentários:', err)
+      }
+
+      // Ordenar todos os logs por data (mais recentes primeiro)
+      allLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
       // Aplicar filtros
+      let filteredLogs = allLogs
+
       if (severityFilter !== 'all') {
-        query = query.eq('severity', severityFilter)
+        filteredLogs = filteredLogs.filter(log => log.severity === severityFilter)
       }
 
       if (actionFilter !== 'all') {
-        query = query.ilike('action', `%${actionFilter}%`)
+        filteredLogs = filteredLogs.filter(log => 
+          log.action.toLowerCase().includes(actionFilter.toLowerCase())
+        )
       }
 
-      const { data, error } = await query
+      // Limitar a 200 logs para performance
+      setLogs(filteredLogs.slice(0, 200))
 
-      if (error) throw error
-
-      // Processar logs para incluir informações do usuário
-      const processedLogs: LogEntry[] = (data || []).map(log => ({
-        ...log,
-        user_name: log.profiles?.full_name || 'Sistema',
-        severity: log.severity || 'info'
-      }))
-
-      setLogs(processedLogs)
     } catch (error) {
       console.error('Erro ao carregar logs:', error)
-      // Se a tabela não existir, criar logs simulados para demonstração
-      setLogs(generateMockLogs())
+      setError('Erro ao carregar logs do sistema.')
     } finally {
       setLoading(false)
     }
-  }
-
-  const generateMockLogs = (): LogEntry[] => {
-    const actions = [
-      'Documento criado',
-      'Documento aprovado',
-      'Documento rejeitado',
-      'Usuário logado',
-      'Usuário criado',
-      'Configuração alterada',
-      'Backup realizado',
-      'Erro de sistema',
-      'Assinatura digital realizada',
-      'Relatório gerado'
-    ]
-
-    const severities: Array<'info' | 'warning' | 'error' | 'success'> = ['info', 'warning', 'error', 'success']
-
-    return Array.from({ length: 50 }, (_, i) => ({
-      id: `mock-${i}`,
-      action: actions[Math.floor(Math.random() * actions.length)],
-      user_id: user?.id || 'system',
-      entity_id: userEntityId || undefined,
-      resource_type: 'document',
-      resource_id: `doc-${i}`,
-      details: { description: `Ação realizada no sistema - ${i}` },
-      ip_address: `192.168.1.${Math.floor(Math.random() * 255)}`,
-      user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      user_name: user?.email?.split('@')[0] || 'Sistema',
-      severity: severities[Math.floor(Math.random() * severities.length)]
-    }))
   }
 
   const filteredLogs = logs.filter(log => {
@@ -229,6 +621,33 @@ export default function SystemLogs() {
     document.body.removeChild(link)
   }
 
+  // Verificação de acesso negado
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Logs do Sistema</h2>
+            <p className="text-gray-600">
+              Logs completos para verificação e auditoria de todas as atividades
+            </p>
+          </div>
+        </div>
+        
+        <Card>
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Acesso Restrito</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-sm text-gray-500">
+              Apenas administradores da entidade podem visualizar os logs do sistema.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -236,11 +655,11 @@ export default function SystemLogs() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Logs do Sistema</h2>
           <p className="text-gray-600">
-            Logs completos para verificação e auditoria de todas as atividades
+            Logs completos para verificação e auditoria de todas as atividades da entidade
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportLogs}>
+          <Button variant="outline" size="sm" onClick={exportLogs} disabled={loading || filteredLogs.length === 0}>
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
           </Button>

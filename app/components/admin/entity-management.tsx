@@ -16,6 +16,7 @@ import {
   Loader2
 } from 'lucide-react'
 import EntityUserManagement from './entity-user-management'
+import { useAuditLogger } from '@/hooks/use-audit-logger'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +25,7 @@ const supabase = createBrowserClient(
 
 export default function EntityManagement() {
   const { user } = useAuth()
+  const { logEntityUpdate, logSystemAction } = useAuditLogger()
   const [userProfile, setUserProfile] = useState<any>(null)
   const [userEntity, setUserEntity] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -162,6 +164,20 @@ export default function EntityManagement() {
             current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           }])
       }
+
+      // Registrar log de criação da entidade
+      logSystemAction(
+        `Entidade criada: ${newEntity.name}`,
+        'entity',
+        newEntity.id,
+        {
+          entity_name: newEntity.name,
+          legal_name: newEntity.legal_name,
+          cnpj: newEntity.cnpj,
+          admin_user: user?.email
+        },
+        'success'
+      )
 
       setSuccess(`Entidade "${newEntity.name}" criada com sucesso! Você agora é o administrador.`)
       setShowCreateForm(false)

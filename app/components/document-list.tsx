@@ -85,11 +85,11 @@ const formatFileSize = (bytes: number) => {
 // Função para destacar texto pesquisado
 const highlightSearchTerm = (text: string, searchTerm: string) => {
   if (!searchTerm.trim()) return text
-  
+
   const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
   const parts = text.split(regex)
-  
-  return parts.map((part, index) => 
+
+  return parts.map((part, index) =>
     regex.test(part) ? (
       <mark key={index} className="bg-yellow-200 text-yellow-900 px-1 rounded">
         {part}
@@ -104,7 +104,7 @@ export default function DocumentList() {
   const router = useRouter()
   const [filters, setFilters] = useState<DocumentFilters>({})
   const [searchTerm, setSearchTerm] = useState("")
-  
+
   // Memoizar os filtros para evitar re-renders desnecessários
   const memoizedFilters = useMemo(() => filters, [
     filters.search,
@@ -117,7 +117,7 @@ export default function DocumentList() {
     filters.date_from,
     filters.date_to
   ])
-  
+
   const { documents, loading, error, deleteDocument, downloadDocument, refetch } = useDocuments(memoizedFilters)
   const { categories } = useCategories()
   const { departments } = useDepartments()
@@ -145,7 +145,7 @@ export default function DocumentList() {
     setViewMode(mode)
     localStorage.setItem('documents-view-mode', mode)
   }
-  
+
   // Estados removidos - documentos de processos não são mais exibidos nesta página
   // Documentos anexados em processos são exibidos apenas dentro do respectivo processo
   // Se o processo for apagado, os documentos também são removidos automaticamente
@@ -188,10 +188,10 @@ export default function DocumentList() {
   useEffect(() => {
     const fetchApprovalStatuses = async () => {
       if (documents.length === 0) return
-      
+
       setApprovalStatusesLoading(true)
       const statuses: Record<string, any[]> = {}
-      
+
       try {
         // Buscar todos os status de aprovação em uma única consulta
         const { data: allWorkflows, error } = await supabase
@@ -321,7 +321,7 @@ export default function DocumentList() {
     }
 
     const approvalStatus = approvalStatuses[document.id] || []
-    
+
     // Se documento foi rejeitado, mostrar status especial
     if (document.status === 'rejected') {
       return (
@@ -346,7 +346,7 @@ export default function DocumentList() {
         </div>
       )
     }
-    
+
     if (approvalStatus.length === 0) {
       return (
         <div className="flex items-center gap-2">
@@ -410,7 +410,7 @@ export default function DocumentList() {
     }
 
     const approvalStatus = approvalStatuses[document.id] || []
-    
+
     // Se documento foi rejeitado
     if (document.status === 'rejected') {
       return (
@@ -430,7 +430,7 @@ export default function DocumentList() {
         </>
       )
     }
-    
+
     if (approvalStatus.length === 0) {
       return (
         <>
@@ -518,13 +518,13 @@ export default function DocumentList() {
               {documentsList.map((document) => (
                 <AnimatedDocumentRow key={document.id}>
                   <div className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors ${!isDocumentBlocked(document) ? 'cursor-pointer' : 'cursor-default'}`}
-                       onClick={() => {
-                         // Só abrir o visualizador se o documento não estiver bloqueado
-                         if (!isDocumentBlocked(document)) {
-                           setSelectedDocument(document)
-                           setShowViewer(true)
-                         }
-                       }}>
+                    onClick={() => {
+                      // Só abrir o visualizador se o documento não estiver bloqueado
+                      if (!isDocumentBlocked(document)) {
+                        setSelectedDocument(document)
+                        setShowViewer(true)
+                      }
+                    }}>
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="shrink-0">
@@ -541,7 +541,7 @@ export default function DocumentList() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-3 shrink-0">
                         <div onClick={(e) => {
                           e.stopPropagation()
@@ -554,12 +554,12 @@ export default function DocumentList() {
                             showTooltip={false}
                           />
                         </div>
-                        
+
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-8 w-8 p-0"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -687,14 +687,13 @@ export default function DocumentList() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {documentsList.map((document) => (
             <AnimatedDocumentRow key={document.id}>
-              <Card className="h-64 hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4" 
-                    style={{ borderLeftColor: document.document_type?.color || '#6B7280' }}
-                    onClick={() => {
-                      if (!isDocumentBlocked(document)) {
-                        setSelectedDocument(document)
-                        setShowViewer(true)
-                      }
-                    }}>
+              <Card className="h-64 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                onClick={() => {
+                  if (!isDocumentBlocked(document)) {
+                    setSelectedDocument(document)
+                    setShowViewer(true)
+                  }
+                }}>
                 <CardHeader className="pb-2 px-3 pt-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-2 min-w-0 flex-1">
@@ -705,13 +704,13 @@ export default function DocumentList() {
                         "p-1.5"
                       )}
                       <div className="min-w-0 flex-1">
-                        <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors leading-tight" 
-                                   style={{ 
-                                     display: '-webkit-box', 
-                                     WebkitLineClamp: 2, 
-                                     WebkitBoxOrient: 'vertical', 
-                                     overflow: 'hidden' 
-                                   }}>
+                        <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors leading-tight"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}>
                           {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
                         </CardTitle>
                       </div>
@@ -730,9 +729,9 @@ export default function DocumentList() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -812,17 +811,17 @@ export default function DocumentList() {
                     </div>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="px-3 pb-3 space-y-3">
                   {/* Informações Compactas */}
                   <div className="space-y-2">
                     {/* Tipo e Autor em uma linha */}
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <Badge 
-                        variant="outline" 
+                      <Badge
+                        variant="outline"
                         className="text-xs px-1.5 py-0.5 h-5"
-                        style={{ 
-                          backgroundColor: `${document.document_type?.color || '#6B7280'}15`, 
+                        style={{
+                          backgroundColor: `${document.document_type?.color || '#6B7280'}15`,
                           borderColor: document.document_type?.color || '#6B7280',
                           color: document.document_type?.color || '#6B7280'
                         }}
@@ -950,10 +949,10 @@ export default function DocumentList() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          
-          <Button 
-            onClick={handleRefresh} 
-            variant="outline" 
+
+          <Button
+            onClick={handleRefresh}
+            variant="outline"
             className="flex items-center gap-2"
             disabled={loading}
           >
@@ -1056,7 +1055,7 @@ export default function DocumentList() {
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-800">
-              {documents.length === 0 
+              {documents.length === 0
                 ? `Nenhum resultado encontrado para "${searchTerm}"`
                 : `${documents.length} documento(s) encontrado(s) para "${searchTerm}"`
               }
@@ -1075,19 +1074,19 @@ export default function DocumentList() {
       )}
 
       {/* Lista de Documentos Armazenados */}
-      {viewMode === 'grid' 
+      {viewMode === 'grid'
         ? renderDocumentsGrid(
-            documents,
-            searchTerm ? "Resultados da Pesquisa" : "Documentos Armazenados",
-            searchTerm ? <Search className="h-5 w-5 text-blue-600" /> : <FolderOpen className="h-5 w-5 text-success" />,
-            searchTerm ? `Nenhum documento encontrado para "${searchTerm}"` : "Nenhum documento armazenado encontrado"
-          )
+          documents,
+          searchTerm ? "Resultados da Pesquisa" : "Documentos Armazenados",
+          searchTerm ? <Search className="h-5 w-5 text-blue-600" /> : <FolderOpen className="h-5 w-5 text-success" />,
+          searchTerm ? `Nenhum documento encontrado para "${searchTerm}"` : "Nenhum documento armazenado encontrado"
+        )
         : renderDocumentsList(
-            documents,
-            searchTerm ? "Resultados da Pesquisa" : "Documentos Armazenados",
-            searchTerm ? <Search className="h-5 w-5 text-blue-600" /> : <FolderOpen className="h-5 w-5 text-success" />,
-            searchTerm ? `Nenhum documento encontrado para "${searchTerm}"` : "Nenhum documento armazenado encontrado"
-          )
+          documents,
+          searchTerm ? "Resultados da Pesquisa" : "Documentos Armazenados",
+          searchTerm ? <Search className="h-5 w-5 text-blue-600" /> : <FolderOpen className="h-5 w-5 text-success" />,
+          searchTerm ? `Nenhum documento encontrado para "${searchTerm}"` : "Nenhum documento armazenado encontrado"
+        )
       }
 
 
@@ -1105,43 +1104,43 @@ export default function DocumentList() {
             setShowUpload(false)
             handleRefresh() // Recarregar a lista de documentos após upload
           }} />
-                 </DialogContent>
-       </Dialog>
+        </DialogContent>
+      </Dialog>
 
-       {/* Document Viewer */}
-       {showViewer && selectedDocument && (
-         <DocumentViewer
-           document={selectedDocument}
-           onClose={() => {
-             setShowViewer(false)
-             setSelectedDocument(null)
-           }}
-         />
-       )}
+      {/* Document Viewer */}
+      {showViewer && selectedDocument && (
+        <DocumentViewer
+          document={selectedDocument}
+          onClose={() => {
+            setShowViewer(false)
+            setSelectedDocument(null)
+          }}
+        />
+      )}
 
-       {/* Document Version Manager */}
-       {selectedDocumentForVersions && (
-         <DocumentVersionManager
-           documentId={selectedDocumentForVersions.id}
-           documentTitle={selectedDocumentForVersions.title}
-           currentVersion={selectedDocumentForVersions.version || 1}
-           isOpen={showVersionManager}
-           onClose={() => {
-             setShowVersionManager(false)
-             setSelectedDocumentForVersions(null)
-           }}
-           onVersionUpdated={async () => {
-             // Atualizar a lista de documentos quando uma versão for criada/restaurada
-             await refetch()
-             // Forçar uma nova busca para garantir que os dados estejam atualizados
-             setTimeout(() => {
-               refetch()
-             }, 500)
-           }}
-         />
-       )}
+      {/* Document Version Manager */}
+      {selectedDocumentForVersions && (
+        <DocumentVersionManager
+          documentId={selectedDocumentForVersions.id}
+          documentTitle={selectedDocumentForVersions.title}
+          currentVersion={selectedDocumentForVersions.version || 1}
+          isOpen={showVersionManager}
+          onClose={() => {
+            setShowVersionManager(false)
+            setSelectedDocumentForVersions(null)
+          }}
+          onVersionUpdated={async () => {
+            // Atualizar a lista de documentos quando uma versão for criada/restaurada
+            await refetch()
+            // Forçar uma nova busca para garantir que os dados estejam atualizados
+            setTimeout(() => {
+              refetch()
+            }, 500)
+          }}
+        />
+      )}
 
-       
-     </div>
-   )
- }
+
+    </div>
+  )
+}

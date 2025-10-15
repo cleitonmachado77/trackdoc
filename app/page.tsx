@@ -54,6 +54,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, AreaChart, Area } from "recharts"
 import Sidebar from "./components/sidebar"
 import DocumentModal from "./components/document-modal"
@@ -81,6 +82,7 @@ import DocumentCreationSelector from "./components/document-creation-selector"
 import DocumentList from "./components/document-list"
 import DocumentUploadWithApproval from "./components/document-upload-with-approval"
 import EntityUserManagement from "./components/admin/entity-user-management"
+import EntityManagement from "./components/admin/entity-management"
 import ElectronicSignature from "./components/electronic-signature"
 
 import ChatPage from "./chat/page"
@@ -1076,7 +1078,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
@@ -1091,7 +1093,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Aprovados</CardTitle>
@@ -1106,7 +1108,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   </p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Rejeitados</CardTitle>
@@ -1200,21 +1202,21 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                           <div className="flex-1">
                             <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
                             <p className="text-sm text-gray-500">
-                              Status: {approval.status === 'pending' ? 'Aguardando Aprovação' : 
-                                       approval.status === 'approved' ? 'Aprovado' : 
-                                       approval.status === 'rejected' ? 'Rejeitado' : approval.status}
+                              Status: {approval.status === 'pending' ? 'Aguardando Aprovação' :
+                                approval.status === 'approved' ? 'Aprovado' :
+                                  approval.status === 'rejected' ? 'Rejeitado' : approval.status}
                             </p>
                             <p className="text-sm text-gray-500">
                               Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge 
-                              variant={approval.status === 'approved' ? 'default' : 
-                                       approval.status === 'rejected' ? 'destructive' : 'secondary'}
-                              className={approval.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                                       approval.status === 'rejected' ? 'bg-red-100 text-red-800' : 
-                                       'bg-yellow-100 text-yellow-800'}
+                            <Badge
+                              variant={approval.status === 'approved' ? 'default' :
+                                approval.status === 'rejected' ? 'destructive' : 'secondary'}
+                              className={approval.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                approval.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'}
                             >
                               {approval.status === 'approved' ? (
                                 <>
@@ -1289,7 +1291,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge 
+                            <Badge
                               variant={approval.status === 'approved' ? 'default' : 'destructive'}
                               className={approval.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
                             >
@@ -1353,8 +1355,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     Gerencie usuários, configurações e relatórios do sistema
                   </p>
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => setAdminView("overview")}
                 >
@@ -1434,6 +1436,23 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     </CardContent>
                   </Card>
 
+                  {/* Entidades */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("entities")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-cyan-600" />
+                        Entidades
+                      </CardTitle>
+                      <CardDescription>
+                        Gerenciar entidades e organizações
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{entityStats?.total_users || 0}</div>
+                      <p className="text-sm text-muted-foreground">usuários na entidade</p>
+                    </CardContent>
+                  </Card>
+
                   {/* Relatórios */}
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("productivity-report")}>
                     <CardHeader>
@@ -1473,7 +1492,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {/* Conteúdo específico de cada seção */}
               {adminView === "users" && <UserManagement />}
               {adminView === "document-types" && (
-                <DocumentTypeManagement 
+                <DocumentTypeManagement
                   initialDocumentTypes={documentTypes.map(dt => ({
                     ...dt,
                     documentsCount: documents.filter(doc => doc.document_type_id === dt.id).length
@@ -1491,6 +1510,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {adminView === "billing-stats" && <BillingStats />}
               {adminView === "notifications" && <NotificationManagement />}
               {adminView === "entity-users" && <EntityUserManagement />}
+              {adminView === "entities" && <EntityManagement />}
 
               {/* Menu de Relatórios */}
               {adminView === "reports" && (
@@ -1556,35 +1576,35 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"
                         onClick={() => setAdminView("users")}
                       >
                         <Users className="h-6 w-6" />
                         <span className="text-sm">Usuários</span>
                       </Button>
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"
                         onClick={() => setAdminView("departments")}
                       >
                         <Building2 className="h-6 w-6" />
                         <span className="text-sm">Departamentos</span>
                       </Button>
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"
                         onClick={() => setAdminView("productivity-report")}
                       >
                         <BarChart3 className="h-6 w-6" />
                         <span className="text-sm">Relatórios</span>
                       </Button>
-                      
-                      <Button 
-                        variant="outline" 
+
+                      <Button
+                        variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"
                         onClick={() => {
                           setActiveView("documents")

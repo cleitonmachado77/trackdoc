@@ -64,7 +64,7 @@ import ApprovalReviewModal from "./components/approval-review-modal"
 import ApprovalDetailsModal from "./components/approval-details-modal"
 import AuditModal from "./components/audit-modal"
 import FixedQuickSearchModal from "./components/fixed-quick-search-modal"
-import UserManagement from "./components/admin/user-management"
+
 import DocumentTypeManagement from "./components/admin/document-type-management"
 import ProductivityReport from "./components/admin/productivity-report"
 import ApprovalTimeReport from "./components/admin/approval-time-report"
@@ -1368,23 +1368,6 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {/* Navegação Admin */}
               {adminView === "overview" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Gestão de Usuários */}
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("users")}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-blue-600" />
-                        Gestão de Usuários
-                      </CardTitle>
-                      <CardDescription>
-                        Gerenciar usuários, permissões e acessos
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{entityStats?.total_users || 0}</div>
-                      <p className="text-sm text-muted-foreground">usuários cadastrados</p>
-                    </CardContent>
-                  </Card>
-
                   {/* Tipos de Documento */}
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("document-types")}>
                     <CardHeader>
@@ -1490,7 +1473,6 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               )}
 
               {/* Conteúdo específico de cada seção */}
-              {adminView === "users" && <UserManagement />}
               {adminView === "document-types" && (
                 <DocumentTypeManagement
                   initialDocumentTypes={documentTypes.map(dt => ({
@@ -1575,16 +1557,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setAdminView("users")}
-                      >
-                        <Users className="h-6 w-6" />
-                        <span className="text-sm">Usuários</span>
-                      </Button>
-
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <Button
                         variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"

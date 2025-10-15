@@ -420,8 +420,8 @@ export default function UnifiedNotificationsPage() {
             <Card key={i}>
               <CardContent className="p-4">
                 <div className="animate-pulse space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
                 </div>
               </CardContent>
             </Card>
@@ -450,8 +450,8 @@ export default function UnifiedNotificationsPage() {
           <Card 
             key={notification.id} 
             className={`transition-all hover:shadow-md ${
-              !notification.read ? 'border-blue-200 bg-blue-50/50' : ''
-            } ${selectedNotifications.includes(notification.id) ? 'border-blue-300 bg-blue-100/50' : ''}`}
+              !notification.read ? 'border-primary/50 bg-accent/50' : ''
+            } ${selectedNotifications.includes(notification.id) ? 'border-primary bg-accent' : ''}`}
           >
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
@@ -461,14 +461,14 @@ export default function UnifiedNotificationsPage() {
                     type="checkbox"
                     checked={selectedNotifications.includes(notification.id)}
                     onChange={() => toggleNotificationSelection(notification.id)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
                   />
                 </div>
                 
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     {getCategoryIcon(notification.category)}
-                    <h4 className={`font-medium ${!notification.read ? 'font-semibold text-blue-900' : ''}`}>
+                    <h4 className={`font-medium ${!notification.read ? 'font-semibold text-foreground' : 'text-foreground'}`}>
                       {notification.title}
                     </h4>
                     <Badge variant="outline" className={getTypeColor(notification.type)}>
@@ -482,17 +482,17 @@ export default function UnifiedNotificationsPage() {
                        notification.priority === 'medium' ? 'Média' : 'Baixa'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     {notification.message}
                   </p>
                   {notification.metadata?.document_title && (
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <FileText className="h-3 w-3" />
                       {notification.metadata.document_title}
                     </p>
                   )}
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground/70 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {new Date(notification.created_at).toLocaleString('pt-BR')}
                     </p>
@@ -502,7 +502,7 @@ export default function UnifiedNotificationsPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => markAsRead(notification)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="text-primary hover:text-primary/80"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Marcar como lida
@@ -512,7 +512,7 @@ export default function UnifiedNotificationsPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => removeNotification(notification.id)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-destructive hover:text-destructive/80"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Remover
@@ -533,11 +533,11 @@ export default function UnifiedNotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Central de Notificações</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl font-bold text-foreground">Central de Notificações</h1>
+          <p className="text-muted-foreground">
             Todas as suas notificações importantes em um só lugar
             {selectedNotifications.length > 0 && (
-              <span className="ml-2 text-blue-600 font-medium">
+              <span className="ml-2 text-primary font-medium">
                 ({selectedNotifications.length} selecionada{selectedNotifications.length > 1 ? 's' : ''})
               </span>
             )}

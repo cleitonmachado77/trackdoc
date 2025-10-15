@@ -510,9 +510,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Card 1: Total de Documentos */}
-          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
             onClick={() => handleCardClick('all')}>
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
                 <div className="p-3 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors duration-300">
@@ -546,9 +546,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </Card>
 
           {/* Card 2: Aprovações Pendentes */}
-          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
             onClick={() => setActiveView('approvals')}>
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-amber-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-warning/5 to-warning/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
                 <div className="p-3 rounded-xl bg-amber-50 group-hover:bg-amber-100 transition-colors duration-300">
@@ -574,7 +574,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </Card>
 
           {/* Card 3: Assinaturas Digitais */}
-          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
             onClick={() => setActiveView('electronic-signature')}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
@@ -602,8 +602,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </Card>
 
           {/* Card 4: Usuários Ativos */}
-          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-green-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-success/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
                 <div className="p-3 rounded-xl bg-green-50 group-hover:bg-green-100 transition-colors duration-300">

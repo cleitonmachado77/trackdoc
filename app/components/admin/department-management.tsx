@@ -487,7 +487,7 @@ function DepartmentsGridView({ departments, onEdit, onDelete }: DepartmentsViewP
             <div className="flex items-center space-x-3 mb-3">
               <DepartmentAvatar name={department.name} />
               <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                <CardTitle className="text-lg font-semibold text-foreground truncate">
                   {department.name}
                 </CardTitle>
                 <DepartmentStatusBadge status={department.status} />
@@ -496,7 +496,7 @@ function DepartmentsGridView({ departments, onEdit, onDelete }: DepartmentsViewP
             
             {department.description && (
               <p 
-                className="text-sm text-gray-600 leading-relaxed overflow-hidden"
+                className="text-sm text-muted-foreground leading-relaxed overflow-hidden"
                 style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
@@ -605,13 +605,13 @@ function DepartmentManagerInfo({ department }: { department: Department }) {
 function DepartmentStatsGrid({ department }: { department: Department }) {
   return (
     <div className="grid grid-cols-2 gap-3">
-      <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-        <p className="text-xl font-bold text-blue-600">{department.user_count || 0}</p>
-        <p className="text-xs text-gray-600 font-medium">Funcionários</p>
+      <div className="text-center p-3 bg-accent rounded-lg border">
+        <p className="text-xl font-bold text-primary">{department.user_count || 0}</p>
+        <p className="text-xs text-muted-foreground font-medium">Funcionários</p>
       </div>
-      <div className="text-center p-3 bg-green-50 rounded-lg border border-green-100">
-        <p className="text-xl font-bold text-green-600">{department.document_count || 0}</p>
-        <p className="text-xs text-gray-600 font-medium">Documentos</p>
+      <div className="text-center p-3 bg-accent rounded-lg border">
+        <p className="text-xl font-bold text-success">{department.document_count || 0}</p>
+        <p className="text-xs text-muted-foreground font-medium">Documentos</p>
       </div>
     </div>
   )
@@ -633,7 +633,7 @@ function DepartmentActions({
   const isCardLayout = layout === "card"
   
   return (
-    <div className={`flex items-center ${isCardLayout ? 'justify-between pt-2 border-t border-gray-100' : 'space-x-2 flex-shrink-0 ml-4'}`}>
+    <div className={`flex items-center ${isCardLayout ? 'justify-between pt-2 border-t border-border' : 'space-x-2 flex-shrink-0 ml-4'}`}>
       <DepartmentEmployeesModal
         departmentId={department.id}
         departmentName={department.name}

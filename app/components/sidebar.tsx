@@ -4,6 +4,7 @@ import { useState, memo, useCallback, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { SimpleThemeToggle } from "@/components/ui/theme-toggle"
 import {
   FileText,
   LayoutDashboard,
@@ -147,14 +148,14 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
       {/* Sidebar */}
       <div
         className={cn(
-          "bg-white/95 backdrop-blur-sm border-r border-trackdoc-blue-light flex flex-col transition-all duration-300 z-50 h-screen shadow-trackdoc-lg",
+          "bg-sidebar/95 backdrop-blur-sm border-r border-border flex flex-col transition-all duration-300 z-50 h-screen shadow-lg",
           "fixed md:relative",
           isExpanded ? "w-64" : "w-16",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
         {/* 🎨 Header - Novo Design */}
-        <div className="p-4 border-b border-trackdoc-blue-light bg-gradient-to-r from-white to-trackdoc-blue-light/10">
+        <div className="p-4 border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10">
           <div className="flex items-center justify-between">
             {isExpanded && (
               <div className="flex items-center space-x-3">
@@ -166,19 +167,22 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   <img 
                     src="/logo-horizontal-preto.png" 
                     alt="TrackDoc Logo" 
-                    className="h-12 w-auto object-contain"
+                    className="h-12 w-auto object-contain dark:invert"
                   />
                 </div>
               </div>
             )}
-            <Button variant="ghost" size="sm" onClick={toggleSidebar} className="hidden md:flex">
-              {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </Button>
+            <div className="flex items-center space-x-2">
+              <SimpleThemeToggle />
+              <Button variant="ghost" size="sm" onClick={toggleSidebar} className="hidden md:flex">
+                {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* User Profile */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center space-x-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={profile?.avatar_url} />
@@ -188,10 +192,10 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
             </Avatar>
             {isExpanded && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
                   {profile?.full_name || "Usuário"}
                 </p>
-                <p className="text-xs text-gray-500 truncate">{profile?.email || user?.email}</p>
+                <p className="text-xs text-sidebar-foreground/70 truncate">{profile?.email || user?.email}</p>
               </div>
             )}
           </div>
@@ -209,9 +213,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   key={item.id}
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full transition-colors",
+                    "w-full transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     isExpanded ? "justify-start" : "justify-center",
-                    isActive && "bg-blue-50 text-blue-600 border-blue-100",
+                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                   )}
                   onClick={() => {
                     if (item.onClick) {
@@ -239,15 +243,15 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 flex-shrink-0">
+        <div className="p-4 border-t border-border flex-shrink-0">
           {isExpanded && (
             <div className="mb-4">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ações Rápidas</h3>
-              <div className="space-y-1 p-2 bg-gray-50 rounded-lg border">
+              <h3 className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider mb-3">Ações Rápidas</h3>
+              <div className="space-y-1 p-2 bg-sidebar-accent rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <Button
                     variant="ghost"
-                    className="flex-1 justify-start text-gray-600 hover:text-gray-900 hover:bg-white"
+                    className="flex-1 justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar"
                     onClick={() => setShowQuickSearch(true)}
                   >
                     <Search className="h-4 w-4 mr-3" />
@@ -258,8 +262,8 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 <Button
                   variant={activeView === "help" ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-white",
-                    activeView === "help" && "bg-blue-50 text-blue-700 border-blue-200",
+                    "w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar",
+                    activeView === "help" && "bg-sidebar-accent text-sidebar-accent-foreground",
                   )}
                   onClick={() => onViewChange("help")}
                 >
@@ -270,10 +274,10 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
             </div>
           )}
 
-          <div className="pt-3 border-t border-gray-100">
+          <div className="pt-3 border-t border-border">
             <Button
               className={cn(
-                "w-full text-red-600 hover:text-red-700 hover:bg-red-50",
+                "w-full text-destructive hover:text-destructive hover:bg-destructive/10",
                 isExpanded ? "justify-start" : "justify-center",
               )}
               variant="ghost"

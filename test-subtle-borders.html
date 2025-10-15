@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Bordas Sutis - TrackDoc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Modo Claro
+                        background: 'hsl(0 0% 100%)',
+                        foreground: 'hsl(0 0% 0%)',
+                        border: 'hsl(0 0% 90%)',
+                        card: 'hsl(0 0% 100%)',
+                        // Modo Escuro
+                        'dark-background': 'hsl(217 32% 8%)',
+                        'dark-foreground': 'hsl(217 20% 95%)',
+                        'dark-border': 'hsl(217 32% 14%)',
+                        'dark-card': 'hsl(217 32% 12%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 0 0% 0%;
+            --border: 0 0% 90%;
+            --card: 0 0% 100%;
+        }
+        
+        .dark {
+            --background: 217 32% 8%;
+            --foreground: 217 20% 95%;
+            --border: 217 32% 14%;
+            --card: 217 32% 12%;
+        }
+        
+        body {
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+
+        /* BORDAS MAIS SUTIS NO MODO ESCURO */
+        .dark .border,
+        .dark .border-border {
+            border-color: hsl(217, 32%, 14%) !important;
+            opacity: 0.6;
+        }
+
+        .dark .border-t,
+        .dark .border-b,
+        .dark .border-l,
+        .dark .border-r {
+            border-color: hsl(217, 32%, 14%) !important;
+            opacity: 0.6;
+        }
+
+        /* BORDAS DE CARDS MAIS SUTIS */
+        .dark .card-border {
+            border-color: hsl(217, 32%, 14%) !important;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold">Teste de Bordas Sutis</h1>
+                <p class="mt-2 opacity-70">
+                    Verificando se as bordas estão mais sutis no modo escuro
+                </p>
+            </div>
+            <button 
+                class="px-4 py-2 rounded-md border"
+                onclick="toggleTheme()"
+                style="background: hsl(var(--card)); border-color: hsl(var(--border));"
+            >
+                <span id="theme-icon">🌙</span> Alternar Tema
+            </button>
+        </div>
+
+        <!-- Cards de Teste -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Card 1 -->
+            <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 rounded-xl bg-blue-500 text-white">
+                        📄
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold">1,234</div>
+                        <div class="text-sm opacity-70">Total de Documentos</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 rounded-xl bg-yellow-500 text-white">
+                        ⏰
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold">89</div>
+                        <div class="text-sm opacity-70">Aprovações Pendentes</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 rounded-xl bg-green-500 text-white">
+                        ✍️
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold">456</div>
+                        <div class="text-sm opacity-70">Assinaturas Concluídas</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 rounded-xl bg-purple-500 text-white">
+                        👥
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold">25</div>
+                        <div class="text-sm opacity-70">Usuários Ativos</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cards Maiores -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Card com Seções Internas -->
+            <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+                <h3 class="text-xl font-semibold mb-4">Status dos Documentos</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-3 border-t">
+                        <span>Aprovados</span>
+                        <span class="font-bold">2</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 border-t">
+                        <span>Pendentes</span>
+                        <span class="font-bold">0</span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 border-t">
+                        <span>Rascunhos</span>
+                        <span class="font-bold">2</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card com Bordas Internas -->
+            <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+                <h3 class="text-xl font-semibold mb-4">Minhas Aprovações</h3>
+                <div class="space-y-4">
+                    <div class="p-3 border rounded-lg">
+                        <div class="font-medium">Pendentes</div>
+                        <div class="text-2xl font-bold">0</div>
+                    </div>
+                    <div class="p-3 border rounded-lg">
+                        <div class="font-medium">Aprovadas por mim</div>
+                        <div class="text-2xl font-bold">1</div>
+                    </div>
+                    <div class="p-3 border rounded-lg">
+                        <div class="font-medium">Rejeitadas por mim</div>
+                        <div class="text-2xl font-bold">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações -->
+        <div class="p-6 rounded-lg border card-border" style="background: hsl(var(--card));">
+            <h3 class="text-xl font-semibold mb-4">Verificação das Bordas</h3>
+            <div class="space-y-2">
+                <p><strong>Modo Claro:</strong> Bordas devem ser cinza claro e visíveis</p>
+                <p><strong>Modo Escuro:</strong> Bordas devem ser azul escuro e SUTIS (não muito brancas)</p>
+                <p><strong>Opacidade:</strong> No modo escuro, as bordas têm opacidade reduzida para serem menos chamativas</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.textContent = '☀️';
+            } else {
+                html.classList.add('dark');
+                icon.textContent = '🌙';
+            }
+        }
+    </script>
+</body>
+</html>

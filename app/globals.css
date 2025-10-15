@@ -51,62 +51,79 @@
     --trackdoc-black: 0 0% 0%; /* Preto do logo */
     --trackdoc-gray: 0 0% 50%; /* Cinza neutro */
     --trackdoc-gray-light: 0 0% 96%; /* Cinza claro */
+
+    /* SIDEBAR NO MODO CLARO */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 217 91% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 217 91% 25%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 217 91% 60%;
   }
 
   .dark {
-    /* MODO ESCURO BASEADO NO LOGO AZUL E PRETO */
-    --background: 0 0% 8%; /* Preto profundo */
-    --foreground: 0 0% 100%; /* Branco puro */
-    --card: 0 0% 12%; /* Preto suave para cards */
-    --card-foreground: 0 0% 100%; /* Branco para contraste */
-    --popover: 0 0% 12%; /* Preto suave para popovers */
-    --popover-foreground: 0 0% 100%; /* Branco para contraste */
+    /* MODO ESCURO BASEADO EM TONS DE AZUL ESCURO - MAIS CLARO */
+    --background: 217 32% 12%; /* Azul escuro mais claro como fundo principal */
+    --foreground: 217 20% 98%; /* Azul muito claro quase branco */
+    --card: 217 32% 16%; /* Azul escuro para cards (mais claro que o fundo) */
+    --card-foreground: 217 20% 98%; /* Azul muito claro para texto */
+    --popover: 217 32% 14%; /* Azul escuro para popovers */
+    --popover-foreground: 217 20% 98%; /* Azul muito claro para texto */
     
     /* AZUL PRINCIPAL NO MODO ESCURO */
-    --primary: 217 91% 65%; /* Azul mais claro no escuro */
-    --primary-foreground: 0 0% 0%; /* Preto para contraste */
+    --primary: 217 91% 65%; /* Azul vibrante */
+    --primary-foreground: 217 32% 8%; /* Azul escuro para contraste */
     
-    /* PRETO SECUNDRIO NO MODO ESCURO */
-    --secondary: 0 0% 20%; /* Preto mais claro */
-    --secondary-foreground: 0 0% 100%; /* Branco para contraste */
+    /* SECUNDÁRIO EM TONS DE AZUL */
+    --secondary: 217 32% 22%; /* Azul médio escuro mais claro */
+    --secondary-foreground: 217 20% 98%; /* Azul claro para texto */
     
-    /* CORES DE APOIO NO MODO ESCURO */
-    --muted: 0 0% 15%; /* Cinza escuro */
-    --muted-foreground: 0 0% 65%; /* Cinza mdio */
-    --accent: 217 91% 18%; /* Azul escuro para acentos */
-    --accent-foreground: 217 91% 85%; /* Azul claro para texto */
+    /* CORES DE APOIO EM TONS DE AZUL */
+    --muted: 217 32% 19%; /* Azul escuro suave mais claro */
+    --muted-foreground: 217 20% 75%; /* Azul médio para texto mais claro */
+    --accent: 217 32% 24%; /* Azul médio para acentos mais claro */
+    --accent-foreground: 217 20% 98%; /* Azul claro para texto */
     
-    /* CORES DE ESTADO NO MODO ESCURO */
-    --destructive: 0 62% 55%; /* Vermelho ajustado para escuro */
-    --destructive-foreground: 0 0% 100%; /* Branco para contraste */
+    /* CORES DE ESTADO ADAPTADAS */
+    --destructive: 0 62.8% 45%; /* Vermelho mais vibrante */
+    --destructive-foreground: 217 20% 95%; /* Azul claro para contraste */
     
-    /* CORES DE SUCESSO NO MODO ESCURO */
-    --success: 217 91% 55%; /* Azul ajustado para escuro */
-    --success-foreground: 0 0% 100%; /* Branco para contraste */
+    /* CORES DE SUCESSO */
+    --success: 142.1 76.2% 45%; /* Verde mais vibrante */
+    --success-foreground: 217 20% 95%; /* Azul claro para contraste */
     
-    /* CORES DE AVISO NO MODO ESCURO */
-    --warning: 45 93% 65%; /* Amarelo ajustado para escuro */
-    --warning-foreground: 0 0% 0%; /* Preto para contraste */
+    /* CORES DE AVISO */
+    --warning: 47.9 95.8% 60%; /* Amarelo vibrante */
+    --warning-foreground: 217 32% 8%; /* Azul escuro para contraste */
     
-    /* ELEMENTOS DE INTERFACE NO MODO ESCURO */
-    --border: 0 0% 25%; /* Cinza escuro para bordas */
-    --input: 0 0% 15%; /* Cinza escuro para inputs */
-    --ring: 217 91% 65%; /* Azul para focus rings */
+    /* ELEMENTOS DE INTERFACE EM TONS DE AZUL */
+    --border: 217 32% 20%; /* Azul mais claro para bordas */
+    --input: 217 32% 19%; /* Azul escuro para inputs mais claro */
+    --ring: 217 91% 65%; /* Azul vibrante para focus */
     
-    /* CORES ESPECIAIS DO TRACKDOC NO MODO ESCURO */
-    --trackdoc-blue: 217 91% 55%; /* Azul principal ajustado */
-    --trackdoc-blue-light: 217 91% 15%; /* Azul escuro para acentos */
-    --trackdoc-blue-dark: 217 91% 35%; /* Azul médio */
-    --trackdoc-black: 0 0% 100%; /* Branco (inverso do logo) */
-    --trackdoc-gray: 0 0% 65%; /* Cinza mdio */
-    --trackdoc-gray-light: 0 0% 15%; /* Cinza escuro */
+    /* CORES ESPECIAIS DO TRACKDOC EM TONS DE AZUL */
+    --trackdoc-blue: 217 91% 65%; /* Azul principal vibrante */
+    --trackdoc-blue-light: 217 32% 28%; /* Azul médio claro mais brilhante */
+    --trackdoc-blue-dark: 217 91% 35%; /* Azul escuro vibrante */
+    --trackdoc-black: 217 20% 98%; /* Azul muito claro (substitui branco) */
+    --trackdoc-gray: 217 20% 65%; /* Azul acinzentado mais claro */
+    --trackdoc-gray-light: 217 32% 22%; /* Azul escuro acinzentado mais claro */
+
+    /* SIDEBAR EM TONS DE AZUL ESCURO */
+    --sidebar-background: 217 32% 10%; /* Azul escuro para sidebar mais claro */
+    --sidebar-foreground: 217 20% 98%;
+    --sidebar-primary: 217 91% 65%;
+    --sidebar-primary-foreground: 217 32% 12%;
+    --sidebar-accent: 217 32% 19%;
+    --sidebar-accent-foreground: 217 20% 98%;
+    --sidebar-border: 217 32% 18%;
+    --sidebar-ring: 217 91% 65%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
     @apply bg-background text-foreground;
   }
@@ -291,4 +308,721 @@ button:focus:not(:disabled) {
 .condition-node {
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
+}
+
+/* ESTILOS ESPECÍFICOS PARA MODO ESCURO AZUL */
+.dark {
+  color-scheme: dark;
+}
+
+/* GARANTIR QUE O BODY USE O FUNDO AZUL ESCURO */
+.dark body {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* MAIN CONTENT AREA */
+.dark main {
+  background: hsl(var(--background)) !important;
+}
+
+/* REACT FLOW NO MODO ESCURO AZUL */
+.dark .react-flow__node-default {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--card-foreground));
+}
+
+.dark .react-flow__node-default.selected {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsla(var(--primary) / 0.3);
+}
+
+.dark .react-flow__handle {
+  background: hsl(var(--primary));
+  border: 2px solid hsl(var(--background));
+}
+
+.dark .react-flow__controls {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.dark .react-flow__controls-button {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+.dark .react-flow__controls-button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.dark .react-flow__minimap {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.dark .react-flow__attribution {
+  background: hsla(var(--card) / 0.9);
+  color: hsl(var(--muted-foreground));
+}
+
+/* CARDS APPLE NO MODO ESCURO AZUL */
+.dark .apple-card {
+  background: hsla(var(--card) / 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 8px 32px hsla(217 32% 4% / 0.5);
+}
+
+.dark .apple-card:hover {
+  box-shadow: 0 20px 40px hsla(217 32% 4% / 0.7);
+  background: hsla(var(--card) / 0.9);
+}
+
+/* GRADIENTES NO MODO ESCURO */
+.dark .gradient-trackdoc-primary {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--trackdoc-blue-dark)) 100%);
+}
+
+.dark .gradient-trackdoc-secondary {
+  background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--muted)) 100%);
+}
+
+.dark .gradient-trackdoc-accent {
+  background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--primary)) 100%);
+}
+
+/* SHADOWS NO MODO ESCURO */
+.dark .shadow-trackdoc {
+  box-shadow: 0 4px 6px -1px hsla(0 0% 0% / 0.3), 0 2px 4px -1px hsla(0 0% 0% / 0.2);
+}
+
+.dark .shadow-trackdoc-lg {
+  box-shadow: 0 10px 15px -3px hsla(0 0% 0% / 0.3), 0 4px 6px -2px hsla(0 0% 0% / 0.2);
+}
+
+/* SCROLLBAR NO MODO ESCURO */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground));
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--foreground));
+}
+
+/* TRANSIÇÕES SUAVES PARA MUDANÇA DE TEMA */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* LOGO NO MODO ESCURO */
+.dark img[alt*="Logo"] {
+  filter: invert(1) brightness(1.2);
+}
+
+/* INPUTS E FORMS NO MODO ESCURO */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark textarea,
+.dark select {
+  background: hsl(var(--input));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark input[type="text"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="password"]:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsla(var(--ring) / 0.2);
+}
+
+/* TOOLTIPS NO MODO ESCURO */
+.dark [data-tooltip] {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+/* MODALS E DIALOGS NO MODO ESCURO */
+.dark [role="dialog"] {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+}
+
+/* DROPDOWNS NO MODO ESCURO */
+.dark [role="menu"],
+.dark [role="listbox"] {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 15px -3px hsla(0 0% 0% / 0.3);
+}
+
+/* BADGES E TAGS NO MODO ESCURO */
+.dark .badge {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+
+/* TABELAS NO MODO ESCURO */
+.dark table {
+  border-color: hsl(var(--border));
+}
+
+.dark th,
+.dark td {
+  border-color: hsl(var(--border));
+}
+
+.dark tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.5);
+}
+
+/* CÓDIGO E PRE NO MODO ESCURO */
+.dark code,
+.dark pre {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+/* LINKS NO MODO ESCURO */
+.dark a {
+  color: hsl(var(--primary));
+}
+
+.dark a:hover {
+  color: hsl(var(--primary) / 0.8);
+}
+
+/* SEPARADORES NO MODO ESCURO */
+.dark hr {
+  border-color: hsl(var(--border));
+}
+
+/* ESTADOS DE LOADING NO MODO ESCURO */
+.dark .loading {
+  background: linear-gradient(90deg, 
+    hsl(var(--muted)) 25%, 
+    hsl(var(--muted-foreground) / 0.3) 50%, 
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}/* FORÇAR 
+FUNDO AZUL ESCURO EM TODOS OS ELEMENTOS PRINCIPAIS */
+.dark #__next,
+.dark html,
+.dark body,
+.dark [data-nextjs-scroll-focus-boundary] {
+  background: hsl(var(--background)) !important;
+}
+
+/* CONTAINERS PRINCIPAIS */
+.dark .min-h-screen {
+  background: hsl(var(--background)) !important;
+}
+
+/* GRADIENTES ESPECÍFICOS PARA MODO ESCURO AZUL */
+.dark .bg-gradient-to-br {
+  background: linear-gradient(to bottom right, 
+    hsl(var(--background)), 
+    hsl(217 32% 10%), 
+    hsl(217 32% 12%)
+  ) !important;
+}
+
+/* SIDEBAR ESPECÍFICA */
+.dark .sidebar,
+.dark [class*="sidebar"] {
+  background: hsl(var(--sidebar-background)) !important;
+  border-color: hsl(var(--sidebar-border)) !important;
+}
+
+/* CARDS E CONTAINERS */
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-slate-50 {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+}
+
+/* INPUTS E FORMS */
+.dark input,
+.dark textarea,
+.dark select {
+  background: hsl(var(--input)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* BOTÕES */
+.dark button[class*="bg-blue"],
+.dark .bg-blue-600,
+.dark .bg-blue-500 {
+  background: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.dark button[class*="bg-blue"]:hover,
+.dark .bg-blue-600:hover,
+.dark .bg-blue-500:hover {
+  background: hsl(var(--primary) / 0.9) !important;
+}
+
+/* TEXTO */
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-black {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .text-blue-600,
+.dark .text-blue-700 {
+  color: hsl(var(--primary)) !important;
+}
+
+/* BORDAS */
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-blue-100 {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* FUNDOS ESPECÍFICOS */
+.dark .bg-blue-50 {
+  background: hsl(var(--accent)) !important;
+  color: hsl(var(--accent-foreground)) !important;
+}
+
+.dark .bg-gray-100,
+.dark .bg-gray-200 {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* HOVER STATES */
+.dark .hover\\:bg-white:hover {
+  background: hsl(var(--accent)) !important;
+}
+
+.dark .hover\\:bg-gray-50:hover {
+  background: hsl(var(--muted)) !important;
+}
+
+.dark .hover\\:text-blue-600:hover {
+  color: hsl(var(--primary)) !important;
+}
+
+/* CHARTS E GRÁFICOS */
+.dark .recharts-wrapper {
+  background: hsl(var(--card)) !important;
+}
+
+.dark .recharts-cartesian-grid line {
+  stroke: hsl(var(--border)) !important;
+}
+
+.dark .recharts-text {
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+/* MODALS E DIALOGS */
+.dark [role="dialog"],
+.dark .modal {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+/* DROPDOWN MENUS */
+.dark [role="menu"],
+.dark [role="listbox"],
+.dark .dropdown-menu {
+  background: hsl(var(--popover)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: 0 10px 15px -3px hsla(217 32% 4% / 0.4) !important;
+}
+
+/* TOOLTIPS */
+.dark .tooltip,
+.dark [data-tooltip] {
+  background: hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+/* SCROLLBARS AZUIS */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.6);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.8);
+}
+
+/* SELECTION */
+.dark ::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}
+
+/* FOCUS RINGS AZUIS */
+.dark *:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}/* 
+CORREÇÕES ESPECÍFICAS PARA GARANTIR FUNDO AZUL ESCURO */
+.dark,
+.dark body,
+.dark html,
+.dark #__next {
+  background: hsl(217, 32%, 8%) !important;
+  color: hsl(217, 20%, 95%) !important;
+}
+
+/* CONTAINERS PRINCIPAIS */
+.dark .min-h-screen {
+  background: hsl(217, 32%, 8%) !important;
+}
+
+/* PÁGINA PRINCIPAL */
+.dark main,
+.dark [role="main"] {
+  background: hsl(217, 32%, 8%) !important;
+}
+
+/* GRADIENTES CORRIGIDOS */
+.dark .bg-gradient-to-br {
+  background: linear-gradient(to bottom right, 
+    hsl(217, 32%, 8%), 
+    hsl(217, 32%, 10%), 
+    hsl(217, 32%, 12%)
+  ) !important;
+}
+
+/* SIDEBAR ESPECÍFICA */
+.dark .sidebar,
+.dark [class*="sidebar"] {
+  background: hsl(217, 32%, 6%) !important;
+  border-color: hsl(217, 32%, 18%) !important;
+}
+
+/* CARDS */
+.dark .bg-white,
+.dark .bg-gray-50,
+.dark .bg-slate-50 {
+  background: hsl(217, 32%, 12%) !important;
+  color: hsl(217, 20%, 95%) !important;
+}
+
+/* OVERRIDE PARA CLASSES ESPECÍFICAS DO TAILWIND */
+.dark .bg-white\/95 {
+  background: hsla(217, 32%, 6%, 0.95) !important;
+}
+
+.dark .bg-background\/95 {
+  background: hsla(217, 32%, 8%, 0.95) !important;
+}
+
+/* TEXTO */
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-black {
+  color: hsl(217, 20%, 95%) !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500 {
+  color: hsl(217, 20%, 70%) !important;
+}
+
+/* BORDAS */
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: hsl(217, 32%, 22%) !important;
+}
+
+/* INPUTS */
+.dark input,
+.dark textarea,
+.dark select {
+  background: hsl(217, 32%, 15%) !important;
+  border-color: hsl(217, 32%, 22%) !important;
+  color: hsl(217, 20%, 95%) !important;
+}
+
+/* BOTÕES */
+.dark .bg-blue-600,
+.dark .bg-blue-500 {
+  background: hsl(217, 91%, 65%) !important;
+  color: hsl(217, 32%, 8%) !important;
+}
+
+/* HOVER STATES */
+.dark .hover\:bg-blue-600:hover,
+.dark .hover\:bg-blue-700:hover {
+  background: hsl(217, 91%, 60%) !important;
+}
+
+/* GARANTIR QUE ELEMENTOS ESPECÍFICOS USEM AS CORES CORRETAS */
+.dark [data-radix-popper-content-wrapper] {
+  background: hsl(217, 32%, 10%) !important;
+}
+
+.dark [role="dialog"] {
+  background: hsl(217, 32%, 12%) !important;
+  border: 1px solid hsl(217, 32%, 22%) !important;
+}
+
+/* SCROLLBARS AZUIS */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: hsl(217, 32%, 15%);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(217, 91%, 65%);
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(217, 91%, 70%);
+}/* CORR
+EÇÕES ESPECÍFICAS PARA CARDS DO DASHBOARD E COMPONENTES */
+.dark .bg-blue-50 {
+  background: hsl(var(--accent)) !important;
+}
+
+.dark .bg-green-50 {
+  background: hsl(var(--accent)) !important;
+}
+
+.dark .bg-blue-100 {
+  background: hsl(var(--accent)) !important;
+}
+
+.dark .bg-green-100 {
+  background: hsl(var(--accent)) !important;
+}
+
+.dark .border-blue-100,
+.dark .border-green-100,
+.dark .border-blue-200,
+.dark .border-green-200 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .text-blue-600 {
+  color: hsl(var(--primary)) !important;
+}
+
+.dark .text-green-600 {
+  color: hsl(var(--success)) !important;
+}
+
+.dark .text-blue-900 {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .text-gray-600 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .text-gray-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.dark .text-gray-400 {
+  color: hsl(var(--muted-foreground) / 0.7) !important;
+}
+
+.dark .text-gray-900 {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* LOADING STATES */
+.dark .bg-gray-200 {
+  background: hsl(var(--muted)) !important;
+}
+
+/* HOVER STATES ESPECÍFICOS */
+.dark .hover\:text-blue-600:hover {
+  color: hsl(var(--primary)) !important;
+}
+
+.dark .hover\:text-blue-800:hover {
+  color: hsl(var(--primary) / 0.8) !important;
+}
+
+.dark .hover\:text-red-800:hover {
+  color: hsl(var(--destructive) / 0.8) !important;
+}
+
+/* FOCUS STATES */
+.dark .focus\:ring-blue-500:focus {
+  --tw-ring-color: hsl(var(--primary) / 0.5) !important;
+}
+
+/* BORDER COLORS */
+.dark .border-gray-300 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark .border-blue-300 {
+  border-color: hsl(var(--primary) / 0.5) !important;
+}
+
+/* CARDS ESPECÍFICOS */
+.dark .bg-blue-50\/50 {
+  background: hsla(var(--accent) / 0.5) !important;
+}
+
+.dark .bg-blue-100\/50 {
+  background: hsla(var(--accent) / 0.8) !important;
+}
+
+/* GARANTIR QUE CARDS SEMPRE USEM AS CORES CORRETAS */
+.dark [class*="Card"] {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+}
+
+/* OVERRIDE PARA ELEMENTOS ESPECÍFICOS QUE PODEM TER CORES HARDCODED */
+.dark .animate-pulse > div {
+  background: hsl(var(--muted)) !important;
+}/* B
+ORDAS MAIS SUTIS NO MODO ESCURO */
+.dark .border,
+.dark .border-border {
+  border-color: hsl(217, 32%, 20%) !important;
+  opacity: 0.8;
+}
+
+.dark .border-t,
+.dark .border-b,
+.dark .border-l,
+.dark .border-r {
+  border-color: hsl(217, 32%, 20%) !important;
+  opacity: 0.8;
+}
+
+/* BORDAS DE CARDS MAIS SUTIS */
+.dark [class*="Card"],
+.dark .card {
+  border-color: hsl(217, 32%, 20%) !important;
+  opacity: 0.9;
+}
+
+/* BORDAS DO SIDEBAR AINDA MAIS SUTIS */
+.dark .sidebar .border,
+.dark [class*="sidebar"] .border {
+  border-color: hsl(217, 32%, 12%) !important;
+  opacity: 0.5;
+}
+
+/* OVERRIDE PARA BORDAS ESPECÍFICAS QUE DEVEM SER MAIS VISÍVEIS */
+.dark .border-primary {
+  border-color: hsl(var(--primary)) !important;
+  opacity: 1;
+}
+
+.dark .border-destructive {
+  border-color: hsl(var(--destructive)) !important;
+  opacity: 1;
+}
+
+.dark .border-success {
+  border-color: hsl(var(--success)) !important;
+  opacity: 1;
+}
+
+.dark .border-warning {
+  border-color: hsl(var(--warning)) !important;
+  opacity: 1;
+}/* 
+AJUSTES FINAIS PARA CLARIDADE DO TEMA ESCURO */
+.dark {
+  filter: brightness(1.1);
+}
+
+.dark body,
+.dark html,
+.dark #__next,
+.dark main {
+  background: hsl(217, 32%, 12%) !important;
+}
+
+.dark .min-h-screen {
+  background: hsl(217, 32%, 12%) !important;
+}
+
+/* GRADIENTES MAIS CLAROS */
+.dark .bg-gradient-to-br {
+  background: linear-gradient(to bottom right, 
+    hsl(217, 32%, 12%), 
+    hsl(217, 32%, 14%), 
+    hsl(217, 32%, 16%)
+  ) !important;
+}
+
+/* SIDEBAR MAIS CLARA */
+.dark .sidebar,
+.dark [class*="sidebar"] {
+  background: hsl(217, 32%, 10%) !important;
+}
+
+/* CARDS MAIS CLAROS */
+.dark .bg-card {
+  background: hsl(217, 32%, 16%) !important;
+}
+
+/* REMOVER FILTRO DE ELEMENTOS ESPECÍFICOS QUE NÃO DEVEM SER AFETADOS */
+.dark img,
+.dark svg,
+.dark canvas {
+  filter: none;
 }

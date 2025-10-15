@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Bordas Sidebar - TrackDoc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Modo Claro
+                        background: 'hsl(0 0% 100%)',
+                        foreground: 'hsl(0 0% 0%)',
+                        border: 'hsl(0 0% 90%)',
+                        'sidebar-background': 'hsl(0 0% 100%)',
+                        'sidebar-foreground': 'hsl(0 0% 0%)',
+                        'sidebar-accent': 'hsl(0 0% 96%)',
+                        'sidebar-border': 'hsl(0 0% 90%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 0 0% 0%;
+            --border: 0 0% 90%;
+            --sidebar-background: 0 0% 100%;
+            --sidebar-foreground: 0 0% 0%;
+            --sidebar-accent: 0 0% 96%;
+            --sidebar-border: 0 0% 90%;
+        }
+        
+        .dark {
+            --background: 217 32% 8%;
+            --foreground: 217 20% 95%;
+            --border: 217 32% 22%;
+            --sidebar-background: 217 32% 6%;
+            --sidebar-foreground: 217 20% 95%;
+            --sidebar-accent: 217 32% 15%;
+            --sidebar-border: 217 32% 18%;
+        }
+        
+        body {
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 flex flex-col border-r border-border" style="background: hsl(var(--sidebar-background)); color: hsl(var(--sidebar-foreground));">
+            <!-- Header -->
+            <div class="p-4 border-b border-border">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="font-bold text-lg">TrackDoc</div>
+                    </div>
+                    <button 
+                        class="p-2 rounded-md hover:bg-opacity-20" 
+                        onclick="toggleTheme()"
+                        style="background: hsl(var(--sidebar-accent)); color: hsl(var(--sidebar-foreground));"
+                    >
+                        <span id="theme-icon">☀️</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="p-4 border-b border-border">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                        C
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium">Cleiton Machado</p>
+                        <p class="text-xs opacity-70">cleiton767@gmail.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 p-4">
+                <div class="space-y-2">
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50" style="background: hsl(var(--sidebar-accent));">
+                        <span>📊</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>📄</span>
+                        <span>Documentos</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>✍️</span>
+                        <span>Assinatura Eletrônica</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>✅</span>
+                        <span>Aprovações</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>🔔</span>
+                        <span>Notificações</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>💬</span>
+                        <span>Chat</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>👤</span>
+                        <span>Minha Conta</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50">
+                        <span>⚙️</span>
+                        <span>Administração</span>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- Footer -->
+            <div class="p-4 border-t border-border">
+                <div class="mb-4">
+                    <h3 class="text-xs font-semibold opacity-70 uppercase tracking-wider mb-3">AÇÕES RÁPIDAS</h3>
+                    <div class="space-y-1 p-2 rounded-lg border border-border" style="background: hsl(var(--sidebar-accent));">
+                        <button class="w-full flex items-center space-x-3 px-2 py-1 text-sm hover:bg-opacity-50">
+                            <span>🔍</span>
+                            <span>Busca Rápida</span>
+                        </button>
+                        <button class="w-full flex items-center space-x-3 px-2 py-1 text-sm hover:bg-opacity-50">
+                            <span>❓</span>
+                            <span>Ajuda</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="pt-3 border-t border-border">
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md">
+                        <span>🚪</span>
+                        <span>Sair</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8">
+            <h1 class="text-2xl font-bold mb-4">Teste de Bordas do Sidebar</h1>
+            <p class="mb-4">
+                Este é um teste para verificar se as bordas do sidebar estão corretas nos dois modos:
+            </p>
+            <ul class="list-disc list-inside space-y-2">
+                <li><strong>Modo Claro:</strong> Bordas devem ser cinza claro, não pretas</li>
+                <li><strong>Modo Escuro:</strong> Bordas devem ser azul escuro</li>
+            </ul>
+            <p class="mt-4">
+                Clique no botão ☀️/🌙 no canto superior direito do sidebar para alternar entre os modos.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.textContent = '☀️';
+            } else {
+                html.classList.add('dark');
+                icon.textContent = '🌙';
+            }
+        }
+    </script>
+</body>
+</html>

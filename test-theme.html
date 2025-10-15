@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste do Tema Escuro - TrackDoc</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        background: 'hsl(217 32% 8%)',
+                        foreground: 'hsl(217 20% 95%)',
+                        card: 'hsl(217 32% 12%)',
+                        'card-foreground': 'hsl(217 20% 95%)',
+                        primary: 'hsl(217 91% 65%)',
+                        'primary-foreground': 'hsl(217 32% 8%)',
+                        secondary: 'hsl(217 32% 18%)',
+                        'secondary-foreground': 'hsl(217 20% 95%)',
+                        muted: 'hsl(217 32% 15%)',
+                        'muted-foreground': 'hsl(217 20% 70%)',
+                        accent: 'hsl(217 32% 20%)',
+                        'accent-foreground': 'hsl(217 20% 95%)',
+                        border: 'hsl(217 32% 22%)',
+                        input: 'hsl(217 32% 15%)',
+                        ring: 'hsl(217 91% 65%)',
+                        'sidebar-background': 'hsl(217 32% 6%)',
+                        'sidebar-foreground': 'hsl(217 20% 95%)',
+                        'sidebar-border': 'hsl(217 32% 18%)',
+                        'sidebar-accent': 'hsl(217 32% 15%)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .dark {
+            --background: 217 32% 8%;
+            --foreground: 217 20% 95%;
+            --card: 217 32% 12%;
+            --card-foreground: 217 20% 95%;
+            --primary: 217 91% 65%;
+            --primary-foreground: 217 32% 8%;
+            --secondary: 217 32% 18%;
+            --secondary-foreground: 217 20% 95%;
+            --muted: 217 32% 15%;
+            --muted-foreground: 217 20% 70%;
+            --accent: 217 32% 20%;
+            --accent-foreground: 217 20% 95%;
+            --border: 217 32% 22%;
+            --input: 217 32% 15%;
+            --ring: 217 91% 65%;
+            --sidebar-background: 217 32% 6%;
+            --sidebar-foreground: 217 20% 95%;
+            --sidebar-border: 217 32% 18%;
+            --sidebar-accent: 217 32% 15%;
+        }
+        
+        body {
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+    </style>
+</head>
+<body class="min-h-screen" style="background: hsl(217, 32%, 8%) !important;">
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 flex flex-col" style="background: hsl(217, 32%, 6%) !important; border-right: 1px solid hsl(217, 32%, 18%);">
+            <!-- Header -->
+            <div class="p-4 border-b" style="border-color: hsl(217, 32%, 18%);">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="text-white font-bold text-lg">TrackDoc</div>
+                    </div>
+                    <button class="p-2 rounded-md hover:bg-opacity-20" style="background: hsl(217, 32%, 15%); color: hsl(217, 20%, 95%);">
+                        🌙
+                    </button>
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="p-4 border-b" style="border-color: hsl(217, 32%, 18%);">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: hsl(217, 91%, 65%);">
+                        U
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium" style="color: hsl(217, 20%, 95%);">Usuário Teste</p>
+                        <p class="text-xs" style="color: hsl(217, 20%, 70%);">usuario@teste.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="flex-1 p-4">
+                <div class="space-y-2">
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left" style="background: hsl(217, 32%, 20%); color: hsl(217, 20%, 95%);">
+                        <span>📊</span>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50" style="color: hsl(217, 20%, 95%); background: transparent;">
+                        <span>📄</span>
+                        <span>Documentos</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50" style="color: hsl(217, 20%, 95%); background: transparent;">
+                        <span>✅</span>
+                        <span>Aprovações</span>
+                    </button>
+                    <button class="w-full flex items-center space-x-3 px-3 py-2 rounded-md text-left hover:bg-opacity-50" style="color: hsl(217, 20%, 95%); background: transparent;">
+                        <span>🔔</span>
+                        <span>Notificações</span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8" style="background: hsl(217, 32%, 8%) !important;">
+            <div class="max-w-6xl mx-auto space-y-8">
+                <!-- Header -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-4xl font-bold" style="color: hsl(217, 20%, 95%);">Dashboard Executivo</h1>
+                        <p class="mt-2" style="color: hsl(217, 20%, 70%);">Visão geral completa do sistema TrackDoc</p>
+                    </div>
+                    <button class="px-4 py-2 rounded-md" style="background: hsl(217, 91%, 65%); color: hsl(217, 32%, 8%);">
+                        Atualizar Dados
+                    </button>
+                </div>
+
+                <!-- Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Card 1 -->
+                    <div class="p-6 rounded-lg border" style="background: hsl(217, 32%, 12%); border-color: hsl(217, 32%, 22%);">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-xl" style="background: hsl(217, 91%, 65%); color: hsl(217, 32%, 8%);">
+                                📄
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold" style="color: hsl(217, 20%, 95%);">1,234</div>
+                                <div class="text-sm" style="color: hsl(217, 20%, 70%);">Total de Documentos</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="p-6 rounded-lg border" style="background: hsl(217, 32%, 12%); border-color: hsl(217, 32%, 22%);">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-xl" style="background: hsl(45, 93%, 58%); color: hsl(217, 32%, 8%);">
+                                ⏰
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold" style="color: hsl(217, 20%, 95%);">89</div>
+                                <div class="text-sm" style="color: hsl(217, 20%, 70%);">Aprovações Pendentes</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="p-6 rounded-lg border" style="background: hsl(217, 32%, 12%); border-color: hsl(217, 32%, 22%);">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-xl" style="background: hsl(142, 76%, 36%); color: white;">
+                                ✍️
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold" style="color: hsl(217, 20%, 95%);">456</div>
+                                <div class="text-sm" style="color: hsl(217, 20%, 70%);">Assinaturas Concluídas</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4 -->
+                    <div class="p-6 rounded-lg border" style="background: hsl(217, 32%, 12%); border-color: hsl(217, 32%, 22%);">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 rounded-xl" style="background: hsl(142, 76%, 36%); color: white;">
+                                👥
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold" style="color: hsl(217, 20%, 95%);">25</div>
+                                <div class="text-sm" style="color: hsl(217, 20%, 70%);">Usuários Ativos</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Larger Card -->
+                <div class="p-6 rounded-lg border" style="background: hsl(217, 32%, 12%); border-color: hsl(217, 32%, 22%);">
+                    <h3 class="text-xl font-semibold mb-4" style="color: hsl(217, 20%, 95%);">Paleta de Cores do Tema Escuro</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="space-y-2">
+                            <div class="h-16 rounded-lg" style="background: hsl(217, 91%, 65%);"></div>
+                            <p class="text-sm font-medium" style="color: hsl(217, 20%, 95%);">Primary</p>
+                            <p class="text-xs" style="color: hsl(217, 20%, 70%);">Azul principal</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="h-16 rounded-lg" style="background: hsl(217, 32%, 18%);"></div>
+                            <p class="text-sm font-medium" style="color: hsl(217, 20%, 95%);">Secondary</p>
+                            <p class="text-xs" style="color: hsl(217, 20%, 70%);">Azul secundário</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="h-16 rounded-lg" style="background: hsl(217, 32%, 20%);"></div>
+                            <p class="text-sm font-medium" style="color: hsl(217, 20%, 95%);">Accent</p>
+                            <p class="text-xs" style="color: hsl(217, 20%, 70%);">Cor de destaque</p>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="h-16 rounded-lg" style="background: hsl(217, 32%, 15%);"></div>
+                            <p class="text-sm font-medium" style="color: hsl(217, 20%, 95%);">Muted</p>
+                            <p class="text-xs" style="color: hsl(217, 20%, 70%);">Cor suave</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Example -->
+                <div class="p-6 rounded-lg border" style="background: hsl(217, 32%, 12%); border-color: hsl(217, 32%, 22%);">
+                    <h3 class="text-xl font-semibold mb-4" style="color: hsl(217, 20%, 95%);">Exemplo de Formulário</h3>
+                    <div class="space-y-4">
+                        <input type="text" placeholder="Digite algo aqui..." class="w-full px-3 py-2 rounded-md border" style="background: hsl(217, 32%, 15%); border-color: hsl(217, 32%, 22%); color: hsl(217, 20%, 95%);">
+                        <div class="flex space-x-2">
+                            <button class="px-4 py-2 rounded-md" style="background: hsl(217, 91%, 65%); color: hsl(217, 32%, 8%);">
+                                Salvar
+                            </button>
+                            <button class="px-4 py-2 rounded-md border" style="background: transparent; border-color: hsl(217, 32%, 22%); color: hsl(217, 20%, 95%);">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle theme function
+        function toggleTheme() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                document.body.style.background = 'white';
+                document.body.style.color = 'black';
+            } else {
+                html.classList.add('dark');
+                document.body.style.background = 'hsl(217, 32%, 8%)';
+                document.body.style.color = 'hsl(217, 20%, 95%)';
+            }
+        }
+
+        // Add click event to theme toggle button
+        document.querySelector('button').addEventListener('click', toggleTheme);
+    </script>
+</body>
+</html>

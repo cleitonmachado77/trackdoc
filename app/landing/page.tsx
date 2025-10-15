@@ -45,6 +45,7 @@ import {
   ExternalLink
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SimpleThemeToggle } from "@/components/ui/theme-toggle"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -199,11 +200,11 @@ export default function LandingPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-primary/10">
       {/* Header */}
       <header className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled ? "bg-white/95 backdrop-blur-md shadow-lg" : "bg-transparent"
+        isScrolled ? "bg-background/95 backdrop-blur-md shadow-lg border-b border-border" : "bg-transparent"
       )}>
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -212,20 +213,20 @@ export default function LandingPage() {
               <img 
                 src="/logo-horizontal-preto.png" 
                 alt="TrackDoc" 
-                className="h-8 w-auto"
+                className="h-8 w-auto dark:invert"
               />
             </div>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors">Funcionalidades</a>
-              <a href="#benefits" className="text-gray-700 hover:text-blue-600 transition-colors">Benefícios</a>
-              <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors">Preços</a>
-              <a href="#testimonials" className="text-gray-700 hover:text-blue-600 transition-colors">Depoimentos</a>
+              <a href="#features" className="text-foreground hover:text-primary transition-colors">Funcionalidades</a>
+              <a href="#benefits" className="text-foreground hover:text-primary transition-colors">Benefícios</a>
+              <a href="#pricing" className="text-foreground hover:text-primary transition-colors">Preços</a>
+              <a href="#testimonials" className="text-foreground hover:text-primary transition-colors">Depoimentos</a>
               <Button 
                 variant="ghost" 
                 onClick={() => router.push('/verify-signature')}
-                className="text-gray-700 hover:text-blue-600 transition-colors"
+                className="text-foreground hover:text-primary transition-colors"
               >
                 Verificar Assinatura
               </Button>
@@ -233,16 +234,17 @@ export default function LandingPage() {
 
             {/* CTA Buttons */}
             <div className="hidden md:flex items-center space-x-4">
+              <SimpleThemeToggle />
               <Button 
                 variant="ghost" 
                 onClick={() => router.push('/login')}
-                className="text-gray-700 hover:text-blue-600"
+                className="text-muted-foreground hover:text-primary"
               >
                 Entrar
               </Button>
               <Button 
                 onClick={() => router.push('/register')}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Criar Conta
               </Button>

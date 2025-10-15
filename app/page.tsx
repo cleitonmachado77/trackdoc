@@ -166,7 +166,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   const { stats: notificationStats } = useNotifications()
   const { signatures, documents: signatureDocuments, loading: signatureLoading } = useElectronicSignatures()
   const searchParams = useSearchParams()
-  
+
   // Estados
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -211,7 +211,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       }
     }
   }, [searchParams, documents])
-  
+
   // Atalhos de teclado
   useKeyboardShortcuts([
     {
@@ -234,7 +234,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     if (viewParam && ['dashboard', 'documents', 'approvals', 'ai-create', 'notifications', 'admin', 'help', 'chat', 'debug-approvals'].includes(viewParam)) {
       setActiveView(viewParam)
     }
-    
+
     // Verificar se deve abrir o seletor de criação
     const showCreationSelectorParam = searchParams.get('showCreationSelector')
     if (showCreationSelectorParam === 'true') {
@@ -380,30 +380,30 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     const pendingDocuments = entityStats?.pending_documents || stats.pending
     const draftDocuments = entityStats?.draft_documents || stats.draft
     const rejectedDocuments = documents.filter(d => d.status === 'rejected').length
-    
+
     const rejectionRate = totalDocuments > 0 ? (rejectedDocuments / totalDocuments * 100).toFixed(1) : '0.0'
     const approvalRate = totalDocuments > 0 ? (approvedDocuments / totalDocuments * 100).toFixed(1) : '0.0'
-    
+
     // Estatísticas de assinaturas
     const totalSignatures = signatures.length
     const completedSignatures = signatures.filter(s => s.status === 'completed').length
     const pendingSignatures = signatures.filter(s => s.status === 'pending').length
-    
+
     // Estatísticas de aprovações
     const totalApprovals = myApprovals?.length || 0
     const pendingApprovalsCount = myApprovals?.filter(a => a.status === 'pending').length || 0
     const approvedByMe = myApprovals?.filter(a => a.status === 'approved').length || 0
     const rejectedByMe = myApprovals?.filter(a => a.status === 'rejected').length || 0
-    
+
     // Estatísticas de usuários
     const totalUsers = entityStats?.total_users || 0
     const activeUsers = entityStats?.active_users || 0
-    
+
     // Estatísticas de notificações
     const totalNotifications = notificationStats?.total_sent || 0
     const notificationOpenRate = notificationStats?.open_rate || 0
     const unreadNotificationsCount = 0 // Placeholder
-    
+
     // Dados para gráficos com cores melhoradas
     const documentsByStatus = [
       { name: 'Aprovados', value: approvedDocuments, color: '#10B981', fill: '#10B981' },
@@ -411,14 +411,14 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       { name: 'Rascunhos', value: draftDocuments, color: '#6B7280', fill: '#6B7280' },
       { name: 'Rejeitados', value: rejectedDocuments, color: '#EF4444', fill: '#EF4444' }
     ].filter(item => item.value > 0) // Filtrar itens com valor 0
-    
+
     // Calcular produtividade semanal baseada em dados reais
     const productivityData = (() => {
       const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
       const today = new Date()
       const startOfWeek = new Date(today)
       startOfWeek.setDate(today.getDate() - today.getDay() + 1) // Segunda-feira
-      
+
       return days.map((day, index) => {
         const dayDate = new Date(startOfWeek)
         dayDate.setDate(startOfWeek.getDate() + index)
@@ -426,25 +426,25 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         dayStart.setHours(0, 0, 0, 0)
         const dayEnd = new Date(dayDate)
         dayEnd.setHours(23, 59, 59, 999)
-        
+
         // Contar documentos criados neste dia
         const dayDocuments = documents.filter(doc => {
           const docDate = new Date(doc.created_at)
           return docDate >= dayStart && docDate <= dayEnd
         }).length
-        
+
         // Contar aprovações neste dia (baseado em documentos aprovados)
         const dayApprovals = documents.filter(doc => {
           const docDate = new Date(doc.updated_at || doc.created_at)
           return doc.status === 'approved' && docDate >= dayStart && docDate <= dayEnd
         }).length
-        
+
         // Contar assinaturas neste dia (baseado em assinaturas completadas)
         const daySignatures = signatures.filter(sig => {
           const sigDate = new Date(sig.updated_at || sig.created_at)
           return sig.status === 'completed' && sigDate >= dayStart && sigDate <= dayEnd
         }).length
-        
+
         return {
           name: day,
           documents: dayDocuments,
@@ -494,9 +494,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             <h1 className="text-3xl font-bold text-trackdoc-black">Dashboard Executivo</h1>
             <p className="text-trackdoc-gray mt-1">Visão geral completa do sistema TrackDoc</p>
           </div>
-          <Button 
-            onClick={refreshEntityStats} 
-            variant="outline" 
+          <Button
+            onClick={refreshEntityStats}
+            variant="outline"
             size="sm"
             disabled={entityStatsLoading}
           >
@@ -509,7 +509,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Card 1: Total de Documentos */}
           <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
-                onClick={() => handleCardClick('all')}>
+            onClick={() => handleCardClick('all')}>
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
@@ -525,17 +525,15 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             <CardContent className="relative pt-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${
-                    documentsTrend >= 0 ? 'bg-green-50' : 'bg-red-50'
-                  }`}>
+                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${documentsTrend >= 0 ? 'bg-green-50' : 'bg-red-50'
+                    }`}>
                     {documentsTrend >= 0 ? (
                       <ArrowUpRight className="h-3 w-3 text-green-600" />
                     ) : (
                       <ArrowDownRight className="h-3 w-3 text-red-600" />
                     )}
-                    <span className={`text-xs font-semibold ${
-                      documentsTrend >= 0 ? 'text-green-700' : 'text-red-700'
-                    }`}>
+                    <span className={`text-xs font-semibold ${documentsTrend >= 0 ? 'text-green-700' : 'text-red-700'
+                      }`}>
                       {Math.abs(documentsTrend).toFixed(1)}%
                     </span>
                   </div>
@@ -547,7 +545,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
           {/* Card 2: Aprovações Pendentes */}
           <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
-                onClick={() => setActiveView('approvals')}>
+            onClick={() => setActiveView('approvals')}>
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-amber-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
@@ -575,7 +573,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
           {/* Card 3: Assinaturas Digitais */}
           <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
-                onClick={() => setActiveView('electronic-signature')}>
+            onClick={() => setActiveView('electronic-signature')}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
@@ -603,7 +601,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
           {/* Card 4: Usuários Ativos */}
           <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
-                onClick={() => { setActiveView('admin'); setAdminView('users') }}>
+            onClick={() => { setActiveView('admin'); setAdminView('users') }}>
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-green-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">
@@ -782,30 +780,30 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Area 
-                    type="monotone" 
-                    dataKey="documents" 
+                  <Area
+                    type="monotone"
+                    dataKey="documents"
                     stackId="1"
-                    stroke="#3B82F6" 
-                    fill="#3B82F6" 
+                    stroke="#3B82F6"
+                    fill="#3B82F6"
                     fillOpacity={0.6}
                     name="Documentos"
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="approvals" 
+                  <Area
+                    type="monotone"
+                    dataKey="approvals"
                     stackId="1"
-                    stroke="#10B981" 
-                    fill="#10B981" 
+                    stroke="#10B981"
+                    fill="#10B981"
                     fillOpacity={0.6}
                     name="Aprovações"
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="signatures" 
+                  <Area
+                    type="monotone"
+                    dataKey="signatures"
                     stackId="1"
-                    stroke="#8B5CF6" 
-                    fill="#8B5CF6" 
+                    stroke="#8B5CF6"
+                    fill="#8B5CF6"
                     fillOpacity={0.6}
                     name="Assinaturas"
                   />
@@ -974,44 +972,44 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button 
-                className="w-full justify-start" 
+              <Button
+                className="w-full justify-start"
                 variant="outline"
                 onClick={() => setShowCreationSelector(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Documento
               </Button>
-              
-              <Button 
-                className="w-full justify-start" 
+
+              <Button
+                className="w-full justify-start"
                 variant="outline"
                 onClick={() => setActiveView('electronic-signature')}
               >
                 <PenTool className="h-4 w-4 mr-2" />
                 Assinar Documento
               </Button>
-              
-              <Button 
-                className="w-full justify-start" 
+
+              <Button
+                className="w-full justify-start"
                 variant="outline"
                 onClick={() => setActiveView('approvals')}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Ver Aprovações
               </Button>
-              
-              <Button 
-                className="w-full justify-start" 
+
+              <Button
+                className="w-full justify-start"
                 variant="outline"
                 onClick={() => setShowQuickSearch(true)}
               >
                 <Search className="h-4 w-4 mr-2" />
                 Busca Rápida
               </Button>
-              
-              <Button 
-                className="w-full justify-start" 
+
+              <Button
+                className="w-full justify-start"
                 variant="outline"
                 onClick={() => setActiveView('notifications')}
               >
@@ -1023,9 +1021,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   </Badge>
                 )}
               </Button>
-              
-              <Button 
-                className="w-full justify-start" 
+
+              <Button
+                className="w-full justify-start"
                 variant="outline"
                 onClick={() => { setActiveView('admin'); setAdminView('overview') }}
               >
@@ -1048,14 +1046,289 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       case "approvals":
         return (
           <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold">Aprovações</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Aprovações</h1>
+                <p className="text-gray-600">
+                  Gerencie documentos pendentes de aprovação e acompanhe o status das solicitações
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar
+                </Button>
+              </div>
             </div>
-            {/* Conteúdo de aprovações será implementado */}
-            <div className="text-center py-12">
-              <CheckCircle className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500">Sistema de aprovações em desenvolvimento</p>
+
+            {/* Estatísticas de Aprovação */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total de Aprovações</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{myApprovals?.length || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Documentos para aprovar
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {myApprovals?.filter(a => a.status === 'pending').length || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Aguardando sua ação
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Aprovados</CardTitle>
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {myApprovals?.filter(a => a.status === 'approved').length || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Documentos aprovados por você
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Rejeitados</CardTitle>
+                  <XCircle className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {myApprovals?.filter(a => a.status === 'rejected').length || 0}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Documentos rejeitados por você
+                  </p>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Seções de Aprovação */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Documentos Pendentes de Aprovação */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-amber-600" />
+                    Documentos Pendentes
+                  </CardTitle>
+                  <CardDescription>
+                    Documentos aguardando sua aprovação
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {approvalsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : myApprovals && myApprovals.filter(a => a.status === 'pending').length > 0 ? (
+                    <div className="space-y-3">
+                      {myApprovals
+                        .filter(approval => approval.status === 'pending')
+                        .slice(0, 5)
+                        .map((approval) => (
+                          <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
+                            <div className="flex-1">
+                              <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
+                              <p className="text-sm text-gray-500">
+                                Autor: {approval.document_author_name || 'N/A'}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedApproval(approval)
+                                setShowApprovalReviewModal(true)
+                              }}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Revisar
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Nenhum documento pendente de aprovação.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Documentos Enviados para Aprovação */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="h-5 w-5 text-blue-600" />
+                    Documentos Enviados
+                  </CardTitle>
+                  <CardDescription>
+                    Documentos que você enviou para aprovação
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {sentApprovals && sentApprovals.length > 0 ? (
+                    <div className="space-y-3">
+                      {sentApprovals.slice(0, 5).map((approval) => (
+                        <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
+                          <div className="flex-1">
+                            <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
+                            <p className="text-sm text-gray-500">
+                              Status: {approval.status === 'pending' ? 'Aguardando Aprovação' : 
+                                       approval.status === 'approved' ? 'Aprovado' : 
+                                       approval.status === 'rejected' ? 'Rejeitado' : approval.status}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={approval.status === 'approved' ? 'default' : 
+                                       approval.status === 'rejected' ? 'destructive' : 'secondary'}
+                              className={approval.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                                       approval.status === 'rejected' ? 'bg-red-100 text-red-800' : 
+                                       'bg-yellow-100 text-yellow-800'}
+                            >
+                              {approval.status === 'approved' ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Aprovado
+                                </>
+                              ) : approval.status === 'rejected' ? (
+                                <>
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Rejeitado
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  Pendente
+                                </>
+                              )}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedApprovalForDetails(approval)
+                                setShowApprovalDetailsModal(true)
+                              }}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Detalhes
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Nenhum documento enviado para aprovação.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Histórico de Aprovações */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  Histórico de Aprovações
+                </CardTitle>
+                <CardDescription>
+                  Decisões de aprovação que você tomou
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {myApprovals && myApprovals.filter(a => a.status !== 'pending').length > 0 ? (
+                  <div className="space-y-3">
+                    {myApprovals
+                      .filter(approval => approval.status !== 'pending')
+                      .slice(0, 10)
+                      .map((approval) => (
+                        <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
+                          <div className="flex-1">
+                            <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
+                            <p className="text-sm text-gray-500">
+                              {approval.status === 'approved' ? 'Aprovado' : 'Rejeitado'} em{' '}
+                              {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR') : 'Data não disponível'}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              Autor: {approval.document_author_name || 'N/A'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={approval.status === 'approved' ? 'default' : 'destructive'}
+                              className={approval.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                            >
+                              {approval.status === 'approved' ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Aprovado
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Rejeitado
+                                </>
+                              )}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedApprovalForDetails(approval)
+                                setShowApprovalDetailsModal(true)
+                              }}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Detalhes
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Nenhuma decisão de aprovação tomada ainda.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )
       case "ai-create":
@@ -1072,14 +1345,258 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return (
           <AdminGuard>
             <div className="space-y-6">
+              {/* Header */}
               <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold">Administração</h1>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Administração</h1>
+                  <p className="text-gray-600">
+                    Gerencie usuários, configurações e relatórios do sistema
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setAdminView("overview")}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Voltar ao Início
+                </Button>
               </div>
-              {/* Conteúdo de administração será implementado */}
-              <div className="text-center py-12">
-                <Settings className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">Painel de administração em desenvolvimento</p>
-              </div>
+
+              {/* Navegação Admin */}
+              {adminView === "overview" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Gestão de Usuários */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("users")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-blue-600" />
+                        Gestão de Usuários
+                      </CardTitle>
+                      <CardDescription>
+                        Gerenciar usuários, permissões e acessos
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{entityStats?.total_users || 0}</div>
+                      <p className="text-sm text-muted-foreground">usuários cadastrados</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Tipos de Documento */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("document-types")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-green-600" />
+                        Tipos de Documento
+                      </CardTitle>
+                      <CardDescription>
+                        Configurar tipos e templates de documentos
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{documentTypes.length}</div>
+                      <p className="text-sm text-muted-foreground">tipos configurados</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Departamentos */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("departments")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-purple-600" />
+                        Departamentos
+                      </CardTitle>
+                      <CardDescription>
+                        Gerenciar departamentos e estrutura organizacional
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{departments.length}</div>
+                      <p className="text-sm text-muted-foreground">departamentos ativos</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Categorias */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("categories")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Tag className="h-5 w-5 text-orange-600" />
+                        Categorias
+                      </CardTitle>
+                      <CardDescription>
+                        Organizar documentos por categorias
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{categories.length}</div>
+                      <p className="text-sm text-muted-foreground">categorias ativas</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Relatórios */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("productivity-report")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-indigo-600" />
+                        Relatórios
+                      </CardTitle>
+                      <CardDescription>
+                        Visualizar relatórios e métricas do sistema
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{entityStats?.total_documents || 0}</div>
+                      <p className="text-sm text-muted-foreground">documentos processados</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Notificações */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("notifications")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Bell className="h-5 w-5 text-yellow-600" />
+                        Notificações
+                      </CardTitle>
+                      <CardDescription>
+                        Gerenciar sistema de notificações
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{notificationStats?.total_sent || 0}</div>
+                      <p className="text-sm text-muted-foreground">notificações enviadas</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Conteúdo específico de cada seção */}
+              {adminView === "users" && <UserManagement />}
+              {adminView === "document-types" && (
+                <DocumentTypeManagement 
+                  initialDocumentTypes={documentTypes.map(dt => ({
+                    ...dt,
+                    documentsCount: documents.filter(doc => doc.document_type_id === dt.id).length
+                  }))}
+                  totalDocuments={documents.length}
+                />
+              )}
+              {adminView === "departments" && <DepartmentManagement />}
+              {adminView === "categories" && <CategoryManagement />}
+              {adminView === "productivity-report" && <ProductivityReport />}
+              {adminView === "approval-time-report" && <ApprovalTimeReport />}
+              {adminView === "audit-report" && <AuditReport />}
+              {adminView === "document-access-report" && <DocumentAccessReport />}
+              {adminView === "billing" && <BillingManagement />}
+              {adminView === "billing-stats" && <BillingStats />}
+              {adminView === "notifications" && <NotificationManagement />}
+              {adminView === "entity-users" && <EntityUserManagement />}
+
+              {/* Menu de Relatórios */}
+              {adminView === "reports" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("productivity-report")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                        Relatório de Produtividade
+                      </CardTitle>
+                      <CardDescription>
+                        Análise de produtividade por usuário e departamento
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("approval-time-report")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-amber-600" />
+                        Tempo de Aprovação
+                      </CardTitle>
+                      <CardDescription>
+                        Análise dos tempos de aprovação de documentos
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("document-access-report")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Eye className="h-5 w-5 text-green-600" />
+                        Documentos Mais Acessados
+                      </CardTitle>
+                      <CardDescription>
+                        Relatório de documentos mais visualizados
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("audit-report")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-purple-600" />
+                        Auditoria Completa
+                      </CardTitle>
+                      <CardDescription>
+                        Relatório completo de auditoria do sistema
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                </div>
+              )}
+
+              {/* Ações Rápidas de Admin */}
+              {adminView === "overview" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ações Rápidas</CardTitle>
+                    <CardDescription>
+                      Acesso rápido às principais funcionalidades administrativas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => setAdminView("users")}
+                      >
+                        <Users className="h-6 w-6" />
+                        <span className="text-sm">Usuários</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => setAdminView("departments")}
+                      >
+                        <Building2 className="h-6 w-6" />
+                        <span className="text-sm">Departamentos</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => setAdminView("productivity-report")}
+                      >
+                        <BarChart3 className="h-6 w-6" />
+                        <span className="text-sm">Relatórios</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => {
+                          setActiveView("documents")
+                        }}
+                      >
+                        <FileText className="h-6 w-6" />
+                        <span className="text-sm">Documentos</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </AdminGuard>
         )
@@ -1094,12 +1611,12 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar 
-        activeView={activeView} 
+      <Sidebar
+        activeView={activeView}
         onViewChange={setActiveView}
         pendingApprovalsCount={myApprovals?.filter(a => a.status === 'pending').length || 0}
       />
-      
+
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {renderContent()}
@@ -1107,8 +1624,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       </main>
 
       {/* Modais */}
-      <FixedQuickSearchModal 
-        open={showQuickSearch} 
+      <FixedQuickSearchModal
+        open={showQuickSearch}
         onOpenChange={setShowQuickSearch}
       />
 

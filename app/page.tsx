@@ -602,8 +602,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </Card>
 
           {/* Card 4: Usuários Ativos */}
-          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
-            onClick={() => { setActiveView('admin'); setAdminView('users') }}>
+          <Card className="group relative overflow-hidden bg-white/80 backdrop-blur-sm border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl">
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-green-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             <CardHeader className="relative pb-3">
               <div className="flex items-center justify-between">

@@ -19,7 +19,7 @@ const nextConfig = {
   // ✅ Configurações otimizadas para PRODUÇÃO
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@supabase/ssr', 'lucide-react'],
+    optimizePackageImports: ['@supabase/ssr', '@supabase/supabase-js', 'lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
     missingSuspenseWithCSRBailout: false,
   },
   
@@ -29,11 +29,14 @@ const nextConfig = {
   swcMinify: true,
   compress: true,
   
+  // ✅ Output standalone para deploy otimizado
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  
   // ✅ Headers de cache para produção
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
@@ -42,11 +45,20 @@ const nextConfig = {
         ],
       },
       {
-        source: '/api/(.*)',
+        source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'no-cache, no-store, must-revalidate',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, must-revalidate',
           },
         ],
       },
@@ -59,13 +71,39 @@ const nextConfig = {
       // ✅ Otimizações apenas para produção
       config.optimization = {
         ...config.optimization,
+        minimize: true,
         splitChunks: {
           chunks: 'all',
           cacheGroups: {
+            default: false,
+            vendors: false,
+            // Vendor chunk para bibliotecas grandes
             vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
+              name: 'vendor',
               chunks: 'all',
+              test: /node_modules/,
+              priority: 20
+            },
+            // Chunk separado para Supabase
+            supabase: {
+              name: 'supabase',
+              test: /[\\/]node_modules[\\/](@supabase)[\\/]/,
+              chunks: 'all',
+              priority: 30,
+            },
+            // Chunk para UI components
+            ui: {
+              name: 'ui',
+              test: /[\\/]node_modules[\\/](@radix-ui)[\\/]/,
+              chunks: 'all',
+              priority: 25,
+            },
+            // Commons chunk para código compartilhado
+            commons: {
+              name: 'commons',
+              minChunks: 2,
+              priority: 10,
+              reuseExistingChunk: true,
             },
           },
         },
@@ -91,7 +129,9 @@ const nextConfig = {
   
   // ✅ Compilador otimizado
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
   },
   
   // ✅ Configurações de performance

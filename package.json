@@ -27,7 +27,9 @@
     "dev:optimized": "npm run optimize && npm run dev:windows",
     "test:performance": "node scripts/test-performance.js",
     "export": "next build",
-    "export:prod": "NODE_ENV=production next build"
+    "export:prod": "NODE_ENV=production next build",
+    "check": "node scripts/check-project.js",
+    "predeploy": "npm run check && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

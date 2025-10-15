@@ -170,9 +170,9 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           priority: 'high',
           recipients: [approverData.email],
           channels: ['email'],
-          status: 'sent',
-          created_by: user?.id,
-          user_id: approverId // Adicionar user_id para o aprovador
+          status: 'pending',
+          total_recipients: 1,
+          created_by: user?.id
         })
 
       if (notificationError) {

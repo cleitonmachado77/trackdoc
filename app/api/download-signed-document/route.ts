@@ -31,10 +31,28 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
-    // Baixar o arquivo do storage
-    const { data: fileData, error: downloadError } = await serviceRoleSupabase.storage
-      .from('documents')
+    // Tentar baixar do bucket signed-documents primeiro, depois documents
+    let fileData: any = null
+    let downloadError: any = null
+    
+    // Primeiro tentar no bucket signed-documents
+    const signedResult = await serviceRoleSupabase.storage
+      .from('signed-documents')
       .download(filePath)
+    
+    if (signedResult.error) {
+      console.log('📁 Arquivo não encontrado em signed-documents, tentando documents...')
+      // Fallback: tentar no bucket documents
+      const documentsResult = await serviceRoleSupabase.storage
+        .from('documents')
+        .download(filePath)
+      
+      fileData = documentsResult.data
+      downloadError = documentsResult.error
+    } else {
+      fileData = signedResult.data
+      downloadError = signedResult.error
+    }
 
     if (downloadError) {
       console.error('❌ Erro ao baixar arquivo:', downloadError)

@@ -74,12 +74,14 @@ export function useChat() {
       setLoading(true)
       setError(null)
 
-      const { data, error } = await supabase
-        .rpc('get_user_conversations', { user_id: user.id })
+      const response = await fetch('/api/chat/conversations')
+      const data = await response.json()
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao buscar conversas')
+      }
 
-      setConversations(data || [])
+      setConversations(data.conversations || [])
     } catch (err) {
       console.error('Erro ao buscar conversas:', err)
       setError(err instanceof Error ? err.message : 'Erro ao buscar conversas')
@@ -117,6 +119,7 @@ export function useChat() {
     if (!user?.id) return null
 
     try {
+      console.log('Criando conversa:', { type, name, participantIds })
       const response = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: {
@@ -129,10 +132,16 @@ export function useChat() {
         })
       })
 
+      console.log('Resposta da criação de conversa:', { status: response.status, data: await response.clone().json() })
+
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao criar conversa')
+        throw new Error(data.error || 'Erro ao buscar conversa')
+      }
+
+      if (!data.conversation || !data.conversation.id) {
+        throw new Error('Conversa criada mas não retornada pelo servidor')
       }
 
       // Atualizar lista de conversas

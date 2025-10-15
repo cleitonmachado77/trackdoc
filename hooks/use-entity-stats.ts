@@ -69,11 +69,55 @@ export function useEntityStats() {
 
       if (!entityId) return
 
-      // Buscar estatísticas básicas usando a função RPC
-      const { data: basicStats, error: basicError } = await supabase
-        .rpc('get_entity_stats', { p_entity_id: entityId })
+      // Buscar estatísticas básicas diretamente das tabelas
+      // Contar total de documentos
+      const { count: totalDocuments } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
 
-      if (basicError) throw basicError
+      // Contar documentos rascunho
+      const { count: draftDocuments } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+        .eq('status', 'draft')
+
+      // Contar documentos pendentes
+      const { count: pendingDocuments } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+        .eq('status', 'pending')
+
+      // Contar documentos aprovados
+      const { count: approvedDocuments } = await supabase
+        .from('documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+        .eq('status', 'approved')
+
+      // Contar total de usuários
+      const { count: totalUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+
+      // Contar usuários ativos
+      const { count: activeUsers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('entity_id', entityId)
+        .eq('status', 'active')
+
+      const basicStats = [{
+        total_documents: totalDocuments || 0,
+        draft_documents: draftDocuments || 0,
+        pending_documents: pendingDocuments || 0,
+        approved_documents: approvedDocuments || 0,
+        total_users: totalUsers || 0,
+        active_users: activeUsers || 0
+      }]
 
       // Buscar documentos por categoria
       const { data: categoryStats, error: categoryError } = await supabase

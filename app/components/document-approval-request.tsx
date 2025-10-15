@@ -85,8 +85,9 @@ export default function DocumentApprovalRequest({
           priority: 'high',
           recipients: [approverData.email],
           channels: ['email'],
-          status: 'sent',
-          created_by: approverData.id // Usar o ID do aprovador como criador da notificação
+          status: 'pending',
+          total_recipients: 1,
+          created_by: user?.id // Usar o ID do usuário atual como criador
         })
 
       if (notificationError) throw notificationError

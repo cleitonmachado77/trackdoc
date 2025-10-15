@@ -665,7 +665,7 @@ export default function ElectronicSignature() {
         .from('document_signatures')
         .select('*')
         .eq('user_id', user.id)
-        .contains('qr_code_data', '"signatureType":"multiple"')
+        .like('qr_code_data', '%"signatureType":"multiple"%')
         .order('created_at', { ascending: false })
 
       if (individualError) {
@@ -753,13 +753,43 @@ export default function ElectronicSignature() {
       </div>
 
       <Tabs defaultValue="upload" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="upload">Assinatura Simples</TabsTrigger>
-          <TabsTrigger value="existing">Documento Existente</TabsTrigger>
-          <TabsTrigger value="template">Configurar Modelo</TabsTrigger>
-          <TabsTrigger value="multi-signature">Assinatura Múltipla</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
-          <TabsTrigger value="verify">Verificar Assinatura</TabsTrigger>
+        <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-muted">
+          <TabsTrigger 
+            value="upload" 
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          >
+            Assinatura Simples
+          </TabsTrigger>
+          <TabsTrigger 
+            value="existing" 
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          >
+            Documento Existente
+          </TabsTrigger>
+          <TabsTrigger 
+            value="template" 
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          >
+            Configurar Modelo
+          </TabsTrigger>
+          <TabsTrigger 
+            value="multi-signature" 
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          >
+            Assinatura Múltipla
+          </TabsTrigger>
+          <TabsTrigger 
+            value="history" 
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          >
+            Histórico
+          </TabsTrigger>
+          <TabsTrigger 
+            value="verify" 
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          >
+            Verificar Assinatura
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="upload" className="space-y-6">

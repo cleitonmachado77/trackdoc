@@ -236,137 +236,86 @@ export function useDocumentVersions(documentId?: string) {
         current_file_name: currentDoc.file_name
       })
 
-      const newVersionNumber = (currentDoc.version || 1) + 1
-      console.log('🔢 [RESTORE_VERSION] Nova versão será:', newVersionNumber)
-
-      // Salvar a versão atual antes de restaurar
-      console.log('💾 [RESTORE_VERSION] Salvando backup da versão atual...')
-      const { error: backupError } = await supabase
-        .from('document_versions')
-        .insert({
-          document_id: versionData.document_id,
-          version_number: currentDoc.version,
-          file_path: currentDoc.file_path,
-          file_name: currentDoc.file_name,
-          file_size: currentDoc.file_size,
-          file_type: currentDoc.file_type,
-          author_id: user.id,
-          change_description: `Backup antes da restauração da V${versionData.version_number}`
-        })
-
-      if (backupError) {
-        console.error('❌ [RESTORE_VERSION] Erro ao criar backup:', backupError)
-        throw backupError
+      // Verificar se a versão a ser restaurada é diferente da atual
+      if (currentDoc.version === versionData.version_number) {
+        console.log('ℹ️ [RESTORE_VERSION] Versão selecionada já é a versão atual')
+        return {
+          success: true,
+          updatedDocument: currentDoc,
+          newVersion: currentDoc.version,
+          message: 'Esta versão já é a versão atual do documento'
+        }
       }
 
-      console.log('✅ [RESTORE_VERSION] Backup criado com sucesso')
-
-      // Copiar o arquivo da versão para um novo local
-      console.log('📁 [RESTORE_VERSION] Baixando arquivo da versão:', versionData.file_path)
-      const { data: fileData, error: downloadError } = await supabase.storage
-        .from('documents')
-        .download(versionData.file_path)
-
-      if (downloadError) {
-        console.error('❌ [RESTORE_VERSION] Erro ao baixar arquivo:', downloadError)
-        throw downloadError
-      }
-
-      if (!fileData) {
-        console.error('❌ [RESTORE_VERSION] Arquivo não encontrado')
-        throw new Error('Erro ao baixar arquivo da versão')
-      }
-
-      console.log('✅ [RESTORE_VERSION] Arquivo baixado, tamanho:', fileData.size)
-
-      const fileExtension = versionData.file_name.split('.').pop()
-      const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`
-      const newFilePath = `documents/${user.id}/${uniqueFileName}`
-
-      console.log('📤 [RESTORE_VERSION] Fazendo upload para:', newFilePath)
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(newFilePath, fileData)
-
-      if (uploadError) {
-        console.error('❌ [RESTORE_VERSION] Erro no upload:', uploadError)
-        throw uploadError
-      }
-
-      console.log('✅ [RESTORE_VERSION] Upload concluído')
-
-      // Atualizar o documento principal com a nova versão
       // Extrair o título do nome do arquivo (sem extensão)
       const newTitle = versionData.file_name.replace(/\.[^/.]+$/, "")
 
-      console.log('📝 [RESTORE_VERSION] Atualizando documento principal:', {
-        newVersion: newVersionNumber,
+      console.log('📝 [RESTORE_VERSION] Tornando versão ativa:', {
+        targetVersion: versionData.version_number,
         newTitle: newTitle,
-        newFilePath: newFilePath,
+        filePath: versionData.file_path,
         fileName: versionData.file_name
       })
 
-      const { data: updatedDoc, error: updateError } = await supabase
-        .from('documents')
-        .update({
-          version: newVersionNumber,
-          title: newTitle, // Atualizar o título com o nome do arquivo restaurado
-          file_path: newFilePath,
-          file_name: versionData.file_name,
-          file_size: versionData.file_size,
-          file_type: versionData.file_type,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', versionData.document_id)
-        .select()
-        .single()
+      // Desabilitar trigger temporariamente para evitar conflito de versões
+      console.log('🔧 [RESTORE_VERSION] Desabilitando trigger temporariamente...')
+      await supabase.rpc('disable_document_version_trigger')
 
-      if (updateError) {
-        console.error('❌ [RESTORE_VERSION] Erro ao atualizar documento:', updateError)
-        throw updateError
-      }
+      let updatedDocResult: any = null
 
-      console.log('✅ [RESTORE_VERSION] Documento atualizado:', {
-        id: updatedDoc.id,
-        version: updatedDoc.version,
-        title: updatedDoc.title,
-        file_name: updatedDoc.file_name
-      })
+      try {
+        // Atualizar o documento principal para apontar para a versão selecionada
+        // NÃO cria nova versão, apenas muda qual versão está ativa
+        const { data: updatedDoc, error: updateError } = await supabase
+          .from('documents')
+          .update({
+            version: versionData.version_number, // Usar o número da versão selecionada
+            title: newTitle,
+            file_path: versionData.file_path, // Usar o arquivo da versão selecionada
+            file_name: versionData.file_name,
+            file_size: versionData.file_size,
+            file_type: versionData.file_type,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', versionData.document_id)
+          .select()
+          .single()
 
-      // Criar registro da versão restaurada
-      console.log('📋 [RESTORE_VERSION] Criando registro da versão restaurada...')
-      const { error: versionInsertError } = await supabase
-        .from('document_versions')
-        .insert({
-          document_id: versionData.document_id,
-          version_number: newVersionNumber,
-          file_path: newFilePath,
-          file_name: versionData.file_name,
-          file_size: versionData.file_size,
-          file_type: versionData.file_type,
-          author_id: user.id,
-          change_description: `Restaurado da V${versionData.version_number}`
+        if (updateError) {
+          console.error('❌ [RESTORE_VERSION] Erro ao atualizar documento:', updateError)
+          throw updateError
+        }
+
+        console.log('✅ [RESTORE_VERSION] Documento atualizado para versão:', {
+          id: updatedDoc.id,
+          version: updatedDoc.version,
+          title: updatedDoc.title,
+          file_name: updatedDoc.file_name
         })
 
-      if (versionInsertError) {
-        console.error('❌ [RESTORE_VERSION] Erro ao criar registro da versão:', versionInsertError)
-        throw versionInsertError
+        updatedDocResult = updatedDoc
+      } finally {
+        // Reabilitar trigger
+        console.log('🔧 [RESTORE_VERSION] Reabilitando trigger...')
+        await supabase.rpc('enable_document_version_trigger')
       }
-
-      console.log('✅ [RESTORE_VERSION] Registro da versão criado')
 
       // Atualizar a lista de versões
       console.log('🔄 [RESTORE_VERSION] Atualizando lista de versões...')
       await fetchVersions()
 
       console.log('🎉 [RESTORE_VERSION] Restauração concluída com sucesso!')
+      console.log('📋 [RESTORE_VERSION] Versão V' + versionData.version_number + ' agora é a versão ativa')
 
-      // Retornar os dados atualizados do documento para que o componente pai possa atualizar
-      return {
+      // Retornar os dados atualizados
+      const finalResult = {
         success: true,
-        updatedDocument: updatedDoc,
-        newVersion: newVersionNumber
+        updatedDocument: updatedDocResult,
+        newVersion: versionData.version_number // Retorna a versão que foi restaurada
       }
+      
+      console.log('📤 [RESTORE_VERSION] Retornando resultado:', finalResult)
+      return finalResult
     } catch (error: any) {
       console.error('💥 [RESTORE_VERSION] Erro ao restaurar versão:', error)
       throw error

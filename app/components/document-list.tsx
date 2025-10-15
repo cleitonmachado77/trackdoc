@@ -296,8 +296,21 @@ export default function DocumentList() {
     )
   }
 
+  // Função para verificar se documento está bloqueado
+  const isDocumentBlocked = (document: Document) => {
+    // Documento está bloqueado se estiver em aprovação ou rejeitado
+    return document.status === 'pending_approval' || document.status === 'rejected'
+  }
+
+  // Função para obter comentários de rejeição
+  const getRejectionComments = (documentId: string) => {
+    const approvalStatus = approvalStatuses[documentId] || []
+    const rejectedApproval = approvalStatus.find(a => a.status === 'rejected')
+    return rejectedApproval?.comments || 'Documento rejeitado sem comentários'
+  }
+
   // Função para renderizar o status de aprovação
-  const renderApprovalStatus = (documentId: string) => {
+  const renderApprovalStatus = (document: Document) => {
     if (approvalStatusesLoading) {
       return (
         <div className="flex items-center gap-2">
@@ -307,7 +320,32 @@ export default function DocumentList() {
       )
     }
 
-    const approvalStatus = approvalStatuses[documentId] || []
+    const approvalStatus = approvalStatuses[document.id] || []
+    
+    // Se documento foi rejeitado, mostrar status especial
+    if (document.status === 'rejected') {
+      return (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-500" />
+            <span className="text-sm text-red-600 font-medium">Rejeitado</span>
+          </div>
+          <div className="text-xs text-red-600 bg-red-50 p-2 rounded border-l-2 border-red-200 max-w-xs">
+            <strong>Motivo:</strong> {getRejectionComments(document.id)}
+          </div>
+        </div>
+      )
+    }
+
+    // Se documento está em aprovação, mostrar como bloqueado
+    if (document.status === 'pending_approval') {
+      return (
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-yellow-500" />
+          <span className="text-sm text-yellow-600 font-medium">Aguardando Aprovação</span>
+        </div>
+      )
+    }
     
     if (approvalStatus.length === 0) {
       return (
@@ -397,10 +435,13 @@ export default function DocumentList() {
             <div className="space-y-2">
               {documentsList.map((document) => (
                 <AnimatedDocumentRow key={document.id}>
-                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                  <div className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors ${!isDocumentBlocked(document) ? 'cursor-pointer' : 'cursor-default'}`}
                        onClick={() => {
-                         setSelectedDocument(document)
-                         setShowViewer(true)
+                         // Só abrir o visualizador se o documento não estiver bloqueado
+                         if (!isDocumentBlocked(document)) {
+                           setSelectedDocument(document)
+                           setShowViewer(true)
+                         }
                        }}>
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -444,47 +485,77 @@ export default function DocumentList() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedDocument(document)
-                                setShowViewer(true)
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Visualizar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                downloadDocument(document)
-                              }}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedDocumentForVersions(document)
-                                setShowVersionManager(true)
-                              }}
-                            >
-                              <History className="h-4 w-4 mr-2" />
-                              Versões
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                  deleteDocument(document.id)
-                                }
-                              }}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
+                            {/* Se documento está bloqueado, mostrar apenas opções limitadas */}
+                            {isDocumentBlocked(document) ? (
+                              <>
+                                {/* Para documentos rejeitados, permitir apenas exclusão */}
+                                {document.status === 'rejected' && (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                        deleteDocument(document.id)
+                                      }
+                                    }}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                )}
+                                {/* Para documentos em aprovação, não mostrar ações */}
+                                {document.status === 'pending_approval' && (
+                                  <div className="px-2 py-1 text-xs text-muted-foreground">
+                                    Documento bloqueado durante aprovação
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                {/* Ações normais para documentos não bloqueados */}
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedDocument(document)
+                                    setShowViewer(true)
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Visualizar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    downloadDocument(document)
+                                  }}
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedDocumentForVersions(document)
+                                    setShowVersionManager(true)
+                                  }}
+                                >
+                                  <History className="h-4 w-4 mr-2" />
+                                  Versões
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                      deleteDocument(document.id)
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -573,41 +644,71 @@ export default function DocumentList() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedDocument(document)
-                            setShowViewer(true)
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Visualizar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => downloadDocument(document)}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedDocumentForVersions(document)
-                            setShowVersionManager(true)
-                          }}
-                        >
-                          <History className="h-4 w-4 mr-2" />
-                          Versões
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir este documento?')) {
-                              deleteDocument(document.id)
-                            }
-                          }}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
+                        
+                        {/* Se documento está bloqueado, mostrar apenas opções limitadas */}
+                        {isDocumentBlocked(document) ? (
+                          <>
+                            {/* Para documentos rejeitados, permitir apenas exclusão */}
+                            {document.status === 'rejected' && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                    deleteDocument(document.id)
+                                  }
+                                }}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            )}
+                            {/* Para documentos em aprovação, não mostrar ações */}
+                            {document.status === 'pending_approval' && (
+                              <div className="px-2 py-1 text-xs text-muted-foreground">
+                                Documento bloqueado durante aprovação
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {/* Ações normais para documentos não bloqueados */}
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedDocument(document)
+                                setShowViewer(true)
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Visualizar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => downloadDocument(document)}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedDocumentForVersions(document)
+                                setShowVersionManager(true)
+                              }}
+                            >
+                              <History className="h-4 w-4 mr-2" />
+                              Versões
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                  deleteDocument(document.id)
+                                }
+                              }}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -632,47 +733,74 @@ export default function DocumentList() {
 
                   {/* Status de Aprovação */}
                   <div className="pt-2 border-t">
-                    {renderApprovalStatus(document.id)}
+                    {renderApprovalStatus(document)}
                   </div>
 
-                  {/* Botões de Ação */}
+                  {/* Botões de Ação Condicionais */}
                   <div className="pt-3 border-t">
-                    <div className="flex items-center justify-between gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedDocument(document)
-                          setShowViewer(true)
-                        }}
-                        className="flex-1 h-8 text-xs"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        Ver
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => downloadDocument(document)}
-                        className="flex-1 h-8 text-xs"
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        Baixar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm('Tem certeza que deseja excluir este documento?')) {
-                            deleteDocument(document.id)
-                          }
-                        }}
-                        className="flex-1 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Excluir
-                      </Button>
-                    </div>
+                    {isDocumentBlocked(document) ? (
+                      <div className="flex items-center justify-center gap-2">
+                        {/* Para documentos rejeitados, mostrar apenas botão de excluir */}
+                        {document.status === 'rejected' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                deleteDocument(document.id)
+                              }
+                            }}
+                            className="flex-1 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Excluir
+                          </Button>
+                        ) : (
+                          /* Para documentos em aprovação, mostrar mensagem */
+                          <div className="text-xs text-muted-foreground text-center py-2">
+                            Documento bloqueado durante aprovação
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Botões normais para documentos não bloqueados */
+                      <div className="flex items-center justify-between gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedDocument(document)
+                            setShowViewer(true)
+                          }}
+                          className="flex-1 h-8 text-xs"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          Ver
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => downloadDocument(document)}
+                          className="flex-1 h-8 text-xs"
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          Baixar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm('Tem certeza que deseja excluir este documento?')) {
+                              deleteDocument(document.id)
+                            }
+                          }}
+                          className="flex-1 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

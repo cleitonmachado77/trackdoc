@@ -37,6 +37,7 @@ interface OperationResult {
   success: boolean
   error?: string
   status?: string
+  data?: any
 }
 
 export function useMultiSignatureRequests() {
@@ -267,10 +268,20 @@ export function useMultiSignatureRequests() {
       const result = await response.json()
 
       if (!response.ok) {
+        console.error('❌ Erro na resposta da API:', result)
         throw new Error(result.error || 'Erro ao finalizar assinatura múltipla')
       }
 
       console.log('✅ Assinatura múltipla finalizada:', result)
+
+      // Verificar se o documento foi realmente assinado
+      if (!result.data?.signedFilePath) {
+        console.warn('⚠️ Atenção: Documento finalizado mas sem arquivo assinado!')
+      }
+
+      if (!result.data?.signatures || result.data.signatures.length === 0) {
+        console.warn('⚠️ Atenção: Nenhuma assinatura individual foi salva!')
+      }
 
       return {
         success: true,
@@ -281,11 +292,19 @@ export function useMultiSignatureRequests() {
       console.error('Erro ao finalizar assinatura múltipla:', err)
       const message = err instanceof Error ? err.message : 'Erro ao finalizar assinatura múltipla'
       setError(message)
+      
+      // Exibir toast de erro para o usuário
+      toast({
+        title: "Erro ao Finalizar",
+        description: message,
+        variant: "destructive",
+      })
+      
       return { success: false, error: message }
     } finally {
       stopLoading()
     }
-  }, [user, startLoading, stopLoading])
+  }, [user, startLoading, stopLoading, toast])
 
   const approveSignature = useCallback(async (
     requestId: string,

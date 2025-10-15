@@ -177,37 +177,60 @@ export async function POST(request: NextRequest) {
     console.log('💾 Salvando assinaturas individuais no banco...')
 
     // Salvar cada assinatura individual na tabela document_signatures
+    let savedSignaturesCount = 0
     for (const signature of signatures) {
       try {
-        const { error: insertError } = await serviceRoleSupabase.from('document_signatures').insert({
+        console.log(`🔍 Tentando salvar assinatura para: ${signature.userName} (${signature.userEmail})`)
+        console.log(`📊 Dados da assinatura:`, {
           user_id: signature.userId,
           document_id: signatureRequest.document_id,
+          verification_code: signature.verificationCode
+        })
+
+        const { data: insertData, error: insertError } = await serviceRoleSupabase.from('document_signatures').insert({
+          user_id: signature.userId,
+          document_id: null, // ✅ NULL para assinaturas múltiplas (documento não existe em 'documents')
           arqsign_document_id: signature.id,
           status: 'completed',
           signature_url: signedFileName,
           title: signatureRequest.document_name,
           verification_code: signature.verificationCode,
           verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${signature.verificationCode}`,
-          qr_code_data: JSON.stringify({
+          qr_code_data: {
             code: signature.verificationCode,
             url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${signature.verificationCode}`,
-            documentId: signature.documentId,
+            documentId: signatureRequest.document_id, // ✅ ID do documento armazenado no QR code
             timestamp: signature.digitalTimestamp,
             signatureType: 'multiple',
             multiSignatureRequestId: requestId
-          }),
+          },
           document_hash: signature.documentHash,
           signature_hash: signature.hash
-        })
+        }).select()
 
         if (insertError) {
-          console.warn(`⚠️ Erro ao salvar assinatura individual de ${signature.userName}:`, insertError)
+          console.error(`❌ ERRO ao salvar assinatura individual de ${signature.userName}:`, insertError)
+          console.error(`❌ Código do erro:`, insertError.code)
+          console.error(`❌ Mensagem:`, insertError.message)
+          console.error(`❌ Detalhes:`, insertError.details)
         } else {
-          console.log(`✅ Assinatura individual de ${signature.userName} salva com sucesso`)
+          savedSignaturesCount++
+          console.log(`✅ Assinatura individual de ${signature.userName} salva com sucesso! ID:`, insertData?.[0]?.id)
         }
       } catch (dbError) {
-        console.warn(`⚠️ Erro ao salvar assinatura individual de ${signature.userName}:`, dbError)
+        console.error(`❌ EXCEÇÃO ao salvar assinatura individual de ${signature.userName}:`, dbError)
       }
+    }
+
+    console.log(`📊 Resultado: ${savedSignaturesCount}/${signatures.length} assinaturas salvas com sucesso`)
+
+    // ⚠️ Aviso se nenhuma assinatura foi salva, mas não bloqueia a finalização
+    if (savedSignaturesCount === 0) {
+      console.warn('⚠️ ATENÇÃO: Nenhuma assinatura individual foi salva no banco!')
+      console.warn('⚠️ O documento foi assinado, mas os registros individuais falharam')
+      // Continua mesmo sem salvar assinaturas individuais
+    } else if (savedSignaturesCount < signatures.length) {
+      console.warn(`⚠️ ATENÇÃO: Apenas ${savedSignaturesCount}/${signatures.length} assinaturas foram salvas`)
     }
 
     // Atualizar solicitação como concluída

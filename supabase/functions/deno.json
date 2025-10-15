@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "lint": {
+    "include": ["**/*.ts"],
+    "exclude": [],
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "proseWrap": "preserve"
+  },
+  "imports": {
+    "supabase": "https://esm.sh/@supabase/supabase-js@2",
+    "http": "https://deno.land/std@0.168.0/http/server.ts"
+  }
+}

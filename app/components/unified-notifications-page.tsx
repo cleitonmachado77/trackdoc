@@ -38,12 +38,17 @@ interface UnifiedNotification {
   id: string
   title: string
   message: string
-  type: 'assignment' | 'reminder' | 'completion' | 'error'
+  type: 'info' | 'warning' | 'success' | 'error'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  category: 'approval' | 'workflow' | 'signature' | 'system'
   created_at: string
   read: boolean
-  process_name?: string
-  document_title?: string
-  step_name?: string
+  metadata?: {
+    process_name?: string
+    document_title?: string
+    step_name?: string
+  } | null
+  source?: string
 }
 
 export default function UnifiedNotificationsPage() {
@@ -81,11 +86,12 @@ export default function UnifiedNotificationsPage() {
         title: notification.title,
         message: notification.message,
         type: notification.type,
+        priority: notification.priority || 'medium',
+        category: notification.category || 'system',
         created_at: notification.created_at,
         read: notification.is_read,
-        process_name: notification.process_name,
-        document_title: notification.document_title,
-        step_name: notification.step_name
+        metadata: notification.metadata || null,
+        source: notification.source || 'notifications'
       }))
 
       setNotifications(unifiedNotifications)
@@ -166,63 +172,35 @@ export default function UnifiedNotificationsPage() {
     if (!user) return
 
     try {
-      const notification = notifications.find(n => n.id === notificationId)
-      if (!notification) {
-        console.error('Notificação não encontrada:', notificationId)
-        return
+      console.log('🗑️ Removendo notificação:', notificationId)
+
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+
+      if (error) {
+        console.error('❌ Erro na exclusão:', error)
+        throw error
       }
 
-      console.log('🗑️ Removendo notificação:', {
-        id: notificationId,
-        source: notification.source,
-        title: notification.title
-      })
-
-      let result
-      if (notification.source === 'notifications') {
-        result = await supabase
-          .from('notifications')
-          .delete()
-          .eq('id', notificationId)
-          .select()
-      } else {
-        result = await supabase
-          .from('notifications')
-          .delete()
-          .eq('id', notificationId)
-          .select()
-      }
-
-      if (result.error) {
-        console.error('❌ Erro na exclusão:', result.error)
-        throw result.error
-      }
-
-      // Verificar se a exclusão foi bem-sucedida
-      if (!result.data || result.data.length === 0) {
-        console.warn('⚠️ Nenhuma notificação foi removida (pode não existir ou já ter sido removida)')
-        // Mesmo assim, remover do estado local para manter consistência
-      } else {
-        console.log('✅ Notificação removida com sucesso:', result.data)
-      }
+      console.log('✅ Notificação removida com sucesso')
 
       // Atualizar estado local
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
       setFilteredNotifications(prev => prev.filter(n => n.id !== notificationId))
 
-      // Forçar refresh após um pequeno delay para garantir consistência
+      // Notificar mudança no contador
       setTimeout(() => {
-        fetchNotifications()
-        // Notificar mudança no contador
         notifyCounterChange()
-      }, 1000)
+      }, 500)
 
       toast({
         title: "Sucesso",
         description: "Notificação removida com sucesso.",
       })
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro ao remover notificação:', error)
       toast({
         title: "Erro",
@@ -237,46 +215,19 @@ export default function UnifiedNotificationsPage() {
     if (!user || selectedNotifications.length === 0) return
 
     try {
-      const notificationsToRemove = notifications.filter(n => selectedNotifications.includes(n.id))
+      console.log('🗑️ Removendo notificações selecionadas:', selectedNotifications.length)
       
-      console.log('🗑️ Removendo notificações selecionadas:', {
-        count: notificationsToRemove.length,
-        ids: notificationsToRemove.map(n => ({ id: n.id, source: n.source, title: n.title }))
-      })
-      
-      // Separar por tipo de notificação
-      const generalNotifications = notificationsToRemove.filter(n => n.source === 'notifications')
-      const workflowNotifications = notificationsToRemove.filter(n => n.source === 'notifications')
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', selectedNotifications)
 
-      // Remover notificações gerais
-      if (generalNotifications.length > 0) {
-        const generalResult = await supabase
-          .from('notifications')
-          .delete()
-          .in('id', generalNotifications.map(n => n.id))
-          .select()
-
-        if (generalResult.error) {
-          console.error('❌ Erro ao remover notificações gerais:', generalResult.error)
-          throw generalResult.error
-        }
-        console.log('✅ Notificações gerais removidas:', generalResult.data)
+      if (error) {
+        console.error('❌ Erro ao remover notificações:', error)
+        throw error
       }
 
-      // Remover notificações de workflow
-      if (workflowNotifications.length > 0) {
-        const workflowResult = await supabase
-          .from('notifications')
-          .delete()
-          .in('id', workflowNotifications.map(n => n.id))
-          .select()
-
-        if (workflowResult.error) {
-          console.error('❌ Erro ao remover notificações de workflow:', workflowResult.error)
-          throw workflowResult.error
-        }
-        console.log('✅ Notificações de workflow removidas:', workflowResult.data)
-      }
+      console.log('✅ Notificações removidas com sucesso')
 
       // Atualizar estado local
       setNotifications(prev => prev.filter(n => !selectedNotifications.includes(n.id)))
@@ -284,19 +235,17 @@ export default function UnifiedNotificationsPage() {
       setSelectedNotifications([])
       setShowDeleteConfirm(false)
 
-      // Forçar refresh após um pequeno delay para garantir consistência
+      // Notificar mudança no contador
       setTimeout(() => {
-        fetchNotifications()
-        // Notificar mudança no contador
         notifyCounterChange()
-      }, 1000)
+      }, 500)
 
       toast({
         title: "Sucesso",
         description: `${selectedNotifications.length} notificação(ões) removida(s) com sucesso.`,
       })
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro ao remover notificações:', error)
       toast({
         title: "Erro",
@@ -311,9 +260,9 @@ export default function UnifiedNotificationsPage() {
     if (!user) return
 
     try {
-      const readNotifications = notifications.filter(n => n.read)
+      const readIds = notifications.filter(n => n.read).map(n => n.id)
       
-      if (readNotifications.length === 0) {
+      if (readIds.length === 0) {
         toast({
           title: "Info",
           description: "Não há notificações lidas para remover.",
@@ -321,62 +270,35 @@ export default function UnifiedNotificationsPage() {
         return
       }
 
-      console.log('🗑️ Limpando notificações lidas:', {
-        count: readNotifications.length,
-        ids: readNotifications.map(n => ({ id: n.id, source: n.source, title: n.title }))
-      })
+      console.log('🗑️ Limpando notificações lidas:', readIds.length)
 
-      // Separar por tipo de notificação
-      const generalNotifications = readNotifications.filter(n => n.source === 'notifications')
-      const workflowNotifications = readNotifications.filter(n => n.source === 'notifications')
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('id', readIds)
 
-      // Remover notificações gerais lidas
-      if (generalNotifications.length > 0) {
-        const generalResult = await supabase
-          .from('notifications')
-          .delete()
-          .in('id', generalNotifications.map(n => n.id))
-          .select()
-
-        if (generalResult.error) {
-          console.error('❌ Erro ao remover notificações gerais lidas:', generalResult.error)
-          throw generalResult.error
-        }
-        console.log('✅ Notificações gerais lidas removidas:', generalResult.data)
+      if (error) {
+        console.error('❌ Erro ao limpar notificações lidas:', error)
+        throw error
       }
 
-      // Remover notificações de workflow lidas
-      if (workflowNotifications.length > 0) {
-        const workflowResult = await supabase
-          .from('notifications')
-          .delete()
-          .in('id', workflowNotifications.map(n => n.id))
-          .select()
-
-        if (workflowResult.error) {
-          console.error('❌ Erro ao remover notificações de workflow lidas:', workflowResult.error)
-          throw workflowResult.error
-        }
-        console.log('✅ Notificações de workflow lidas removidas:', workflowResult.data)
-      }
+      console.log('✅ Notificações lidas removidas')
 
       // Atualizar estado local
       setNotifications(prev => prev.filter(n => !n.read))
       setFilteredNotifications(prev => prev.filter(n => !n.read))
 
-      // Forçar refresh após um pequeno delay para garantir consistência
+      // Notificar mudança no contador
       setTimeout(() => {
-        fetchNotifications()
-        // Notificar mudança no contador
         notifyCounterChange()
-      }, 1000)
+      }, 500)
 
       toast({
         title: "Sucesso",
-        description: `${readNotifications.length} notificação(ões) lida(s) removida(s) com sucesso.`,
+        description: `${readIds.length} notificação(ões) lida(s) removida(s) com sucesso.`,
       })
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro ao limpar notificações lidas:', error)
       toast({
         title: "Erro",

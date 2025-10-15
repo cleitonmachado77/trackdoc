@@ -16,7 +16,7 @@ export interface Document {
   file_type?: string
   file_size: number
   document_number?: string
-  status: 'draft' | 'pending' | 'approved' | 'rejected'
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected'
   is_public: boolean
   version: number
   created_at: string
@@ -183,7 +183,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
         total: processedDocuments.length,
         by_status: [
           { status: 'draft', count: processedDocuments.filter(d => d.status === 'draft').length },
-          { status: 'pending', count: processedDocuments.filter(d => d.status === 'pending').length },
+          { status: 'pending_approval', count: processedDocuments.filter(d => d.status === 'pending_approval').length },
           { status: 'approved', count: processedDocuments.filter(d => d.status === 'approved').length },
           { status: 'rejected', count: processedDocuments.filter(d => d.status === 'rejected').length },
         ],

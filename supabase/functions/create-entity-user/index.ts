@@ -80,7 +80,7 @@ serve(async (req) => {
         registration_type: 'entity_user',
         entity_role: entity_role,
         phone: phone || null,
-        department: department || null,
+        department_id: department || null,
         position: position || null,
         registration_completed: true
       }])

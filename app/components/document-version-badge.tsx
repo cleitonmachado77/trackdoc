@@ -82,11 +82,6 @@ export function DocumentVersionBadge({
     >
       <History className="h-3 w-3 mr-1" />
       V{currentVersion}
-      {stats?.hasOlderVersions && (
-        <span className="ml-1 text-xs opacity-75">
-          ({stats.totalVersions})
-        </span>
-      )}
     </Badge>
   )
 

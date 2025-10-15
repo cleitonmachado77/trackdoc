@@ -264,23 +264,32 @@ export function useApprovals() {
   const approveDocument = async (approvalId: string, approved: boolean, comments?: string) => {
     try {
       setError(null)
+      
+      console.log('🔄 [APPROVE] Usando API route diretamente...')
 
-      const status = approved ? 'approved' : 'rejected'
-      const approved_at = approved ? new Date().toISOString() : null
-
-      // Atualizar approval
-      const { data: approvalData, error: approvalError } = await supabase
-        .from('approval_requests')
-        .update({ 
-          status, 
-          comments, 
-          approved_at 
+      // Usar API route diretamente (comprovadamente funciona)
+      const response = await fetch('/api/approve-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          approvalId,
+          approved,
+          comments,
+          userId: user?.id
         })
-        .eq('id', approvalId)
-        .select()
-        .single()
+      })
 
-      if (approvalError) throw approvalError
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro na API route')
+      }
+
+      const result = await response.json()
+      const approvalData = result.data
+      
+      console.log('✅ [APPROVE] API route funcionou!', result)
 
       // Buscar informações do documento e autor para a notificação
       let documentTitle = ''

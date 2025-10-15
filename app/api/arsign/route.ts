@@ -346,12 +346,15 @@ export async function POST(request: NextRequest) {
 
     // Criar assinatura digital
     console.log('✍️ Criando assinatura digital...')
+    // Gerar UUID válido se não tiver documentId
+    const finalDocumentId = documentId || crypto.randomUUID()
+    
     console.log('📊 Dados para assinatura:', {
       pdfBufferSize: pdfBuffer.length,
       userId: user.id,
       userName,
       userEmail,
-      documentId: documentId || `doc_${Date.now()}`
+      documentId: finalDocumentId
     })
     
     // Verificar instância do serviço
@@ -441,7 +444,7 @@ export async function POST(request: NextRequest) {
         const { data: multiSignatureRequest, error: requestError } = await serviceRoleSupabase
           .from('multi_signature_requests')
           .insert({
-            document_id: documentId || `doc_${Date.now()}`,
+            document_id: finalDocumentId,
             document_name: documentName,
             document_path: filePath,
             requester_id: user.id,
@@ -527,7 +530,7 @@ export async function POST(request: NextRequest) {
           user.id,
           userName,
           userEmail,
-          documentId || `doc_${Date.now()}`,
+          finalDocumentId,
           signatureTemplate
         )
         signedPdf = result.signedPdf

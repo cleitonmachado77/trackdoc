@@ -22,10 +22,10 @@ export async function GET(request: NextRequest) {
     // Usar service role para bypass RLS
     const serviceRoleSupabase = createSupabaseServiceClient()
 
-    // Buscar perfil
+    // Buscar perfil (otimizado - apenas campos necessários)
     const { data: profile, error: profileError } = await serviceRoleSupabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, email, phone, role, status, entity_id, entity_role, department_id, position, avatar_url, registration_completed, registration_type, permissions, created_at, updated_at')
       .eq('id', user.id)
       .single()
 
@@ -88,14 +88,14 @@ export async function PUT(request: NextRequest) {
 
     // Obter dados do corpo da requisição
     const body = await request.json()
-    const { full_name, phone, role, department, position } = body
+    const { full_name, phone, role, department_id, position } = body
 
     // Normalizar o role para lowercase e validar valores permitidos
     const validRoles = ['user', 'admin', 'manager']
     const normalizedRole = role ? role.toLowerCase() : 'user'
     const finalRole = validRoles.includes(normalizedRole) ? normalizedRole : 'user'
 
-    console.log('📝 [profile-api] Dados recebidos:', { full_name, phone, role: finalRole, department, position })
+    console.log('📝 [profile-api] Dados recebidos:', { full_name, phone, role: finalRole, department_id, position })
 
     // Usar service role para bypass RLS
     const serviceRoleSupabase = createSupabaseServiceClient()
@@ -112,7 +112,7 @@ export async function PUT(request: NextRequest) {
       registration_completed: true,
       registration_type: 'individual',
       entity_role: 'user',
-      department,
+      department_id,
       position,
       updated_at: new Date().toISOString()
     }

@@ -275,7 +275,8 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
           priority: 'high',
           recipients: [approverData.email],
           channels: ['email'],
-          status: 'sent',
+          status: 'pending',
+          total_recipients: 1,
           created_by: user?.id
         })
 

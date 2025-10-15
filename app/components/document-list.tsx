@@ -398,6 +398,88 @@ export default function DocumentList() {
     )
   }
 
+  // Função para renderizar o status de aprovação de forma compacta
+  const renderApprovalStatusCompact = (document: Document) => {
+    if (approvalStatusesLoading) {
+      return (
+        <>
+          <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">Carregando...</span>
+        </>
+      )
+    }
+
+    const approvalStatus = approvalStatuses[document.id] || []
+    
+    // Se documento foi rejeitado
+    if (document.status === 'rejected') {
+      return (
+        <>
+          <XCircle className="h-3 w-3 text-red-500" />
+          <span className="text-xs text-red-600 font-medium">Rejeitado</span>
+        </>
+      )
+    }
+
+    // Se documento está em aprovação
+    if (document.status === 'pending_approval') {
+      return (
+        <>
+          <Clock className="h-3 w-3 text-yellow-500" />
+          <span className="text-xs text-yellow-600 font-medium">Em aprovação</span>
+        </>
+      )
+    }
+    
+    if (approvalStatus.length === 0) {
+      return (
+        <>
+          <CheckCircle className="h-3 w-3 text-green-500" />
+          <span className="text-xs text-green-600">Aprovado</span>
+        </>
+      )
+    }
+
+    const pendingCount = approvalStatus.filter(w => w.status === 'pending').length
+    const approvedCount = approvalStatus.filter(w => w.status === 'approved').length
+    const rejectedCount = approvalStatus.filter(w => w.status === 'rejected').length
+    const totalCount = approvalStatus.length
+
+    if (rejectedCount > 0) {
+      return (
+        <>
+          <XCircle className="h-3 w-3 text-red-500" />
+          <span className="text-xs text-red-600">Rejeitado</span>
+        </>
+      )
+    }
+
+    if (approvedCount === totalCount) {
+      return (
+        <>
+          <CheckCircle className="h-3 w-3 text-green-500" />
+          <span className="text-xs text-green-600">Aprovado</span>
+        </>
+      )
+    }
+
+    if (pendingCount > 0) {
+      return (
+        <>
+          <Clock className="h-3 w-3 text-yellow-500" />
+          <span className="text-xs text-yellow-600">{approvedCount}/{totalCount}</span>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <AlertCircle className="h-3 w-3 text-gray-400" />
+        <span className="text-xs text-gray-500">Pendente</span>
+      </>
+    )
+  }
+
   // Função para renderizar os documentos em formato de lista
   const renderDocumentsList = (documentsList: Document[], title: string, icon: React.ReactNode, emptyMessage: string) => (
     <div className="space-y-6">
@@ -570,7 +652,7 @@ export default function DocumentList() {
     </div>
   )
 
-  // Função para renderizar os documentos em cards quadrados
+  // Função para renderizar os documentos em cards compactos
   const renderDocumentsGrid = (documentsList: Document[], title: string, icon: React.ReactNode, emptyMessage: string) => (
     <div className="space-y-6">
       {/* Header */}
@@ -586,7 +668,7 @@ export default function DocumentList() {
         </div>
       </div>
 
-      {/* Grid de Cards */}
+      {/* Grid de Cards Compactos */}
       {documentsList.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="text-center">
@@ -602,202 +684,231 @@ export default function DocumentList() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {documentsList.map((document) => (
             <AnimatedDocumentRow key={document.id}>
-              <Card className="h-96 hover:shadow-trackdoc-lg transition-all duration-200 cursor-pointer group">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
+              <Card className="h-64 hover:shadow-lg transition-all duration-200 cursor-pointer group border-l-4" 
+                    style={{ borderLeftColor: document.document_type?.color || '#6B7280' }}
+                    onClick={() => {
+                      if (!isDocumentBlocked(document)) {
+                        setSelectedDocument(document)
+                        setShowViewer(true)
+                      }
+                    }}>
+                <CardHeader className="pb-2 px-3 pt-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2 min-w-0 flex-1">
                       {getFileIconWithBackground(
                         document.file_type || '',
                         document.file_name || '',
-                        "h-6 w-6",
-                        "p-2"
+                        "h-4 w-4",
+                        "p-1.5"
                       )}
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                            {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
-                          </CardTitle>
-                          <DocumentVersionBadge
-                            documentId={document.id}
-                            currentVersion={document.version || 1}
-                            onClick={() => {
-                              setSelectedDocumentForVersions(document)
-                              setShowVersionManager(true)
-                            }}
-                            showTooltip={false}
-                          />
-                        </div>
-                        <p className="text-xs text-trackdoc-gray mt-1 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {document.description || 'Sem descrição'}
-                        </p>
+                        <CardTitle className="text-sm font-medium text-trackdoc-black group-hover:text-trackdoc-blue transition-colors leading-tight" 
+                                   style={{ 
+                                     display: '-webkit-box', 
+                                     WebkitLineClamp: 2, 
+                                     WebkitBoxOrient: 'vertical', 
+                                     overflow: 'hidden' 
+                                   }}>
+                          {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
+                        </CardTitle>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        
-                        {/* Se documento está bloqueado, mostrar apenas opções limitadas */}
-                        {isDocumentBlocked(document) ? (
-                          <>
-                            {/* Para documentos rejeitados, permitir apenas exclusão */}
-                            {document.status === 'rejected' && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <div onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedDocumentForVersions(document)
+                        setShowVersionManager(true)
+                      }}>
+                        <DocumentVersionBadge
+                          documentId={document.id}
+                          currentVersion={document.version || 1}
+                          showTooltip={false}
+                        />
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {isDocumentBlocked(document) ? (
+                            <>
+                              {document.status === 'rejected' && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                      deleteDocument(document.id)
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              )}
+                              {document.status === 'pending_approval' && (
+                                <div className="px-2 py-1 text-xs text-muted-foreground">
+                                  Bloqueado em aprovação
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <>
                               <DropdownMenuItem
-                                onClick={() => {
-                                  if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedDocument(document)
+                                  setShowViewer(true)
+                                }}
+                              >
+                                <Eye className="h-3 w-3 mr-2" />
+                                Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  downloadDocument(document)
+                                }}
+                              >
+                                <Download className="h-3 w-3 mr-2" />
+                                Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedDocumentForVersions(document)
+                                  setShowVersionManager(true)
+                                }}
+                              >
+                                <History className="h-3 w-3 mr-2" />
+                                Versões
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (confirm('Tem certeza que deseja excluir este documento?')) {
                                     deleteDocument(document.id)
                                   }
                                 }}
                                 className="text-destructive"
                               >
-                                <Trash2 className="h-4 w-4 mr-2" />
+                                <Trash2 className="h-3 w-3 mr-2" />
                                 Excluir
                               </DropdownMenuItem>
-                            )}
-                            {/* Para documentos em aprovação, não mostrar ações */}
-                            {document.status === 'pending_approval' && (
-                              <div className="px-2 py-1 text-xs text-muted-foreground">
-                                Documento bloqueado durante aprovação
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {/* Ações normais para documentos não bloqueados */}
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedDocument(document)
-                                setShowViewer(true)
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Visualizar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => downloadDocument(document)}
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setSelectedDocumentForVersions(document)
-                                setShowVersionManager(true)
-                              }}
-                            >
-                              <History className="h-4 w-4 mr-2" />
-                              Versões
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                  deleteDocument(document.id)
-                                }
-                              }}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Badge de Tipo */}
-                  <div className="flex flex-wrap gap-2">
-                    <Badge 
-                      variant="outline" 
-                      className="text-xs"
-                      style={{ backgroundColor: `${document.document_type?.color || '#6B7280'}20`, borderColor: document.document_type?.color || '#6B7280' }}
-                    >
-                      {document.document_type?.name || 'N/A'}
-                    </Badge>
+                
+                <CardContent className="px-3 pb-3 space-y-3">
+                  {/* Informações Compactas */}
+                  <div className="space-y-2">
+                    {/* Tipo e Autor em uma linha */}
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs px-1.5 py-0.5 h-5"
+                        style={{ 
+                          backgroundColor: `${document.document_type?.color || '#6B7280'}15`, 
+                          borderColor: document.document_type?.color || '#6B7280',
+                          color: document.document_type?.color || '#6B7280'
+                        }}
+                      >
+                        {document.document_type?.name || 'N/A'}
+                      </Badge>
+                      <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                        <User className="h-3 w-3 shrink-0" />
+                        <span className="truncate text-xs">{document.author?.full_name || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    {/* Status de Aprovação Compacto */}
+                    <div className="flex items-center gap-1.5">
+                      {renderApprovalStatusCompact(document)}
+                    </div>
+
+                    {/* Tamanho do arquivo e data */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{formatFileSize(document.file_size || 0)}</span>
+                      <span>{new Date(document.created_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
                   </div>
 
-                  {/* Autor */}
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span className="truncate">{document.author?.full_name || 'N/A'}</span>
-                  </div>
-
-                  {/* Status de Aprovação */}
+                  {/* Botões de Ação Compactos */}
                   <div className="pt-2 border-t">
-                    {renderApprovalStatus(document)}
-                  </div>
-
-                  {/* Botões de Ação Condicionais */}
-                  <div className="pt-3 border-t">
                     {isDocumentBlocked(document) ? (
-                      <div className="flex items-center justify-center gap-2">
-                        {/* Para documentos rejeitados, mostrar apenas botão de excluir */}
+                      <div className="flex justify-center">
                         {document.status === 'rejected' ? (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation()
                               if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
                                 deleteDocument(document.id)
                               }
                             }}
-                            className="flex-1 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <Trash2 className="h-3 w-3 mr-1" />
                             Excluir
                           </Button>
                         ) : (
-                          /* Para documentos em aprovação, mostrar mensagem */
-                          <div className="text-xs text-muted-foreground text-center py-2">
-                            Documento bloqueado durante aprovação
+                          <div className="text-xs text-muted-foreground text-center py-1">
+                            Bloqueado
                           </div>
                         )}
                       </div>
                     ) : (
-                      /* Botões normais para documentos não bloqueados */
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex gap-1">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             setSelectedDocument(document)
                             setShowViewer(true)
                           }}
-                          className="flex-1 h-8 text-xs"
+                          className="flex-1 h-7 text-xs px-2"
                         >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Ver
+                          <Eye className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => downloadDocument(document)}
-                          className="flex-1 h-8 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            downloadDocument(document)
+                          }}
+                          className="flex-1 h-7 text-xs px-2"
                         >
-                          <Download className="h-3 w-3 mr-1" />
-                          Baixar
+                          <Download className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation()
                             if (confirm('Tem certeza que deseja excluir este documento?')) {
                               deleteDocument(document.id)
                             }
                           }}
-                          className="flex-1 h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="flex-1 h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Excluir
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     )}

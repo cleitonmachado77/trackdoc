@@ -8,11 +8,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { 
   FileText, 
-  Download, 
   Users, 
   Calendar, 
-  CheckCircle, 
-  Clock,
   Eye
 } from 'lucide-react'
 
@@ -81,67 +78,6 @@ export function SignedDocumentsDisplay() {
       setError('Erro ao carregar documentos assinados')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const downloadDocument = async (document: SignedDocument) => {
-    try {
-      if (!document.signed_file_path) {
-        toast({
-          title: "Erro",
-          description: "Arquivo assinado não encontrado",
-          variant: "destructive"
-        })
-        return
-      }
-
-      console.log('🔄 Iniciando download do documento:', document.document_name)
-      console.log('📁 Caminho do arquivo assinado:', document.signed_file_path)
-
-      const response = await fetch(`/api/download-signed-document?filePath=${encodeURIComponent(document.signed_file_path)}`)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ Erro na resposta da API:', response.status, errorText)
-        throw new Error(`Erro ao baixar documento: ${response.status}`)
-      }
-      
-      const blob = await response.blob()
-      console.log('✅ Blob criado com sucesso, tamanho:', blob.size)
-      
-      // Usar uma abordagem mais simples e compatível
-      const url = URL.createObjectURL(blob)
-      
-      // Abrir o arquivo em uma nova aba para download
-      const newWindow = window.open(url, '_blank')
-      
-      if (!newWindow) {
-        // Fallback: criar link de download
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `assinado_${document.document_name}`
-        link.style.display = 'none'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-      }
-      
-      // Limpar a URL após um tempo
-      setTimeout(() => {
-        URL.revokeObjectURL(url)
-      }, 1000)
-      
-      toast({
-        title: "Sucesso",
-        description: "Documento baixado com sucesso!"
-      })
-    } catch (error) {
-      console.error('❌ Erro ao baixar documento:', error)
-      toast({
-        title: "Erro",
-        description: `Erro ao baixar documento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-        variant: "destructive"
-      })
     }
   }
 
@@ -244,13 +180,30 @@ export function SignedDocumentsDisplay() {
             
             {document.status === 'completed' && document.signed_file_path && (
               <Button
-                onClick={() => downloadDocument(document)}
+                onClick={() => {
+                  // Tentar abrir documento - tentar ambos os buckets
+                  // Assinaturas simples geralmente estão em 'documents'
+                  // Assinaturas múltiplas podem estar em 'signed-documents' ou 'documents'
+                  const fileName = document.signed_file_path
+                  
+                  // Tentar bucket 'documents' primeiro (padrão para assinaturas simples)
+                  const primaryUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${fileName}`
+                  
+                  // Abrir em nova aba
+                  const newWindow = window.open(primaryUrl, '_blank')
+                  
+                  // Se falhar (bloqueado por popup), tentar signed-documents como fallback
+                  if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                    const fallbackUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/signed-documents/${fileName}`
+                    window.open(fallbackUrl, '_blank')
+                  }
+                }}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 text-xs"
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                title="Visualizar documento"
               >
-                <Download className="h-3 w-3" />
-                Baixar
+                <Eye className="h-3 w-3" />
               </Button>
             )}
           </div>

@@ -202,7 +202,8 @@ export async function POST(request: NextRequest) {
             documentId: signatureRequest.document_id, // ✅ ID do documento armazenado no QR code
             timestamp: signature.digitalTimestamp,
             signatureType: 'multiple',
-            multiSignatureRequestId: requestId
+            multiSignatureRequestId: requestId,
+            storageBucket: bucketUsed // ✅ Adicionar informação do bucket usado
           },
           document_hash: signature.documentHash,
           signature_hash: signature.hash

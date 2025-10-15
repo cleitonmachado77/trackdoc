@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Upload, FileText, Download, CheckCircle, Clock, XCircle, FileCheck, Eye, X, Settings, AlertCircle, Users, Calendar, History, Search } from 'lucide-react'
+import { Upload, FileText, Download, CheckCircle, Clock, XCircle, FileCheck, Eye, X, Settings, AlertCircle, Users, Calendar, History, Search, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/hooks/use-auth-final'
@@ -586,14 +586,15 @@ export default function ElectronicSignature() {
     }
   }
 
-  // Função para buscar histórico de assinaturas
+  // Função para buscar histórico de assinaturas simples (apenas assinaturas individuais)
   const fetchSignatureHistory = async () => {
     if (!user?.id) return
 
     try {
       setLoadingHistory(true)
-      console.log('🔍 [fetchSignatureHistory] Buscando assinaturas do usuário:', user.id)
+      console.log('🔍 [fetchSignatureHistory] Buscando assinaturas simples do usuário:', user.id)
 
+      // Buscar todas as assinaturas do usuário
       const { data, error } = await supabase
         .from('document_signatures')
         .select('*')
@@ -605,8 +606,29 @@ export default function ElectronicSignature() {
         return
       }
 
-      console.log('✅ [fetchSignatureHistory] Assinaturas encontradas:', data?.length || 0)
-      setSignatureHistory(data || [])
+      // Filtrar apenas assinaturas simples (excluir assinaturas múltiplas)
+      const simpleSignatures = (data || []).filter(signature => {
+        try {
+          // Se não tem qr_code_data, é assinatura simples
+          if (!signature.qr_code_data) return true
+          
+          // Parsear qr_code_data para verificar o tipo
+          const qrData = JSON.parse(signature.qr_code_data)
+          
+          // Excluir se for assinatura múltipla
+          if (qrData.signatureType === 'multiple') return false
+          
+          // Incluir se for assinatura simples ou não especificado
+          return true
+        } catch (e) {
+          // Se houver erro ao parsear, considerar como assinatura simples
+          return true
+        }
+      })
+
+      console.log('✅ [fetchSignatureHistory] Assinaturas simples encontradas:', simpleSignatures.length)
+      console.log('📊 [fetchSignatureHistory] Total de assinaturas:', data?.length || 0, '| Simples:', simpleSignatures.length)
+      setSignatureHistory(simpleSignatures)
 
     } catch (err) {
       console.error('❌ [fetchSignatureHistory] Erro geral:', err)
@@ -615,96 +637,74 @@ export default function ElectronicSignature() {
     }
   }
 
-  // Função para buscar histórico de assinaturas múltiplas
+  // Função para buscar histórico de assinaturas múltiplas (últimas 10 assinaturas completadas)
   const fetchMultiSignatureHistory = async () => {
     if (!user?.id) return
 
     try {
       setLoadingMultiHistory(true)
-      console.log('🔍 [fetchMultiSignatureHistory] Buscando assinaturas múltiplas do usuário:', user.id)
+      console.log('🔍 [fetchMultiSignatureHistory] Buscando últimas 10 assinaturas múltiplas completadas')
 
-      // Buscar solicitações criadas pelo usuário
-      const { data: requests, error: requestsError } = await supabase
-        .from('multi_signature_requests')
-        .select('*')
-        .eq('requester_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (requestsError) {
-        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar solicitações:', requestsError)
-        return
-      }
-
-      // Buscar aprovações do usuário
-      const { data: approvals, error: approvalsError } = await supabase
-        .from('multi_signature_approvals')
-        .select(`
-          *,
-          multi_signature_requests (
-            id,
-            document_name,
-            document_path,
-            status,
-            created_at,
-            completed_at,
-            signed_file_path,
-            metadata
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-
-      if (approvalsError) {
-        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar aprovações:', approvalsError)
-        return
-      }
-
-      // Buscar assinaturas múltiplas individuais na tabela document_signatures
-      const { data: individualSignatures, error: individualError } = await supabase
+      // Buscar os últimos 10 documentos assinados de forma múltipla
+      // Filtramos por status 'completed' e qr_code_data contendo signatureType:multiple
+      const { data: multiSignedDocs, error: docsError } = await supabase
         .from('document_signatures')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('status', 'completed')
         .like('qr_code_data', '%"signatureType":"multiple"%')
         .order('created_at', { ascending: false })
+        .limit(10)
 
-      if (individualError) {
-        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar assinaturas individuais:', individualError)
+      if (docsError) {
+        console.error('❌ [fetchMultiSignatureHistory] Erro ao buscar documentos:', docsError)
+        throw docsError
       }
 
-      // Combinar e organizar os dados
-      const combinedHistory = [
-        // Solicitações criadas pelo usuário
-        ...(requests || []).map(req => ({
-          ...req,
-          type: 'created',
-          display_name: req.document_name,
-          action_date: req.created_at
-        })),
-        // Documentos que o usuário aprovou/assinou (método antigo)
-        ...(approvals || []).filter(app => app.multi_signature_requests).map(app => ({
-          ...app.multi_signature_requests,
-          type: 'signed',
-          display_name: app.multi_signature_requests.document_name,
-          action_date: app.created_at,
-          approval_id: app.id
-        })),
-        // Assinaturas múltiplas individuais (método novo)
-        ...(individualSignatures || []).map(sig => ({
-          ...sig,
-          type: 'signed_individual',
-          display_name: sig.title || 'Documento sem título',
-          action_date: sig.created_at,
-          verification_code: sig.verification_code,
-          verification_url: sig.verification_url
-        }))
-      ].sort((a, b) => new Date(b.action_date).getTime() - new Date(a.action_date).getTime())
+      console.log('✅ [fetchMultiSignatureHistory] Documentos encontrados:', multiSignedDocs?.length || 0)
 
-      console.log('✅ [fetchMultiSignatureHistory] Histórico múltiplo encontrado:', combinedHistory.length)
+      // Agrupar documentos por multiSignatureRequestId para mostrar apenas um card por documento
+      const groupedDocs = new Map<string, any>()
+      
+      multiSignedDocs?.forEach(doc => {
+        try {
+          const qrData = JSON.parse(doc.qr_code_data || '{}')
+          const requestId = qrData.multiSignatureRequestId
+          
+          if (requestId) {
+            // Se já existe esse requestId, adiciona à lista de assinantes
+            if (groupedDocs.has(requestId)) {
+              const existing = groupedDocs.get(requestId)
+              existing.signatures.push(doc)
+            } else {
+              // Primeiro documento deste requestId
+              groupedDocs.set(requestId, {
+                ...doc,
+                requestId,
+                signatures: [doc],
+                display_name: doc.title || 'Documento sem título',
+              })
+            }
+          }
+        } catch (e) {
+          console.error('Erro ao parsear qr_code_data:', e)
+        }
+      })
+
+      // Converter o Map em array e ordenar por data
+      const combinedHistory = Array.from(groupedDocs.values())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10) // Garantir apenas 10 resultados
+
+      console.log('✅ [fetchMultiSignatureHistory] Histórico agrupado:', combinedHistory.length)
       setMultiSignatureHistory(combinedHistory)
 
     } catch (err) {
       console.error('❌ [fetchMultiSignatureHistory] Erro geral:', err)
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar histórico de assinaturas múltiplas",
+        variant: "destructive",
+      })
     } finally {
       setLoadingMultiHistory(false)
     }
@@ -1173,11 +1173,123 @@ export default function ElectronicSignature() {
                 Histórico de Assinaturas Múltiplas
               </CardTitle>
               <CardDescription>
-                Solicitações criadas e seu status
+                Últimos 10 documentos assinados de forma múltipla
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MultiSignatureRequestsContent />
+              {loadingMultiHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-center">
+                    <Clock className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground">Carregando histórico...</p>
+                  </div>
+                </div>
+              ) : multiSignatureHistory.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Users className="h-12 w-12 text-muted-foreground mb-3" />
+                  <h3 className="text-base font-medium text-muted-foreground mb-1">
+                    Nenhum documento assinado
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Ainda não há documentos com assinatura múltipla completada.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">
+                      {multiSignatureHistory.length} documento(s) encontrado(s)
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={fetchMultiSignatureHistory}
+                      disabled={loadingMultiHistory}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Atualizar
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {multiSignatureHistory.map((item, index) => {
+                      const qrData = item.qr_code_data ? JSON.parse(item.qr_code_data) : {}
+                      const totalSignatures = item.signatures?.length || 1
+                      // Determinar qual bucket usar
+                      const storageBucket = qrData.storageBucket || 'signed-documents' // Padrão: signed-documents
+                      
+                      return (
+                        <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="p-2 bg-green-100 rounded-lg">
+                                <FileCheck className="h-5 w-5 text-green-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium text-gray-900 mb-1 truncate">
+                                  {item.display_name}
+                                </h3>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge className="bg-green-100 text-green-800 text-xs">
+                                      Completado
+                                    </Badge>
+                                    <span className="text-xs text-gray-500">
+                                      {totalSignatures} assinatura(s)
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {formatDate(item.created_at)}
+                                    </span>
+                                    {item.verification_code && (
+                                      <span className="flex items-center gap-1">
+                                        <ShieldCheck className="h-3 w-3" />
+                                        {item.verification_code}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {/* Botão para visualizar documento */}
+                              {item.signature_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    // Tentar abrir documento usando o bucket correto
+                                    const url = item.signature_url.startsWith('http') 
+                                      ? item.signature_url
+                                      : `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${storageBucket}/${item.signature_url}`
+                                    
+                                    // Abrir em nova aba
+                                    const newWindow = window.open(url, '_blank')
+                                    
+                                    // Se falhar, tentar o bucket alternativo
+                                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                                      const alternateBucket = storageBucket === 'signed-documents' ? 'documents' : 'signed-documents'
+                                      const alternateUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${alternateBucket}/${item.signature_url}`
+                                      window.open(alternateUrl, '_blank')
+                                    }
+                                  }}
+                                  title="Visualizar documento"
+                                  className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1232,63 +1344,64 @@ export default function ElectronicSignature() {
 
                   <div className="grid gap-4">
                     {signatureHistory.map((signature) => (
-                      <Card key={signature.id} className="p-4">
-                        <div className="flex items-start justify-between">
+                      <Card key={signature.id} className="p-4 hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-3 flex-1">
                             <div className="p-2 bg-blue-100 rounded-lg">
                               <FileText className="h-5 w-5 text-blue-600" />
                             </div>
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-900 mb-1">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium text-gray-900 mb-1 truncate">
                                 {signature.title || 'Documento sem título'}
                               </h3>
                               <div className="space-y-1">
-                                <p className="text-sm text-gray-600">
-                                  ID: {signature.arqsign_document_id}
-                                </p>
-                                <div className="flex items-center gap-4 text-xs text-gray-500">
-                                  <span>Criado: {formatDate(signature.created_at)}</span>
-                                  {signature.updated_at !== signature.created_at && (
-                                    <span>Atualizado: {formatDate(signature.updated_at)}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge className={getStatusColor(signature.status)}>
+                                    {getStatusText(signature.status)}
+                                  </Badge>
+                                  {signature.arqsign_document_id && (
+                                    <span className="text-xs text-gray-500">
+                                      ID: {signature.arqsign_document_id}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-gray-500">
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {formatDate(signature.created_at)}
+                                  </span>
+                                  {signature.verification_code && (
+                                    <span className="flex items-center gap-1">
+                                      <ShieldCheck className="h-3 w-3" />
+                                      {signature.verification_code}
+                                    </span>
                                   )}
                                 </div>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <Badge className={getStatusColor(signature.status)}>
-                              {getStatusText(signature.status)}
-                            </Badge>
-
-                            <div className="flex items-center gap-2">
-                              {signature.verification_url && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(signature.verification_url, '_blank')}
-                                  title="Verificar assinatura"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              )}
-
-                              {signature.signature_url && signature.status === 'completed' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    const link = document.createElement('a')
-                                    link.href = signature.signature_url!
-                                    link.download = signature.title || 'documento-assinado.pdf'
-                                    link.click()
-                                  }}
-                                  title="Baixar documento assinado"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
+                          <div className="flex items-center gap-2">
+                            {/* Botão para visualizar documento assinado */}
+                            {signature.signature_url && signature.status === 'completed' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // Construir URL do documento
+                                  const url = signature.signature_url.startsWith('http') 
+                                    ? signature.signature_url
+                                    : `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${signature.signature_url}`
+                                  
+                                  // Abrir em nova aba
+                                  window.open(url, '_blank')
+                                }}
+                                title="Visualizar documento"
+                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>

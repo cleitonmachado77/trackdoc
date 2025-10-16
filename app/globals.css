@@ -112,13 +112,13 @@
     --trackdoc-gray-light: 217 32% 22%; /* Azul escuro acinzentado mais claro */
 
     /* SIDEBAR EM TONS DE AZUL ESCURO */
-    --sidebar-background: 217 32% 10%; /* Azul escuro para sidebar mais claro */
+    --sidebar-background: 217 32% 14%; /* Sidebar mais claro para harmonizar */
     --sidebar-foreground: 217 20% 98%;
     --sidebar-primary: 217 91% 65%;
     --sidebar-primary-foreground: 217 32% 12%;
-    --sidebar-accent: 217 32% 19%;
+    --sidebar-accent: 217 32% 22%; /* Accent mais claro */
     --sidebar-accent-foreground: 217 20% 98%;
-    --sidebar-border: 217 32% 18%;
+    --sidebar-border: 217 32% 20%;
     --sidebar-ring: 217 91% 65%;
   }
 }
@@ -986,7 +986,7 @@ ORDAS MAIS SUTIS NO MODO ESCURO */
 }/* 
 AJUSTES FINAIS PARA CLARIDADE DO TEMA ESCURO */
 .dark {
-  filter: brightness(1.1);
+  filter: brightness(1.15);
 }
 
 .dark body,
@@ -1012,7 +1012,7 @@ AJUSTES FINAIS PARA CLARIDADE DO TEMA ESCURO */
 /* SIDEBAR MAIS CLARA */
 .dark .sidebar,
 .dark [class*="sidebar"] {
-  background: hsl(217, 32%, 10%) !important;
+  background: hsl(217, 32%, 14%) !important;
 }
 
 /* CARDS MAIS CLAROS */
@@ -1025,4 +1025,41 @@ AJUSTES FINAIS PARA CLARIDADE DO TEMA ESCURO */
 .dark svg,
 .dark canvas {
   filter: none;
+}
+
+/* CORREÇÕES ESPECÍFICAS PARA BRILHO UNIFORME */
+.dark .sidebar,
+.dark [class*="sidebar"] {
+  background: hsl(217, 32%, 14%) !important;
+  filter: brightness(1.2) !important;
+}
+
+/* GARANTIR QUE O SIDEBAR TENHA O MESMO BRILHO QUE O CONTEÚDO PRINCIPAL */
+.dark .sidebar .border,
+.dark [class*="sidebar"] .border {
+  border-color: hsl(217, 32%, 20%) !important;
+  opacity: 0.8;
+}
+
+/* AJUSTAR CORES DO PERFIL DO USUÁRIO NO SIDEBAR */
+.dark .sidebar .text-sidebar-foreground,
+.dark [class*="sidebar"] .text-sidebar-foreground {
+  color: hsl(217, 20%, 98%) !important;
+}
+
+/* BOTÕES DO SIDEBAR MAIS CLAROS */
+.dark .sidebar button,
+.dark [class*="sidebar"] button {
+  background: hsl(217, 32%, 18%) !important;
+}
+
+.dark .sidebar button:hover,
+.dark [class*="sidebar"] button:hover {
+  background: hsl(217, 32%, 22%) !important;
+}
+
+/* SEÇÃO DE AÇÕES RÁPIDAS MAIS CLARA */
+.dark .sidebar .bg-sidebar-accent,
+.dark [class*="sidebar"] .bg-sidebar-accent {
+  background: hsl(217, 32%, 18%) !important;
 }

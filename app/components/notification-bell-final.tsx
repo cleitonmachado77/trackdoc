@@ -97,10 +97,19 @@ export default function NotificationBellFinal() {
     if (!user) return
 
     try {
-      await supabase
-        .from('notification_feed')
-        .update({ is_read: true })
+      console.log('📖 [NotificationBell] Marcando notificação como lida:', notification.id)
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ status: 'read' })
         .eq('id', notification.id)
+
+      if (error) {
+        console.error('❌ [NotificationBell] Erro ao marcar como lida:', error)
+        throw error
+      }
+
+      console.log('✅ [NotificationBell] Notificação marcada como lida')
 
       setNotifications(prev => prev.filter(n => n.id !== notification.id))
       setUnreadCount(prev => Math.max(0, prev - 1))
@@ -109,8 +118,8 @@ export default function NotificationBellFinal() {
         notifyCounterChange()
       }, 500)
 
-    } catch (error) {
-      console.error('Erro ao marcar como lida:', error)
+    } catch (error: any) {
+      console.error('❌ [NotificationBell] Erro ao marcar como lida:', error)
     }
   }
 

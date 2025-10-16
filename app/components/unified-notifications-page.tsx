@@ -24,15 +24,12 @@ import {
   Shield,
   Info
 } from "lucide-react"
-import { createBrowserClient } from "@supabase/ssr"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useNotificationCounterNotifierSimple } from "@/hooks/use-notification-counter-simple"
 import { useToast } from "@/hooks/use-toast"
 
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+// Usar o mesmo client do contexto de autenticação
+import { getSupabaseSingleton } from "@/lib/supabase-singleton"
 
 interface UnifiedNotification {
   id: string
@@ -55,6 +52,7 @@ export default function UnifiedNotificationsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const { notifyCounterChange } = useNotificationCounterNotifierSimple()
+  const supabase = getSupabaseSingleton()
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([])
   const [filteredNotifications, setFilteredNotifications] = useState<UnifiedNotification[]>([])
   const [loading, setLoading] = useState(true)
@@ -71,6 +69,19 @@ export default function UnifiedNotificationsPage() {
 
     try {
       setLoading(true)
+      
+      // Teste: verificar se conseguimos acessar a tabela notifications diretamente
+      console.log('🔍 Testando acesso à tabela notifications...')
+      const { data: testData, error: testError } = await supabase
+        .from('notifications')
+        .select('id, title, status')
+        .limit(5)
+      
+      if (testError) {
+        console.error('❌ Erro ao acessar tabela notifications:', testError)
+      } else {
+        console.log('✅ Acesso à tabela notifications OK:', testData?.length || 0, 'registros')
+      }
       
       const { data, error } = await supabase
         .from('notification_feed')
@@ -96,6 +107,12 @@ export default function UnifiedNotificationsPage() {
 
       setNotifications(unifiedNotifications)
       setFilteredNotifications(unifiedNotifications)
+      
+      console.log('📧 Notificações carregadas:', {
+        total: unifiedNotifications.length,
+        naoLidas: unifiedNotifications.filter(n => !n.read).length
+      })
+      
     } catch (error) {
       console.error('Erro ao buscar notificações:', error)
       toast({
@@ -113,10 +130,27 @@ export default function UnifiedNotificationsPage() {
     if (!user) return
 
     try {
-      await supabase
-        .from('notification_feed')
-        .update({ is_read: true })
-        .eq('id', notification.id)
+      console.log('📖 Marcando notificação como lida via API:', notification.id)
+      
+      const response = await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: notification.id,
+          action: 'mark_read',
+          user_email: user.email
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao marcar como lida')
+      }
+
+      const result = await response.json()
+      console.log('✅ Notificação marcada como lida via API:', result)
 
       setNotifications(prev => prev.map(n =>
         n.id === notification.id ? { ...n, read: true } : n
@@ -129,8 +163,13 @@ export default function UnifiedNotificationsPage() {
         notifyCounterChange()
       }, 500)
 
-    } catch (error) {
-      console.error('Erro ao marcar como lida:', error)
+    } catch (error: any) {
+      console.error('❌ Erro ao marcar como lida:', error)
+      toast({
+        title: "Erro",
+        description: `Não foi possível marcar como lida: ${error.message || 'Erro desconhecido'}`,
+        variant: "destructive",
+      })
     }
   }
 
@@ -139,11 +178,20 @@ export default function UnifiedNotificationsPage() {
     if (!user) return
 
     try {
-      await supabase
-        .from('notification_feed')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false)
+      console.log('📖 Marcando todas as notificações como lidas')
+      
+      const { error } = await supabase
+        .from('notifications')
+        .update({ status: 'read' })
+        .in('recipients', [user.email])
+        .neq('status', 'read')
+
+      if (error) {
+        console.error('❌ Erro ao marcar todas como lidas:', error)
+        throw error
+      }
+
+      console.log('✅ Todas as notificações marcadas como lidas')
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setFilteredNotifications(prev => prev.map(n => ({ ...n, read: true })))
@@ -172,19 +220,19 @@ export default function UnifiedNotificationsPage() {
     if (!user) return
 
     try {
-      console.log('🗑️ Removendo notificação:', notificationId)
+      console.log('🗑️ Removendo notificação via API:', notificationId)
 
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
+      const response = await fetch(`/api/notifications?id=${notificationId}&user_email=${encodeURIComponent(user.email)}`, {
+        method: 'DELETE'
+      })
 
-      if (error) {
-        console.error('❌ Erro na exclusão:', error)
-        throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao remover notificação')
       }
 
-      console.log('✅ Notificação removida com sucesso')
+      const result = await response.json()
+      console.log('✅ Notificação removida com sucesso via API:', result)
 
       // Atualizar estado local
       setNotifications(prev => prev.filter(n => n.id !== notificationId))
@@ -215,19 +263,19 @@ export default function UnifiedNotificationsPage() {
     if (!user || selectedNotifications.length === 0) return
 
     try {
-      console.log('🗑️ Removendo notificações selecionadas:', selectedNotifications.length)
+      console.log('🗑️ Removendo notificações selecionadas via API:', selectedNotifications.length)
       
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .in('id', selectedNotifications)
+      const response = await fetch(`/api/notifications?ids=${selectedNotifications.join(',')}&user_email=${encodeURIComponent(user.email)}`, {
+        method: 'DELETE'
+      })
 
-      if (error) {
-        console.error('❌ Erro ao remover notificações:', error)
-        throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao remover notificações')
       }
 
-      console.log('✅ Notificações removidas com sucesso')
+      const result = await response.json()
+      console.log('✅ Notificações removidas com sucesso via API:', result)
 
       // Atualizar estado local
       setNotifications(prev => prev.filter(n => !selectedNotifications.includes(n.id)))
@@ -303,6 +351,50 @@ export default function UnifiedNotificationsPage() {
       toast({
         title: "Erro",
         description: `Não foi possível limpar as notificações lidas: ${error.message || 'Erro desconhecido'}`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  // Limpar todas as notificações
+  const clearAllNotifications = async () => {
+    if (!user) return
+
+    try {
+      console.log('🧹 Limpando todas as notificações do usuário')
+      
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .in('recipients', [user.email])
+
+      if (error) {
+        console.error('❌ Erro ao limpar notificações:', error)
+        throw error
+      }
+
+      console.log('✅ Todas as notificações foram removidas')
+
+      // Atualizar estado local
+      setNotifications([])
+      setFilteredNotifications([])
+      setSelectedNotifications([])
+
+      // Notificar mudança no contador
+      setTimeout(() => {
+        notifyCounterChange()
+      }, 500)
+
+      toast({
+        title: "Sucesso",
+        description: "Todas as notificações foram removidas.",
+      })
+
+    } catch (error: any) {
+      console.error('❌ Erro ao limpar notificações:', error)
+      toast({
+        title: "Erro",
+        description: `Não foi possível limpar as notificações: ${error.message || 'Erro desconhecido'}`,
         variant: "destructive",
       })
     }
@@ -609,8 +701,8 @@ export default function UnifiedNotificationsPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Limpeza Automática</h4>
-                <div className="flex gap-2">
+                <h4 className="font-medium text-foreground">Limpeza Automática</h4>
+                <div className="flex gap-2 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -618,6 +710,24 @@ export default function UnifiedNotificationsPage() {
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Limpar lidas
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={markAllAsRead}
+                    disabled={notifications.filter(n => !n.read).length === 0}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Marcar todas como lidas
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={clearAllNotifications}
+                    disabled={notifications.length === 0}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Limpar todas
                   </Button>
                 </div>
               </div>

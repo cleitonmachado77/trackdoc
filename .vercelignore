@@ -1,0 +1,44 @@
+# Development files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output
+
+# Cache directories
+.next/cache
+node_modules/.cache
+.cache
+
+# Environment files (should be set in Vercel dashboard)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Scripts and development tools
+scripts/
+test-*
+debug-*
+*.backup
+
+# Documentation
+README.md
+CHANGELOG.md
+docs/
+
+# Supabase local development
+supabase/

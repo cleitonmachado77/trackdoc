@@ -496,8 +496,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         {/* Header com Refresh */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-trackdoc-black">Dashboard Executivo</h1>
-            <p className="text-trackdoc-gray mt-1">Visão geral completa do sistema TrackDoc</p>
+            <h1 className="text-3xl font-bold text-trackdoc-black">Dashboard</h1>
+            <p className="text-trackdoc-gray mt-1">Visão geral do sistema</p>
           </div>
           <Button
             onClick={refreshEntityStats}

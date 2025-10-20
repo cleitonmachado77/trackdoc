@@ -29,8 +29,8 @@ const nextConfig = {
   swcMinify: true,
   compress: true,
   
-  // ✅ Output standalone para deploy otimizado
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  // ✅ Output padrão para Vercel (removido standalone que pode causar problemas)
+  // output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   
   // ✅ Headers de cache para produção
   async headers() {

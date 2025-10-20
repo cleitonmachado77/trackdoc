@@ -1388,52 +1388,48 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                 </div>
               </div>
 
-              {/* Ações Rápidas */}
+              {/* Ações Rápidas de Admin */}
               {adminView === "overview" && (
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <Zap className="h-5 w-5 mr-2 text-blue-600" />
-                    Ações Rápidas
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="justify-start bg-white hover:bg-blue-50"
-                      onClick={() => setAdminView("document-types")}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Novo Tipo
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="justify-start bg-white hover:bg-blue-50"
-                      onClick={() => setAdminView("departments")}
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Novo Depto
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="justify-start bg-white hover:bg-blue-50"
-                      onClick={() => setAdminView("categories")}
-                    >
-                      <Tag className="h-4 w-4 mr-2" />
-                      Nova Categoria
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="justify-start bg-white hover:bg-blue-50"
-                      onClick={() => setAdminView("system-logs")}
-                    >
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Ver Logs
-                    </Button>
-                  </div>
-                </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ações Rápidas</CardTitle>
+                    <CardDescription>
+                      Acesso rápido às principais funcionalidades administrativas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <Button
+                        variant="outline"
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => setAdminView("departments")}
+                      >
+                        <Building2 className="h-6 w-6" />
+                        <span className="text-sm">Departamentos</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => setAdminView("system-logs")}
+                      >
+                        <BarChart3 className="h-6 w-6" />
+                        <span className="text-sm">Logs do Sistema</span>
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => {
+                          setActiveView("documents")
+                        }}
+                      >
+                        <FileText className="h-6 w-6" />
+                        <span className="text-sm">Documentos</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* Navegação Admin */}
@@ -1702,49 +1698,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                 </div>
               )}
 
-              {/* Ações Rápidas de Admin */}
-              {adminView === "overview" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Ações Rápidas</CardTitle>
-                    <CardDescription>
-                      Acesso rápido às principais funcionalidades administrativas
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setAdminView("departments")}
-                      >
-                        <Building2 className="h-6 w-6" />
-                        <span className="text-sm">Departamentos</span>
-                      </Button>
 
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setAdminView("system-logs")}
-                      >
-                        <BarChart3 className="h-6 w-6" />
-                        <span className="text-sm">Logs do Sistema</span>
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => {
-                          setActiveView("documents")
-                        }}
-                      >
-                        <FileText className="h-6 w-6" />
-                        <span className="text-sm">Documentos</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </AdminGuard>
         )

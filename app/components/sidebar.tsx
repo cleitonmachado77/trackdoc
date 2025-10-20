@@ -242,13 +242,18 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   key={item.id}
                   variant="ghost"
                   className={cn(
-                    "w-full transition-all duration-200 relative border-l-4 border-transparent",
+                    "w-full transition-all duration-200 relative border-l-4 border-transparent focus:outline-none focus:ring-0",
                     isExpanded ? "justify-start px-3" : "justify-center px-2",
                     !isExpanded && "min-h-[44px]",
                     isActive
-                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary active:!bg-primary"
+                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-l-sidebar-accent-foreground/30"
                   )}
+                  style={isActive ? {
+                    backgroundColor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    borderLeftColor: 'hsl(var(--primary-foreground))'
+                  } : {}}
                   onClick={() => {
                     if (item.onClick) {
                       item.onClick()
@@ -301,11 +306,16 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent",
+                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent focus:outline-none focus:ring-0",
                     activeView === "help"
-                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary active:!bg-primary"
+                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary"
                       : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                   )}
+                  style={activeView === "help" ? {
+                    backgroundColor: 'hsl(var(--primary))',
+                    color: 'hsl(var(--primary-foreground))',
+                    borderLeftColor: 'hsl(var(--primary-foreground))'
+                  } : {}}
                   onClick={() => onViewChange("help")}
                 >
                   <HelpCircle className="h-4 w-4 mr-3" />
@@ -329,11 +339,16 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px]",
+                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px] focus:outline-none focus:ring-0",
                   activeView === "help"
-                    ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary active:!bg-primary"
+                    ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary"
                     : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                 )}
+                style={activeView === "help" ? {
+                  backgroundColor: 'hsl(var(--primary))',
+                  color: 'hsl(var(--primary-foreground))',
+                  borderLeftColor: 'hsl(var(--primary-foreground))'
+                } : {}}
                 onClick={() => onViewChange("help")}
                 title="Ajuda"
               >

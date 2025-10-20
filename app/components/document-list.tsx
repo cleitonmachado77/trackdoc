@@ -128,7 +128,7 @@ export default function DocumentList() {
   const [showViewer, setShowViewer] = useState(false)
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, any[]>>({})
   const [approvalStatusesLoading, setApprovalStatusesLoading] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [showVersionManager, setShowVersionManager] = useState(false)
   const [selectedDocumentForVersions, setSelectedDocumentForVersions] = useState<Document | null>(null)
 
@@ -933,18 +933,32 @@ export default function DocumentList() {
           {/* Toggle de Visualização */}
           <div className="flex items-center border rounded-lg p-1">
             <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
-              onClick={() => handleViewModeChange('grid')}
-              className="h-8 px-3"
+              onClick={(e) => {
+                e.currentTarget.blur()
+                handleViewModeChange('grid')
+              }}
+              className="h-8 px-3 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
+              style={viewMode === 'grid' ? {
+                backgroundColor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))'
+              } : {}}
             >
               <Grid3X3 className="h-4 w-4" />
             </Button>
             <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              variant="ghost"
               size="sm"
-              onClick={() => handleViewModeChange('list')}
-              className="h-8 px-3"
+              onClick={(e) => {
+                e.currentTarget.blur()
+                handleViewModeChange('list')
+              }}
+              className="h-8 px-3 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
+              style={viewMode === 'list' ? {
+                backgroundColor: 'hsl(var(--primary))',
+                color: 'hsl(var(--primary-foreground))'
+              } : {}}
             >
               <List className="h-4 w-4" />
             </Button>

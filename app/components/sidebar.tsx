@@ -157,34 +157,63 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         {/* 🎨 Header - Novo Design */}
         <div className="p-4 border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10">
           <div className="flex items-center justify-between">
-            {isExpanded && (
+            {isExpanded ? (
               <div className="flex items-center space-x-3">
-                <div 
+                <div
                   className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => window.location.href = '/landing'}
                   title="Ir para página inicial"
                 >
-                  <img 
-                    src="/logo-horizontal-preto.png" 
-                    alt="TrackDoc Logo" 
+                  <img
+                    src="/logo-horizontal-preto.png"
+                    alt="TrackDoc Logo"
                     className="h-12 w-auto object-contain dark:invert"
                   />
                 </div>
               </div>
+            ) : (
+              <div className="flex items-center justify-center w-full">
+                <div
+                  className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => window.location.href = '/landing'}
+                  title="Ir para página inicial"
+                >
+                  <img
+                    src="/logo-vertical-preto.png"
+                    alt="TrackDoc Logo"
+                    className="h-8 w-8 object-contain dark:invert"
+                  />
+                </div>
+              </div>
             )}
-            <div className="flex items-center space-x-2">
+            <div className={cn("flex items-center space-x-2", !isExpanded && "hidden")}>
               <SimpleThemeToggle />
-              <Button variant="ghost" size="sm" onClick={toggleSidebar} className="hidden md:flex">
-                {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
             </div>
+            {/* Botão de toggle mais visível */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleSidebar}
+              className={cn(
+                "hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10",
+                "bg-background border-2 border-border shadow-md hover:shadow-lg",
+                "h-8 w-8 p-0 rounded-full transition-all duration-200",
+                "hover:bg-accent hover:border-accent-foreground/20"
+              )}
+              title={isExpanded ? "Recolher sidebar" : "Expandir sidebar"}
+            >
+              {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
 
         {/* User Profile */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10">
+          <div className={cn("flex items-center", isExpanded ? "space-x-3" : "justify-center")}>
+            <Avatar
+              className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent transition-all"
+              title={!isExpanded ? `${profile?.full_name || "Usuário"} - ${profile?.email || user?.email}` : undefined}
+            >
               <AvatarImage src={profile?.avatar_url} />
               <AvatarFallback>
                 {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
@@ -213,7 +242,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   key={item.id}
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    "w-full transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative",
                     isExpanded ? "justify-start" : "justify-center",
                     isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                   )}
@@ -224,17 +253,24 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                       onViewChange(item.id)
                     }
                   }}
+                  title={!isExpanded ? item.label : undefined}
                 >
-                  <Icon className={cn("h-4 w-4", isExpanded && "mr-3")} />
+                  <Icon className={cn("h-5 w-5", isExpanded && "mr-3")} />
                   {isExpanded && (
                     <>
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.badge && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
+                        <Badge className="ml-2 text-xs bg-secondary text-secondary-foreground">
                           {item.badge}
                         </Badge>
                       )}
                     </>
+                  )}
+                  {/* Badge para sidebar recolhida */}
+                  {!isExpanded && item.badge && (
+                    <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                      {item.badge}
+                    </div>
                   )}
                 </Button>
               )
@@ -244,7 +280,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
 
         {/* Footer */}
         <div className="p-4 border-t border-border flex-shrink-0">
-          {isExpanded && (
+          {isExpanded ? (
             <div className="mb-4">
               <h3 className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider mb-3">Ações Rápidas</h3>
               <div className="space-y-1 p-2 bg-sidebar-accent rounded-lg border border-border">
@@ -272,6 +308,31 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 </Button>
               </div>
             </div>
+          ) : (
+            <div className="mb-4 space-y-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-center text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                onClick={() => setShowQuickSearch(true)}
+                title="Busca Rápida"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+              <div className="flex justify-center">
+                <BellNotificationsV2 />
+              </div>
+              <Button
+                variant={activeView === "help" ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-center text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                  activeView === "help" && "bg-sidebar-accent text-sidebar-accent-foreground",
+                )}
+                onClick={() => onViewChange("help")}
+                title="Ajuda"
+              >
+                <HelpCircle className="h-5 w-5" />
+              </Button>
+            </div>
           )}
 
           <div className="pt-3 border-t border-border">
@@ -283,6 +344,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               variant="ghost"
               size="sm"
               onClick={signOut}
+              title={!isExpanded ? "Sair" : undefined}
             >
               <LogOut className="h-4 w-4" />
               {isExpanded && <span className="ml-3">Sair</span>}
@@ -292,8 +354,8 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
       </div>
 
       {/* Fixed Quick Search Modal */}
-      <FixedQuickSearchModal 
-        open={showQuickSearch} 
+      <FixedQuickSearchModal
+        open={showQuickSearch}
         onOpenChange={setShowQuickSearch}
       />
     </>

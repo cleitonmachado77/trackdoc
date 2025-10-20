@@ -240,13 +240,13 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               return (
                 <Button
                   key={item.id}
-                  variant={isActive ? "default" : "ghost"}
+                  variant="ghost"
                   className={cn(
                     "w-full transition-all duration-200 relative border-l-4 border-transparent",
                     isExpanded ? "justify-start px-3" : "justify-center px-2",
                     !isExpanded && "min-h-[44px]",
                     isActive
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 border-l-primary-foreground shadow-md"
+                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary active:!bg-primary"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-l-sidebar-accent-foreground/30"
                   )}
                   onClick={() => {
@@ -299,11 +299,11 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   <BellNotificationsV2 />
                 </div>
                 <Button
-                  variant={activeView === "help" ? "default" : "ghost"}
+                  variant="ghost"
                   className={cn(
                     "w-full justify-start transition-all duration-200 border-l-4 border-transparent",
                     activeView === "help"
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90 border-l-primary-foreground shadow-md"
+                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary active:!bg-primary"
                       : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                   )}
                   onClick={() => onViewChange("help")}
@@ -327,11 +327,11 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 <BellNotificationsV2 />
               </div>
               <Button
-                variant={activeView === "help" ? "default" : "ghost"}
+                variant="ghost"
                 className={cn(
                   "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px]",
                   activeView === "help"
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90 border-l-primary-foreground shadow-md"
+                    ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary active:!bg-primary"
                     : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                 )}
                 onClick={() => onViewChange("help")}

@@ -242,11 +242,12 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   key={item.id}
                   variant="ghost"
                   className={cn(
-                    "w-full transition-all duration-200 relative border-l-4 border-transparent focus:outline-none focus:ring-0",
+                    "w-full transition-all duration-200 relative border-l-4 border-transparent",
+                    "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none",
                     isExpanded ? "justify-start px-3" : "justify-center px-2",
                     !isExpanded && "min-h-[44px]",
                     isActive
-                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary"
+                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary focus-visible:!bg-primary focus-visible:!text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-l-sidebar-accent-foreground/30"
                   )}
                   style={isActive ? {
@@ -254,7 +255,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     color: 'hsl(var(--primary-foreground))',
                     borderLeftColor: 'hsl(var(--primary-foreground))'
                   } : {}}
-                  onClick={() => {
+                  onClick={(e) => {
+                    // Força o botão a perder o foco imediatamente
+                    e.currentTarget.blur()
                     if (item.onClick) {
                       item.onClick()
                     } else {
@@ -306,9 +309,10 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent focus:outline-none focus:ring-0",
+                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent",
+                    "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none",
                     activeView === "help"
-                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary"
+                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary focus-visible:!bg-primary focus-visible:!text-primary-foreground"
                       : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                   )}
                   style={activeView === "help" ? {
@@ -316,7 +320,10 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     color: 'hsl(var(--primary-foreground))',
                     borderLeftColor: 'hsl(var(--primary-foreground))'
                   } : {}}
-                  onClick={() => onViewChange("help")}
+                  onClick={(e) => {
+                    e.currentTarget.blur()
+                    onViewChange("help")
+                  }}
                 >
                   <HelpCircle className="h-4 w-4 mr-3" />
                   Ajuda
@@ -339,9 +346,10 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px] focus:outline-none focus:ring-0",
+                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px]",
+                  "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none",
                   activeView === "help"
-                    ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary"
+                    ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary focus-visible:!bg-primary focus-visible:!text-primary-foreground"
                     : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                 )}
                 style={activeView === "help" ? {
@@ -349,7 +357,10 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   color: 'hsl(var(--primary-foreground))',
                   borderLeftColor: 'hsl(var(--primary-foreground))'
                 } : {}}
-                onClick={() => onViewChange("help")}
+                onClick={(e) => {
+                  e.currentTarget.blur()
+                  onViewChange("help")
+                }}
                 title="Ajuda"
               >
                 <HelpCircle className="h-5 w-5" />

@@ -155,7 +155,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         )}
       >
         {/* 🎨 Header - Novo Design */}
-        <div className="p-4 border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10">
+        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10", isExpanded ? "p-4" : "p-2")}>
           <div className="flex items-center justify-between">
             {isExpanded ? (
               <div className="flex items-center space-x-3">
@@ -179,9 +179,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   title="Ir para página inicial"
                 >
                   <img
-                    src="/logo-vertical-preto.png"
+                    src="/favicon.svg"
                     alt="TrackDoc Logo"
-                    className="h-8 w-8 object-contain dark:invert"
+                    className="h-8 w-8 object-contain"
                   />
                 </div>
               </div>
@@ -208,7 +208,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         </div>
 
         {/* User Profile */}
-        <div className="p-4 border-b border-border">
+        <div className={cn("border-b border-border", isExpanded ? "p-4" : "p-2")}>
           <div className={cn("flex items-center", isExpanded ? "space-x-3" : "justify-center")}>
             <Avatar
               className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent transition-all"
@@ -231,7 +231,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 overflow-y-auto">
+        <nav className={cn("flex-1 overflow-y-auto", isExpanded ? "p-4" : "p-2")}>
           <div className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon
@@ -243,8 +243,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
                     "w-full transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative",
-                    isExpanded ? "justify-start" : "justify-center",
+                    isExpanded ? "justify-start px-3" : "justify-center px-2",
                     isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
+                    !isExpanded && "min-h-[44px]"
                   )}
                   onClick={() => {
                     if (item.onClick) {
@@ -260,9 +261,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     <>
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.badge && (
-                        <Badge className="ml-2 text-xs bg-secondary text-secondary-foreground">
+                        <span className="ml-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                           {item.badge}
-                        </Badge>
+                        </span>
                       )}
                     </>
                   )}
@@ -279,7 +280,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border flex-shrink-0">
+        <div className={cn("border-t border-border flex-shrink-0", isExpanded ? "p-4" : "p-2")}>
           {isExpanded ? (
             <div className="mb-4">
               <h3 className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider mb-3">Ações Rápidas</h3>

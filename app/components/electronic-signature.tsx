@@ -52,7 +52,7 @@ export default function ElectronicSignature() {
   // Estados para histórico de assinaturas
   const [signatureHistory, setSignatureHistory] = useState<any[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
-  
+
   // Estados para histórico de assinaturas múltiplas
   const [multiSignatureHistory, setMultiSignatureHistory] = useState<any[]>([])
   const [loadingMultiHistory, setLoadingMultiHistory] = useState(false)
@@ -611,13 +611,13 @@ export default function ElectronicSignature() {
         try {
           // Se não tem qr_code_data, é assinatura simples
           if (!signature.qr_code_data) return true
-          
+
           // Parsear qr_code_data para verificar o tipo
           const qrData = JSON.parse(signature.qr_code_data)
-          
+
           // Excluir se for assinatura múltipla
           if (qrData.signatureType === 'multiple') return false
-          
+
           // Incluir se for assinatura simples ou não especificado
           return true
         } catch (e) {
@@ -664,12 +664,12 @@ export default function ElectronicSignature() {
 
       // Agrupar documentos por multiSignatureRequestId para mostrar apenas um card por documento
       const groupedDocs = new Map<string, any>()
-      
+
       multiSignedDocs?.forEach(doc => {
         try {
           const qrData = JSON.parse(doc.qr_code_data || '{}')
           const requestId = qrData.multiSignatureRequestId
-          
+
           if (requestId) {
             // Se já existe esse requestId, adiciona à lista de assinantes
             if (groupedDocs.has(requestId)) {
@@ -754,39 +754,33 @@ export default function ElectronicSignature() {
 
       <Tabs defaultValue="upload" className="space-y-6">
         <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-muted">
-          <TabsTrigger 
-            value="upload" 
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          <TabsTrigger
+            value="upload"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
           >
             Assinatura Simples
           </TabsTrigger>
-          <TabsTrigger 
-            value="existing" 
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
-          >
-            Documento Existente
-          </TabsTrigger>
-          <TabsTrigger 
-            value="template" 
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
-          >
-            Configurar Modelo
-          </TabsTrigger>
-          <TabsTrigger 
-            value="multi-signature" 
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          <TabsTrigger
+            value="multi-signature"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
           >
             Assinatura Múltipla
           </TabsTrigger>
-          <TabsTrigger 
-            value="history" 
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          <TabsTrigger
+            value="existing"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
           >
-            Histórico
+            Documento Existente
           </TabsTrigger>
-          <TabsTrigger 
-            value="verify" 
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm"
+          <TabsTrigger
+            value="template"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+          >
+            Configurar Modelo
+          </TabsTrigger>
+          <TabsTrigger
+            value="verify"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
           >
             Verificar Assinatura
           </TabsTrigger>
@@ -1217,7 +1211,7 @@ export default function ElectronicSignature() {
                       const totalSignatures = item.signatures?.length || 1
                       // Determinar qual bucket usar
                       const storageBucket = qrData.storageBucket || 'signed-documents' // Padrão: signed-documents
-                      
+
                       return (
                         <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
                           <div className="flex items-start justify-between gap-4">
@@ -1262,13 +1256,13 @@ export default function ElectronicSignature() {
                                   size="sm"
                                   onClick={() => {
                                     // Tentar abrir documento usando o bucket correto
-                                    const url = item.signature_url.startsWith('http') 
+                                    const url = item.signature_url.startsWith('http')
                                       ? item.signature_url
                                       : `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${storageBucket}/${item.signature_url}`
-                                    
+
                                     // Abrir em nova aba
                                     const newWindow = window.open(url, '_blank')
-                                    
+
                                     // Se falhar, tentar o bucket alternativo
                                     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
                                       const alternateBucket = storageBucket === 'signed-documents' ? 'documents' : 'signed-documents'
@@ -1296,296 +1290,7 @@ export default function ElectronicSignature() {
 
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-6">
-          {/* Histórico de Assinaturas Simples */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Histórico de Assinaturas Simples
-              </CardTitle>
-              <CardDescription>
-                Documentos assinados individualmente por você
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingHistory ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <Clock className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-muted-foreground">Carregando assinaturas...</p>
-                  </div>
-                </div>
-              ) : signatureHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                    Nenhuma assinatura simples encontrada
-                  </h3>
-                  <p className="text-muted-foreground text-center">
-                    Você ainda não assinou nenhum documento individualmente.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      {signatureHistory.length} assinatura(s) simples encontrada(s)
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchSignatureHistory}
-                      disabled={loadingHistory}
-                    >
-                      Atualizar
-                    </Button>
-                  </div>
 
-                  <div className="grid gap-4">
-                    {signatureHistory.map((signature) => (
-                      <Card key={signature.id} className="p-4 hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                              <FileText className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium text-gray-900 mb-1 truncate">
-                                {signature.title || 'Documento sem título'}
-                              </h3>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <Badge className={getStatusColor(signature.status)}>
-                                    {getStatusText(signature.status)}
-                                  </Badge>
-                                  {signature.arqsign_document_id && (
-                                    <span className="text-xs text-gray-500">
-                                      ID: {signature.arqsign_document_id}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-gray-500">
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {formatDate(signature.created_at)}
-                                  </span>
-                                  {signature.verification_code && (
-                                    <span className="flex items-center gap-1">
-                                      <ShieldCheck className="h-3 w-3" />
-                                      {signature.verification_code}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {/* Botão para visualizar documento assinado */}
-                            {signature.signature_url && signature.status === 'completed' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  // Construir URL do documento
-                                  const url = signature.signature_url.startsWith('http') 
-                                    ? signature.signature_url
-                                    : `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${signature.signature_url}`
-                                  
-                                  // Abrir em nova aba
-                                  window.open(url, '_blank')
-                                }}
-                                title="Visualizar documento"
-                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Histórico de Assinaturas Múltiplas */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Histórico de Assinaturas Múltiplas
-              </CardTitle>
-              <CardDescription>
-                Documentos assinados de forma colaborativa com múltiplos usuários
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingMultiHistory ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <Clock className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-muted-foreground">Carregando histórico múltiplo...</p>
-                  </div>
-                </div>
-              ) : multiSignatureHistory.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <Users className="h-16 w-16 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
-                    Nenhuma assinatura múltipla encontrada
-                  </h3>
-                  <p className="text-muted-foreground text-center">
-                    Você ainda não participou de nenhum processo de assinatura múltipla.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      {multiSignatureHistory.length} documento(s) de assinatura múltipla encontrado(s)
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={fetchMultiSignatureHistory}
-                      disabled={loadingMultiHistory}
-                    >
-                      Atualizar
-                    </Button>
-                  </div>
-
-                  <div className="grid gap-4">
-                    {multiSignatureHistory.map((item) => (
-                      <Card key={`${item.type}-${item.id}`} className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-3 flex-1">
-                            <div className={`p-2 rounded-lg ${
-                              item.type === 'created' 
-                                ? 'bg-purple-100' 
-                                : item.type === 'signed_individual'
-                                ? 'bg-blue-100'
-                                : 'bg-green-100'
-                            }`}>
-                              {item.type === 'created' ? (
-                                <Users className="h-5 w-5 text-purple-600" />
-                              ) : item.type === 'signed_individual' ? (
-                                <FileCheck className="h-5 w-5 text-blue-600" />
-                              ) : (
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="font-medium text-gray-900 mb-1">
-                                {item.display_name || 'Documento sem título'}
-                              </h3>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Badge className={
-                                    item.type === 'created' 
-                                      ? 'bg-purple-100 text-purple-800' 
-                                      : item.type === 'signed_individual'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-green-100 text-green-800'
-                                  }>
-                                    {item.type === 'created' 
-                                      ? 'Solicitação Criada' 
-                                      : item.type === 'signed_individual'
-                                      ? 'Assinatura Individual'
-                                      : 'Documento Assinado'
-                                    }
-                                  </Badge>
-                                  <Badge className={getStatusColor(item.status)}>
-                                    {getStatusText(item.status)}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-4 text-xs text-gray-500">
-                                  <span>Data: {formatDate(item.action_date)}</span>
-                                  {item.total_signatures && (
-                                    <span>
-                                      Assinaturas: {item.completed_signatures || 0}/{item.total_signatures}
-                                    </span>
-                                  )}
-                                  {item.completed_at && (
-                                    <span>Concluído: {formatDate(item.completed_at)}</span>
-                                  )}
-                                  {item.verification_code && (
-                                    <span>Código: {item.verification_code}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {/* Botão para verificar assinatura individual */}
-                            {item.verification_url && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(item.verification_url, '_blank')}
-                                title="Verificar assinatura"
-                                className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
-                              >
-                                <Search className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            {/* Botão para visualizar documento original */}
-                            {item.document_path && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(`https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${item.document_path}`, '_blank')}
-                                title="Visualizar documento original"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            {/* Botão para baixar documento assinado */}
-                            {(item.status === 'completed' && item.signed_file_path) || (item.type === 'signed_individual' && item.signature_url) && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const link = document.createElement('a')
-                                  if (item.type === 'signed_individual') {
-                                    // Assinatura individual - sempre no bucket documents
-                                    link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${item.signature_url}`
-                                  } else {
-                                    // Assinatura múltipla - tentar signed-documents primeiro, fallback para documents
-                                    const fileName = item.signed_file_path
-                                    if (fileName && fileName.startsWith('multi_signed_')) {
-                                      // Tentar bucket signed-documents primeiro
-                                      link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/signed-documents/${fileName}`
-                                      // Se falhar, o usuário pode tentar manualmente com documents
-                                    } else {
-                                      // Fallback para bucket documents
-                                      link.href = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${fileName}`
-                                    }
-                                  }
-                                  link.download = `assinado_${item.display_name}`
-                                  link.click()
-                                }}
-                                title="Baixar documento assinado"
-                                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-700"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="verify" className="space-y-6">
           <Card>

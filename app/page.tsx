@@ -510,6 +510,81 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </Button>
         </div>
 
+        {/* Ações Rápidas */}
+        <Card className="p-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold flex items-center">
+              <Zap className="h-5 w-5 mr-2 text-yellow-600" />
+              Ações Rápidas
+            </CardTitle>
+            <CardDescription>
+              Acesso rápido às principais funcionalidades
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setShowCreationSelector(true)}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-xs">Novo Documento</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setActiveView('electronic-signature')}
+              >
+                <PenTool className="h-5 w-5" />
+                <span className="text-xs">Assinar Documento</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setActiveView('approvals')}
+              >
+                <CheckCircle className="h-5 w-5" />
+                <span className="text-xs">Ver Aprovações</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setShowQuickSearch(true)}
+              >
+                <Search className="h-5 w-5" />
+                <span className="text-xs">Busca Rápida</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setActiveView('notifications')}
+              >
+                <Bell className="h-5 w-5" />
+                <span className="text-xs">Notificações</span>
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => { setActiveView('admin'); setAdminView('overview') }}
+              >
+                <Settings className="h-5 w-5" />
+                <span className="text-xs">Administração</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Card 1: Total de Documentos */}
@@ -917,10 +992,10 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </div>
         )}
 
-        {/* Seção de Atividade Recente e Ações Rápidas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Seção de Atividade Recente */}
+        <div className="grid grid-cols-1 gap-6">
           {/* Atividade Recente */}
-          <Card className="lg:col-span-2 p-6">
+          <Card className="p-6">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold flex items-center">
                 <Clock className="h-5 w-5 mr-2 text-gray-600" />
@@ -961,79 +1036,6 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Ações Rápidas */}
-          <Card className="p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-yellow-600" />
-                Ações Rápidas
-              </CardTitle>
-              <CardDescription>
-                Acesso rápido às principais funcionalidades
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => setShowCreationSelector(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Documento
-              </Button>
-
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => setActiveView('electronic-signature')}
-              >
-                <PenTool className="h-4 w-4 mr-2" />
-                Assinar Documento
-              </Button>
-
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => setActiveView('approvals')}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Ver Aprovações
-              </Button>
-
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => setShowQuickSearch(true)}
-              >
-                <Search className="h-4 w-4 mr-2" />
-                Busca Rápida
-              </Button>
-
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => setActiveView('notifications')}
-              >
-                <Bell className="h-4 w-4 mr-2" />
-                Notificações
-                {unreadNotificationsCount > 0 && (
-                  <Badge className="ml-auto" variant="destructive">
-                    {unreadNotificationsCount}
-                  </Badge>
-                )}
-              </Button>
-
-              <Button
-                className="w-full justify-start"
-                variant="outline"
-                onClick={() => { setActiveView('admin'); setAdminView('overview') }}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Administração
-              </Button>
             </CardContent>
           </Card>
         </div>

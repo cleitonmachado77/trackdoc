@@ -110,7 +110,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-50 to-blue-300 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* 🎨 Logo e Header - Novo Design */}
         <div className="text-center mb-8">
@@ -124,7 +124,7 @@ export default function LoginPage() {
         </div>
 
         {/* 🎨 Card de Login - Novo Design */}
-        <Card className="shadow-xl border-0 bg-white/98 backdrop-blur-md ring-1 ring-blue-100/50">
+        <Card className="shadow-lg border border-gray-200 bg-white">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl font-bold text-center text-trackdoc-black">Entrar na sua conta</CardTitle>
             <CardDescription className="text-center text-trackdoc-gray">Digite suas credenciais para acessar o sistema</CardDescription>

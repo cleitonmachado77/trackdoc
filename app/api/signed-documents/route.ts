@@ -4,6 +4,8 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseConfig } from '@/lib/supabase/config'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: Request) {
   try {
     console.log('🔍 [signed-documents] Iniciando busca de documentos assinados...')

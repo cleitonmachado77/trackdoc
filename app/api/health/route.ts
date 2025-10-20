@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { checkConnectivity } from '@/lib/network-config'
 import { validateSupabaseConfig } from '@/lib/supabase/config'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Iniciando diagnóstico de saúde do sistema...')

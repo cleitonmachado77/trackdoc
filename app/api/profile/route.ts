@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 [profile-api] GET - Buscando perfil do usuário...')

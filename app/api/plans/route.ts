@@ -3,6 +3,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseConfig } from '@/lib/supabase/config'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const cookieStore = cookies()

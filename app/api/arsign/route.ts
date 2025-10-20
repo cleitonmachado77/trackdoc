@@ -5,6 +5,8 @@ import { cookies } from 'next/headers'
 import { supabaseConfig } from '@/lib/supabase/config'
 import { digitalSignatureService, SignatureData } from '@/lib/digital-signature'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Iniciando requisição POST para /api/arsign (Sistema Simplificado)')

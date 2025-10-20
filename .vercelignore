@@ -32,13 +32,17 @@ Thumbs.db
 # Scripts and development tools
 scripts/
 test-*
-debug-*
 *.backup
+
+# Debug components (keep debug routes)
+app/components/debug-*
+app/debug-*
+app/test-*
 
 # Documentation
 README.md
 CHANGELOG.md
 docs/
 
-# Supabase local development
-supabase/
+# Supabase local development (exclude only root supabase folder, not lib/supabase)
+/supabase/

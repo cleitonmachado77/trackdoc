@@ -48,6 +48,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Minus,
+  LayoutGrid,
+  List,
   Settings,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -185,6 +187,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   const [showApprovalDetailsModal, setShowApprovalDetailsModal] = useState(false)
   const [selectedApprovalForDetails, setSelectedApprovalForDetails] = useState<any>(null)
   const [adminView, setAdminView] = useState("overview")
+  const [adminViewMode, setAdminViewMode] = useState("list")
   const [chartAreaFilter, setChartAreaFilter] = useState("all")
   const [chartTypeFilter, setChartTypeFilter] = useState("all")
   const [documentModalMode, setDocumentModalMode] = useState<"view" | "edit" | "new-version" | "create">("view")
@@ -1354,18 +1357,87 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     Gerencie usuários, configurações e relatórios do sistema
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAdminView("overview")}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Voltar ao Início
-                </Button>
+                <div className="flex items-center gap-2">
+                  {adminView === "overview" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAdminViewMode(adminViewMode === 'list' ? 'cards' : 'list')}
+                    >
+                      {adminViewMode === 'list' ? (
+                        <>
+                          <LayoutGrid className="h-4 w-4 mr-2" />
+                          Cards
+                        </>
+                      ) : (
+                        <>
+                          <List className="h-4 w-4 mr-2" />
+                          Lista
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAdminView("overview")}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Voltar ao Início
+                  </Button>
+                </div>
               </div>
 
-              {/* Navegação Admin */}
+              {/* Ações Rápidas */}
               {adminView === "overview" && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                    <Zap className="h-5 w-5 mr-2 text-blue-600" />
+                    Ações Rápidas
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start bg-white hover:bg-blue-50"
+                      onClick={() => setAdminView("document-types")}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo Tipo
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start bg-white hover:bg-blue-50"
+                      onClick={() => setAdminView("departments")}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Novo Depto
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start bg-white hover:bg-blue-50"
+                      onClick={() => setAdminView("categories")}
+                    >
+                      <Tag className="h-4 w-4 mr-2" />
+                      Nova Categoria
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="justify-start bg-white hover:bg-blue-50"
+                      onClick={() => setAdminView("system-logs")}
+                    >
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Ver Logs
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Navegação Admin */}
+              {adminView === "overview" && adminViewMode === "cards" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Tipos de Documento */}
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("document-types")}>
@@ -1451,6 +1523,106 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                       <p className="text-sm text-muted-foreground">eventos registrados</p>
                     </CardContent>
                   </Card>
+                </div>
+              )}
+
+              {/* Visualização em Lista */}
+              {adminView === "overview" && adminViewMode === "list" && (
+                <div className="space-y-3">
+                  {/* Tipos de Documento */}
+                  <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setAdminView("document-types")}>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-green-100 rounded-lg">
+                          <FileText className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Tipos de Documento</h3>
+                          <p className="text-sm text-gray-600">Configurar tipos e templates de documentos</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{documentTypes.length}</div>
+                        <p className="text-sm text-gray-500">tipos configurados</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Departamentos */}
+                  <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setAdminView("departments")}>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 rounded-lg">
+                          <Building2 className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Departamentos</h3>
+                          <p className="text-sm text-gray-600">Gerenciar departamentos e estrutura organizacional</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{departments.length}</div>
+                        <p className="text-sm text-gray-500">departamentos ativos</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Categorias */}
+                  <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setAdminView("categories")}>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-orange-100 rounded-lg">
+                          <Tag className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Categorias</h3>
+                          <p className="text-sm text-gray-600">Organizar documentos por categorias</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{categories.length}</div>
+                        <p className="text-sm text-gray-500">categorias ativas</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Entidades */}
+                  <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setAdminView("entities")}>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-cyan-100 rounded-lg">
+                          <Building2 className="h-5 w-5 text-cyan-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Entidades</h3>
+                          <p className="text-sm text-gray-600">Gerenciar entidades e organizações</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{entityStats?.total_users || 0}</div>
+                        <p className="text-sm text-gray-500">usuários na entidade</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logs do Sistema */}
+                  <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setAdminView("system-logs")}>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-indigo-100 rounded-lg">
+                          <BarChart3 className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Logs do Sistema</h3>
+                          <p className="text-sm text-gray-600">Logs completos para verificação e auditoria</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{entityStats?.total_documents || 0}</div>
+                        <p className="text-sm text-gray-500">eventos registrados</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

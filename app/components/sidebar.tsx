@@ -240,12 +240,14 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               return (
                 <Button
                   key={item.id}
-                  variant={isActive ? "secondary" : "ghost"}
+                  variant={isActive ? "default" : "ghost"}
                   className={cn(
-                    "w-full transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative",
+                    "w-full transition-all duration-200 relative border-l-4 border-transparent",
                     isExpanded ? "justify-start px-3" : "justify-center px-2",
-                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
-                    !isExpanded && "min-h-[44px]"
+                    !isExpanded && "min-h-[44px]",
+                    isActive
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 border-l-primary-foreground shadow-md"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-l-sidebar-accent-foreground/30"
                   )}
                   onClick={() => {
                     if (item.onClick) {
@@ -297,10 +299,12 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   <BellNotificationsV2 />
                 </div>
                 <Button
-                  variant={activeView === "help" ? "secondary" : "ghost"}
+                  variant={activeView === "help" ? "default" : "ghost"}
                   className={cn(
-                    "w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar",
-                    activeView === "help" && "bg-sidebar-accent text-sidebar-accent-foreground",
+                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent",
+                    activeView === "help"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 border-l-primary-foreground shadow-md"
+                      : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                   )}
                   onClick={() => onViewChange("help")}
                 >
@@ -323,10 +327,12 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 <BellNotificationsV2 />
               </div>
               <Button
-                variant={activeView === "help" ? "secondary" : "ghost"}
+                variant={activeView === "help" ? "default" : "ghost"}
                 className={cn(
-                  "w-full justify-center text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-                  activeView === "help" && "bg-sidebar-accent text-sidebar-accent-foreground",
+                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px]",
+                  activeView === "help"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90 border-l-primary-foreground shadow-md"
+                    : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:border-l-sidebar-accent-foreground/30"
                 )}
                 onClick={() => onViewChange("help")}
                 title="Ajuda"

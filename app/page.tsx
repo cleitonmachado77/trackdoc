@@ -91,7 +91,7 @@ import ChatPage from "./chat/page"
 import MinhaContaPage from "./minha-conta/page"
 import { useDocuments } from "@/hooks/use-documents"
 import { useApprovals } from "@/hooks/use-approvals"
-import DebugApprovalSystem from "./components/debug-approval-system"
+
 import { useDepartments } from "@/hooks/use-departments"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useCategories } from "@/hooks/use-categories"
@@ -1346,7 +1346,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       case "chat":
         return <ChatPage />
       case "debug-approvals":
-        return <DebugApprovalSystem />
+        return <div>Debug não disponível em produção</div>
       case "admin":
         return (
           <AdminGuard>

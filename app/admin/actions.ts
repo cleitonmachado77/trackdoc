@@ -1,6 +1,6 @@
 "use server"
 
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 import { revalidatePath } from "next/cache"
 
 // Tipos para as entidades
@@ -38,7 +38,7 @@ interface DocumentType {
 
 /* --- CATEGORIES --- */
 export async function getCategories(): Promise<Category[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   const { data, error } = await supabase.from("categories").select("*").order("name")
   if (error) {
     console.error("Erro ao buscar categorias:", error)
@@ -48,7 +48,7 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function createCategory(categoryData: Omit<Category, "id">) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   const { data, error } = await supabase.rpc("create_category", {
     p_name: categoryData.name,
     p_description: categoryData.description,
@@ -64,7 +64,7 @@ export async function createCategory(categoryData: Omit<Category, "id">) {
 }
 
 export async function updateCategory(id: number, categoryData: Partial<Category>) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   const { data, error } = await supabase.rpc("update_category", {
     p_id: id,
     p_name: categoryData.name,
@@ -81,7 +81,7 @@ export async function updateCategory(id: number, categoryData: Partial<Category>
 }
 
 export async function deleteCategory(id: number) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   const { error } = await supabase.rpc("delete_category", { p_id: id })
   if (error) {
     console.error("Erro ao deletar categoria:", error)
@@ -93,7 +93,7 @@ export async function deleteCategory(id: number) {
 
 /* --- DEPARTMENTS --- */
 export async function getDepartments(): Promise<Department[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   try {
     // Obter usuário atual e sua entidade
@@ -139,7 +139,7 @@ export async function getDepartments(): Promise<Department[]> {
 }
 
 export async function createDepartment(departmentData: Omit<Department, "id">) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   try {
     // Obter usuário atual e sua entidade
@@ -192,7 +192,7 @@ export async function createDepartment(departmentData: Omit<Department, "id">) {
 }
 
 export async function updateDepartment(id: string, departmentData: Partial<Department>) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   try {
     // Verificar se o departamento existe e pertence à entidade do usuário
@@ -263,7 +263,7 @@ export async function updateDepartment(id: string, departmentData: Partial<Depar
 }
 
 export async function deleteDepartment(id: string) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   try {
     // Verificar se o departamento existe e pertence à entidade do usuário
@@ -339,7 +339,7 @@ export async function deleteDepartment(id: string) {
 
 /* --- DOCUMENT TYPES --- */
 export async function getDocumentTypes(): Promise<DocumentType[]> {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   try {
     // Buscar tipos de documento ativos
@@ -376,7 +376,7 @@ export async function getDocumentTypes(): Promise<DocumentType[]> {
 }
 
 export async function getDocumentsCount(): Promise<number> {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   try {
     // Buscar contagem de documentos
@@ -397,7 +397,7 @@ export async function getDocumentsCount(): Promise<number> {
 }
 
 export async function createDocumentType(documentTypeData: Omit<DocumentType, "id">) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   // Primeiro, obter o usuário atual e sua entidade
   const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -460,7 +460,7 @@ export async function createDocumentType(documentTypeData: Omit<DocumentType, "i
 }
 
 export async function updateDocumentType(id: string, documentTypeData: Partial<DocumentType>) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   // Primeiro, obter o usuário atual e sua entidade
   const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -541,7 +541,7 @@ export async function updateDocumentType(id: string, documentTypeData: Partial<D
 }
 
 export async function deleteDocumentType(id: string) {
-  const supabase = createServerSupabaseClient()
+  const supabase = createSupabaseServerClient()
   
   // Primeiro, obter o usuário atual e sua entidade
   const { data: { user }, error: userError } = await supabase.auth.getUser()

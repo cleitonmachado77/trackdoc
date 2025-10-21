@@ -430,7 +430,7 @@ export default function MinhaContaPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="container mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
         <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
@@ -438,11 +438,17 @@ export default function MinhaContaPage() {
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="profile" 
+            className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
             <User className="h-4 w-4" />
             Informações Pessoais
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="security" 
+            className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
             <Lock className="h-4 w-4" />
             Segurança
           </TabsTrigger>

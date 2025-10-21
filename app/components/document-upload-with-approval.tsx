@@ -321,12 +321,6 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
   return (
     <div className="space-y-2">
-      <div>
-        <h3 className="text-base font-medium">Upload de Documentos</h3>
-        <p className="text-xs text-gray-500">
-          Arraste e solte arquivos ou clique para selecionar.
-        </p>
-      </div>
 
       {/* Área de Drop */}
       <div

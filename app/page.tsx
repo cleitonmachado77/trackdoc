@@ -510,81 +510,6 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </Button>
         </div>
 
-        {/* Ações Rápidas */}
-        <Card className="p-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center">
-              <Zap className="h-5 w-5 mr-2 text-yellow-600" />
-              Ações Rápidas
-            </CardTitle>
-            <CardDescription>
-              Acesso rápido às principais funcionalidades
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
-                variant="outline"
-                onClick={() => setShowCreationSelector(true)}
-              >
-                <Plus className="h-5 w-5" />
-                <span className="text-xs">Novo Documento</span>
-              </Button>
-
-              <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
-                variant="outline"
-                onClick={() => setActiveView('electronic-signature')}
-              >
-                <PenTool className="h-5 w-5" />
-                <span className="text-xs">Assinar Documento</span>
-              </Button>
-
-              <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
-                variant="outline"
-                onClick={() => setActiveView('approvals')}
-              >
-                <CheckCircle className="h-5 w-5" />
-                <span className="text-xs">Ver Aprovações</span>
-              </Button>
-
-              <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
-                variant="outline"
-                onClick={() => setShowQuickSearch(true)}
-              >
-                <Search className="h-5 w-5" />
-                <span className="text-xs">Busca Rápida</span>
-              </Button>
-
-              <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
-                variant="outline"
-                onClick={() => setActiveView('notifications')}
-              >
-                <Bell className="h-5 w-5" />
-                <span className="text-xs">Notificações</span>
-                {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground">
-                    {unreadNotificationsCount}
-                  </span>
-                )}
-              </Button>
-
-              <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
-                variant="outline"
-                onClick={() => { setActiveView('admin'); setAdminView('overview') }}
-              >
-                <Settings className="h-5 w-5" />
-                <span className="text-xs">Administração</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Card 1: Total de Documentos */}
@@ -706,6 +631,81 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             </CardContent>
           </Card>
         </div>
+
+        {/* Ações Rápidas */}
+        <Card className="p-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-semibold flex items-center">
+              <Zap className="h-5 w-5 mr-2 text-yellow-600" />
+              Ações Rápidas
+            </CardTitle>
+            <CardDescription>
+              Acesso rápido às principais funcionalidades
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setShowUploadModal(true)}
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-xs">Novo Documento</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setActiveView('electronic-signature')}
+              >
+                <PenTool className="h-5 w-5" />
+                <span className="text-xs">Assinar Documento</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setActiveView('approvals')}
+              >
+                <CheckCircle className="h-5 w-5" />
+                <span className="text-xs">Ver Aprovações</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setShowQuickSearch(true)}
+              >
+                <Search className="h-5 w-5" />
+                <span className="text-xs">Busca Rápida</span>
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => setActiveView('notifications')}
+              >
+                <Bell className="h-5 w-5" />
+                <span className="text-xs">Notificações</span>
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground">
+                    {unreadNotificationsCount}
+                  </span>
+                )}
+              </Button>
+
+              <Button
+                className="h-16 flex flex-col items-center justify-center space-y-1"
+                variant="outline"
+                onClick={() => { setActiveView('admin'); setAdminView('overview') }}
+              >
+                <Settings className="h-5 w-5" />
+                <span className="text-xs">Administração</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Seção de Estatísticas Rápidas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1807,6 +1807,21 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             </DialogDescription>
           </DialogHeader>
           <DocumentList />
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Upload de Documento */}
+      <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle>Upload de Documento</DialogTitle>
+            <DialogDescription>
+              Faça upload de um novo documento para o sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 max-h-[calc(90vh-120px)]">
+            <DocumentUploadWithApproval onSuccess={() => setShowUploadModal(false)} />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

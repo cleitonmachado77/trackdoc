@@ -625,14 +625,7 @@ export default function SystemLogs() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Logs do Sistema</h2>
-            <p className="text-gray-600">
-              Logs completos para verificação e auditoria de todas as atividades
-            </p>
-          </div>
-        </div>
+
         
         <Card>
           <CardContent className="p-8 text-center">
@@ -651,13 +644,7 @@ export default function SystemLogs() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Logs do Sistema</h2>
-          <p className="text-gray-600">
-            Logs completos para verificação e auditoria de todas as atividades da entidade
-          </p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportLogs} disabled={loading || filteredLogs.length === 0}>
             <Download className="h-4 w-4 mr-2" />

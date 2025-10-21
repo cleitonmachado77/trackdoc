@@ -1112,11 +1112,7 @@ O usuário já pode fazer login no sistema.`)
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Entidade</h1>
-          <p className="text-gray-600">Gerencie sua entidade, crie usuários e defina cargos</p>
-        </div>
+      <div className="flex justify-end items-center">
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar Usuario

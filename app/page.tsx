@@ -161,6 +161,7 @@ export default DocumentManagementPlatform
 
 const DocumentManagementPlatformContent = memo(function DocumentManagementPlatformContent() {
   // Hooks para dados reais
+  const { user } = useAuth()
   const { documents, loading: documentsLoading, error: documentsError, createDocument, updateDocument, deleteDocument, changeDocumentStatus, stats: documentStats } = useDocuments()
   const { myApprovals, sentApprovals, loading: approvalsLoading } = useApprovals()
   const { departments } = useDepartments()
@@ -473,8 +474,95 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       color: type.color || '#8B5CF6'
     })) || []
 
-    // Atividade recente
-    const recentActivity = entityStats?.recent_activity || []
+    // Atividade recente baseada em dados reais
+    const recentActivity = (() => {
+      const activities = []
+
+      // Adicionar atividades de documentos recentes
+      const recentDocuments = documents
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5)
+
+      recentDocuments.forEach(doc => {
+        activities.push({
+          id: `doc-${doc.id}`,
+          action: `Documento "${doc.title}" foi criado`,
+          user_name: doc.author?.full_name || 'Usuário',
+          created_at: doc.created_at,
+          type: 'document',
+          icon: 'FileText'
+        })
+
+        // Se documento foi aprovado recentemente
+        if (doc.status === 'approved' && doc.updated_at !== doc.created_at) {
+          activities.push({
+            id: `doc-approved-${doc.id}`,
+            action: `Documento "${doc.title}" foi aprovado`,
+            user_name: doc.author?.full_name || 'Usuário',
+            created_at: doc.updated_at,
+            type: 'approval',
+            icon: 'CheckCircle'
+          })
+        }
+      })
+
+      // Adicionar atividades de aprovações recentes
+      const recentApprovals = myApprovals
+        ?.filter(approval => approval.status === 'approved')
+        .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+        .slice(0, 3) || []
+
+      recentApprovals.forEach(approval => {
+        const document = documents.find(doc => doc.id === approval.document_id)
+        activities.push({
+          id: `approval-${approval.id}`,
+          action: `Documento "${document?.title || 'Sem título'}" foi aprovado`,
+          user_name: user?.user_metadata?.full_name || 'Você',
+          created_at: approval.updated_at || approval.created_at,
+          type: 'approval',
+          icon: 'CheckCircle'
+        })
+      })
+
+      // Adicionar atividades de documentos rejeitados
+      const rejectedDocuments = documents
+        .filter(doc => doc.status === 'rejected')
+        .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+        .slice(0, 2)
+
+      rejectedDocuments.forEach(doc => {
+        activities.push({
+          id: `doc-rejected-${doc.id}`,
+          action: `Documento "${doc.title}" foi rejeitado`,
+          user_name: doc.author?.full_name || 'Usuário',
+          created_at: doc.updated_at || doc.created_at,
+          type: 'rejection',
+          icon: 'XCircle'
+        })
+      })
+
+      // Adicionar atividades de assinaturas recentes
+      const recentSignatures = signatures
+        .filter(sig => sig.status === 'completed')
+        .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+        .slice(0, 3)
+
+      recentSignatures.forEach(signature => {
+        activities.push({
+          id: `signature-${signature.id}`,
+          action: `Documento "${signature.title || 'Sem título'}" foi assinado digitalmente`,
+          user_name: user?.user_metadata?.full_name || 'Usuário',
+          created_at: signature.updated_at || signature.created_at,
+          type: 'signature',
+          icon: 'PenTool'
+        })
+      })
+
+      // Ordenar por data mais recente e limitar a 10 itens
+      return activities
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10)
+    })()
 
     // Calcular tendências (comparação com período anterior)
     const calculateTrend = (current: number, previous: number) => {
@@ -891,46 +979,99 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             </CardContent>
           </Card>
 
-          {/* Gráfico de Distribuição por Status */}
+          {/* Gráfico de Documentos por Setor */}
           <Card className="p-6">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-semibold flex items-center">
-                <PieChart className="h-5 w-5 mr-2 text-green-600" />
-                Distribuição por Status
+                <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+                Documentos por Setor
               </CardTitle>
               <CardDescription>
-                Proporção de documentos por status atual
+                Distribuição de documentos por departamento
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {documentsByStatus.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie
-                      data={documentsByStatus}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {documentsByStatus.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-[300px] text-gray-500">
-                  <div className="text-center">
-                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Nenhum documento encontrado</p>
+              {(() => {
+                // Calcular documentos por departamento usando dados reais
+                const documentsByDepartment = departments.map(dept => {
+                  const deptDocuments = documents.filter(doc => doc.department_id === dept.id)
+                  return {
+                    name: dept.name,
+                    count: deptDocuments.length,
+                    percentage: totalDocuments > 0 ? Math.round((deptDocuments.length / totalDocuments) * 100) : 0
+                  }
+                }).filter(dept => dept.count > 0) // Filtrar departamentos sem documentos
+                  .sort((a, b) => b.count - a.count) // Ordenar por quantidade (maior para menor)
+
+                // Adicionar documentos sem departamento
+                const documentsWithoutDept = documents.filter(doc => !doc.department_id)
+                if (documentsWithoutDept.length > 0) {
+                  documentsByDepartment.push({
+                    name: 'Outros',
+                    count: documentsWithoutDept.length,
+                    percentage: totalDocuments > 0 ? Math.round((documentsWithoutDept.length / totalDocuments) * 100) : 0
+                  })
+                }
+
+                // Cores para os departamentos
+                const departmentColors = [
+                  '#3B82F6', // Azul
+                  '#10B981', // Verde
+                  '#F59E0B', // Laranja
+                  '#8B5CF6', // Roxo
+                  '#EF4444', // Vermelho
+                  '#6B7280', // Cinza
+                  '#EC4899', // Rosa
+                  '#14B8A6', // Teal
+                ]
+
+                return documentsByDepartment.length > 0 ? (
+                  <div className="space-y-4">
+                    {documentsByDepartment.map((dept, index) => (
+                      <div key={dept.name} className="space-y-2 group hover:bg-gray-50 p-2 rounded-lg transition-colors cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className="w-4 h-4 rounded-full shadow-sm"
+                              style={{ backgroundColor: departmentColors[index % departmentColors.length] }}
+                            />
+                            <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                              {dept.name}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 font-medium">
+                            {dept.count} ({dept.percentage}%)
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500 ease-out group-hover:shadow-sm"
+                            style={{
+                              width: `${dept.percentage}%`,
+                              backgroundColor: departmentColors[index % departmentColors.length]
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Resumo total */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between text-sm font-medium text-gray-900">
+                        <span>Total de Documentos</span>
+                        <span>{totalDocuments}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-gray-500">
+                    <div className="text-center">
+                      <Building2 className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p>Nenhum documento por departamento encontrado</p>
+                    </div>
+                  </div>
+                )
+              })()}
             </CardContent>
           </Card>
         </div>
@@ -1007,26 +1148,55 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             </CardHeader>
             <CardContent>
               {recentActivity.length > 0 ? (
-                <div className="space-y-4">
-                  {recentActivity.slice(0, 8).map((activity, index) => (
-                    <div key={activity.id || index} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <div className="p-2 rounded-full bg-blue-100">
-                        <Activity className="h-4 w-4 text-blue-600" />
+                <div className="space-y-3">
+                  {recentActivity.slice(0, 8).map((activity, index) => {
+                    // Definir ícone e cor baseado no tipo de atividade
+                    const getActivityIcon = (type: string) => {
+                      switch (type) {
+                        case 'document':
+                          return { icon: FileText, color: 'bg-blue-100 text-blue-600' }
+                        case 'approval':
+                          return { icon: CheckCircle, color: 'bg-green-100 text-green-600' }
+                        case 'signature':
+                          return { icon: PenTool, color: 'bg-purple-100 text-purple-600' }
+                        case 'rejection':
+                          return { icon: XCircle, color: 'bg-red-100 text-red-600' }
+                        default:
+                          return { icon: Activity, color: 'bg-gray-100 text-gray-600' }
+                      }
+                    }
+
+                    const { icon: IconComponent, color } = getActivityIcon(activity.type)
+
+                    return (
+                      <div key={activity.id || index} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                        <div className={`p-2 rounded-full ${color}`}>
+                          <IconComponent className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{activity.action}</p>
+                          <p className="text-xs text-gray-500">por {activity.user_name}</p>
+                        </div>
+                        <div className="text-xs text-gray-400 flex-shrink-0">
+                          {new Date(activity.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                        <p className="text-xs text-gray-500">por {activity.user_name}</p>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {new Date(activity.created_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
+                    )
+                  })}
+
+                  {/* Botão para ver mais atividades */}
+                  {recentActivity.length > 8 && (
+                    <div className="pt-2 border-t">
+                      <Button variant="ghost" size="sm" className="w-full text-xs">
+                        Ver todas as atividades ({recentActivity.length})
+                      </Button>
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-48 text-gray-500">

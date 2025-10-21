@@ -100,6 +100,48 @@ export default function HelpCenter() {
       answer:
         "Sim, o sistema permite reverter etapas do workflow quando necessário. Acesse os detalhes do processo e use a opção 'Reverter Etapa' para voltar a uma etapa anterior. Esta funcionalidade é útil para correções e ajustes no processo.",
     },
+    {
+      category: "getting-started",
+      question: "Quais são os requisitos do sistema?",
+      answer:
+        "O Trackdoc é uma aplicação web que funciona em qualquer navegador moderno (Chrome, Firefox, Safari, Edge). Recomendamos conexão de internet estável e resolução mínima de 1024x768. Não é necessário instalar nenhum software adicional.",
+    },
+    {
+      category: "documents",
+      question: "Quais formatos de arquivo são suportados?",
+      answer:
+        "O sistema suporta os principais formatos: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JPG, PNG e GIF. O tamanho máximo por arquivo é de 50MB. Novos formatos podem ser adicionados conforme necessidade.",
+    },
+    {
+      category: "admin",
+      question: "Como configurar departamentos e usuários?",
+      answer:
+        "Na seção Administração, acesse 'Gestão de Entidades' para criar departamentos e adicionar usuários. Você pode definir permissões específicas, atribuir roles e configurar workflows de aprovação por departamento. Cada usuário pode pertencer a múltiplos departamentos.",
+    },
+    {
+      category: "signatures",
+      question: "As assinaturas digitais têm validade jurídica?",
+      answer:
+        "Sim, as assinaturas digitais do Trackdoc seguem os padrões ICP-Brasil e possuem validade jurídica. Cada assinatura inclui certificado digital, carimbo de tempo e hash criptográfico, garantindo autenticidade, integridade e não-repúdio do documento.",
+    },
+    {
+      category: "notifications",
+      question: "Posso personalizar as notificações?",
+      answer:
+        "Sim, você pode configurar quais tipos de notificações deseja receber, definir horários de envio e escolher os canais (email, sistema). Acesse suas configurações de perfil para personalizar as preferências de notificação.",
+    },
+    {
+      category: "approvals",
+      question: "Como funciona a aprovação em lote?",
+      answer:
+        "O sistema permite aprovar múltiplos documentos simultaneamente. Selecione os documentos desejados na lista de aprovações pendentes e use a opção 'Aprovar Selecionados'. Esta funcionalidade agiliza o processo para documentos similares.",
+    },
+    {
+      category: "admin",
+      question: "Como fazer backup dos dados?",
+      answer:
+        "O sistema realiza backups automáticos diários. Administradores podem solicitar exportação de dados através da seção 'Logs do Sistema'. Para empresas, oferecemos opções de backup personalizado e recuperação de desastres.",
+    },
   ]
 
   const tutorials = [
@@ -217,7 +259,8 @@ export default function HelpCenter() {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Temporariamente oculto */}
+      {/* 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="cursor-pointer hover:shadow-md transition-shadow">
           <CardContent className="p-6">
@@ -261,38 +304,63 @@ export default function HelpCenter() {
           </CardContent>
         </Card>
       </div>
+      */}
 
       {/* Funcionalidades Principais */}
       <Card>
         <CardHeader>
-          <CardTitle>Funcionalidades Principais do TrackDoc</CardTitle>
+          <CardTitle>Funcionalidades principais da Trackdoc</CardTitle>
           <CardDescription>Conheça as principais funcionalidades disponíveis na plataforma</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
               <h4 className="font-semibold text-blue-600 mb-2">📄 Gerenciamento de Documentos</h4>
-              <p className="text-sm text-gray-600">Upload, organização e categorização de documentos com metadados automáticos.</p>
+              <p className="text-sm text-gray-600">Upload, organização e categorização de documentos com metadados automáticos. Suporte para PDF, DOC, XLS, PPT e mais.</p>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
               <h4 className="font-semibold text-green-600 mb-2">🔄 Workflows de Aprovação</h4>
-              <p className="text-sm text-gray-600">Criação de fluxos personalizados com etapas sequenciais e aprovações condicionais.</p>
+              <p className="text-sm text-gray-600">Criação de fluxos personalizados com etapas sequenciais, aprovações condicionais e controle granular de permissões.</p>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
               <h4 className="font-semibold text-purple-600 mb-2">✍️ Assinatura Digital</h4>
-              <p className="text-sm text-gray-600">Assinatura individual e múltipla com verificação criptográfica e carimbo de tempo.</p>
+              <p className="text-sm text-gray-600">Assinatura individual e múltipla com verificação criptográfica, carimbo de tempo e certificação digital.</p>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
               <h4 className="font-semibold text-orange-600 mb-2">👥 Assinatura Múltipla</h4>
-              <p className="text-sm text-gray-600">Processo de aprovação coletiva por departamento com detecção automática.</p>
+              <p className="text-sm text-gray-600">Processo de aprovação coletiva por departamento com detecção automática e controle de status individual.</p>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
               <h4 className="font-semibold text-red-600 mb-2">🔔 Notificações em Tempo Real</h4>
-              <p className="text-sm text-gray-600">Sistema de notificações para aprovações, assinaturas e atualizações de workflow.</p>
+              <p className="text-sm text-gray-600">Sistema inteligente de notificações para aprovações, assinaturas, atualizações de workflow e lembretes automáticos.</p>
             </div>
-            <div className="p-4 border border-gray-200 rounded-lg">
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
               <h4 className="font-semibold text-indigo-600 mb-2">🔐 Verificação de Assinaturas</h4>
-              <p className="text-sm text-gray-600">Validação de autenticidade com códigos de verificação únicos e hash criptográfico.</p>
+              <p className="text-sm text-gray-600">Validação de autenticidade com códigos de verificação únicos, hash criptográfico e auditoria completa.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              <h4 className="font-semibold text-teal-600 mb-2">📊 Dashboard Inteligente</h4>
+              <p className="text-sm text-gray-600">Visão geral completa com métricas em tempo real, gráficos interativos e ações rápidas personalizáveis.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              <h4 className="font-semibold text-pink-600 mb-2">🏢 Gestão de Entidades</h4>
+              <p className="text-sm text-gray-600">Administração completa de usuários, departamentos, permissões e configurações organizacionais.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              <h4 className="font-semibold text-amber-600 mb-2">📋 Auditoria e Logs</h4>
+              <p className="text-sm text-gray-600">Sistema completo de auditoria com logs detalhados, rastreabilidade e relatórios de conformidade.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              <h4 className="font-semibold text-cyan-600 mb-2">🔍 Busca Avançada</h4>
+              <p className="text-sm text-gray-600">Ferramenta de busca inteligente com filtros avançados, busca por conteúdo e indexação automática.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              <h4 className="font-semibold text-emerald-600 mb-2">📱 Interface Responsiva</h4>
+              <p className="text-sm text-gray-600">Acesso completo via web com interface adaptável para desktop, tablet e dispositivos móveis.</p>
+            </div>
+            <div className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+              <h4 className="font-semibold text-violet-600 mb-2">🔒 Segurança Avançada</h4>
+              <p className="text-sm text-gray-600">Criptografia de ponta a ponta, controle de acesso baseado em roles e conformidade com LGPD.</p>
             </div>
           </div>
         </CardContent>

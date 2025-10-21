@@ -1149,7 +1149,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             <CardContent>
               {recentActivity.length > 0 ? (
                 <div className="space-y-3">
-                  {recentActivity.slice(0, 8).map((activity, index) => {
+                  {recentActivity.slice(0, 5).map((activity, index) => {
                     // Definir ícone e cor baseado no tipo de atividade
                     const getActivityIcon = (type: string) => {
                       switch (type) {
@@ -1190,7 +1190,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   })}
 
                   {/* Botão para ver mais atividades */}
-                  {recentActivity.length > 8 && (
+                  {recentActivity.length > 5 && (
                     <div className="pt-2 border-t">
                       <Button variant="ghost" size="sm" className="w-full text-xs">
                         Ver todas as atividades ({recentActivity.length})

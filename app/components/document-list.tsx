@@ -52,6 +52,8 @@ import {
   List,
   History,
   X,
+  Tag,
+  Calendar,
 } from "lucide-react"
 // Importações removidas - não precisamos mais de Tabs nem Alert
 import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-documents"
@@ -535,10 +537,56 @@ export default function DocumentList() {
                             "p-2"
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">
-                            {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
-                          </p>
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm truncate">
+                              {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
+                            </p>
+                            <Badge 
+                              variant={document.status === 'approved' ? 'default' : 
+                                      document.status === 'pending_approval' ? 'secondary' : 
+                                      document.status === 'rejected' ? 'destructive' : 'outline'}
+                              className="text-xs shrink-0"
+                            >
+                              {document.status === 'approved' ? 'Aprovado' :
+                               document.status === 'pending_approval' ? 'Pendente' :
+                               document.status === 'rejected' ? 'Rejeitado' :
+                               document.status === 'draft' ? 'Rascunho' : document.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              <span>{document.author?.full_name || 'Autor desconhecido'}</span>
+                            </div>
+                            {document.department && (
+                              <div className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3" />
+                                <span>{document.department.name}</span>
+                              </div>
+                            )}
+                            {document.category && (
+                              <div className="flex items-center gap-1">
+                                <Tag className="h-3 w-3" />
+                                <span>{document.category.name}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>{new Date(document.created_at).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                            {document.file_size && (
+                              <div className="flex items-center gap-1">
+                                <FileText className="h-3 w-3" />
+                                <span>{formatFileSize(document.file_size)}</span>
+                              </div>
+                            )}
+                          </div>
+                          {document.description && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {document.description}
+                            </p>
+                          )}
                         </div>
                       </div>
 

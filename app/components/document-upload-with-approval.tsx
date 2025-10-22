@@ -200,6 +200,34 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   const handleUpload = async () => {
     if (!user || uploadFiles.length === 0) return
 
+    // Validar campos obrigatórios
+    if (!selectedCategory) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, selecione uma categoria para o documento.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!selectedDepartment) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, selecione um departamento para o documento.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!selectedDocumentType) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Por favor, selecione um tipo de documento.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const uploadPromises = uploadFiles.map(async (uploadFile) => {
       try {
         console.log(`\n--- PROCESSANDO ARQUIVO: ${uploadFile.file.name} ---`)
@@ -408,13 +436,20 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
       {/* Configurações do Documento */}
       {uploadFiles.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Configurações do Documento</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium">Configurações do Documento</h3>
+            <span className="text-xs text-gray-500">
+              <span className="text-red-500">*</span> Campos obrigatórios
+            </span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
-              <Label htmlFor="category" className="text-xs">Categoria</Label>
+              <Label htmlFor="category" className="text-xs font-medium">
+                Categoria <span className="text-red-500">*</span>
+              </Label>
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className={`h-8 text-sm ${!selectedCategory ? 'border-red-300 focus:border-red-500' : ''}`}>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -428,9 +463,11 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </div>
 
             <div>
-              <Label htmlFor="department" className="text-xs">Departamento</Label>
+              <Label htmlFor="department" className="text-xs font-medium">
+                Departamento <span className="text-red-500">*</span>
+              </Label>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className={`h-8 text-sm ${!selectedDepartment ? 'border-red-300 focus:border-red-500' : ''}`}>
                   <SelectValue placeholder="Selecione um departamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -444,9 +481,11 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </div>
 
             <div>
-              <Label htmlFor="documentType" className="text-xs">Tipo de Documento</Label>
+              <Label htmlFor="documentType" className="text-xs font-medium">
+                Tipo de Documento <span className="text-red-500">*</span>
+              </Label>
               <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className={`h-8 text-sm ${!selectedDocumentType ? 'border-red-300 focus:border-red-500' : ''}`}>
                   <SelectValue placeholder="Selecione um tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -592,7 +631,12 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
           <Button
             onClick={handleUpload}
-            disabled={uploadFiles.some(f => f.status === 'uploading')}
+            disabled={
+              uploadFiles.some(f => f.status === 'uploading') ||
+              !selectedCategory ||
+              !selectedDepartment ||
+              !selectedDocumentType
+            }
             className="w-full h-8 text-sm"
           >
             {uploadFiles.some(f => f.status === 'uploading') ? (

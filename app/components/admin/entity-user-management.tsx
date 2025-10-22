@@ -367,7 +367,7 @@ interface EntityUser {
   full_name: string | null
   email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended' | 'pending'
+  status: 'active' | 'inactive' | 'suspended' | 'pending' | 'pending_email'
   created_at: string
   last_login?: string | null
   phone?: string | null
@@ -400,6 +400,7 @@ const statusColors = {
   inactive: "bg-red-100 text-red-800",
   suspended: "bg-yellow-100 text-yellow-800",
   pending: "bg-orange-100 text-orange-800",
+  pending_email: "bg-blue-100 text-blue-800",
 }
 
 const roleLabels = {
@@ -564,16 +565,16 @@ export default function EntityUserManagement() {
     }
   }
 
-  // Função para aprovar convite e criar usuário real
-  const approveInvitation = async (invitation: EntityUser) => {
+  // Função para enviar email de confirmação ao usuário convidado
+  const sendInvitationEmail = async (invitation: EntityUser) => {
     if (!user?.id || !invitation.invitation_id) return
 
     try {
       setError('')
       setIsCreatingUser(true)
-      console.log('🔍 [approveInvitation] Aprovando convite:', invitation.email)
+      console.log('📧 [sendInvitationEmail] Enviando email de confirmação:', invitation.email)
 
-      // Primeiro buscar dados completos do convite
+      // Buscar dados completos do convite
       const { data: invitationData, error: fetchError } = await supabase
         .from('entity_invitations')
         .select('*')
@@ -581,23 +582,21 @@ export default function EntityUserManagement() {
         .single()
 
       if (fetchError || !invitationData) {
-        console.error('❌ [approveInvitation] Erro ao buscar convite:', fetchError)
+        console.error('❌ [sendInvitationEmail] Erro ao buscar convite:', fetchError)
         setError('Erro ao buscar dados do convite')
         return
       }
 
-      console.log('📋 [approveInvitation] Dados do convite:', invitationData)
-
-      // Extrair dados do message
       const messageData = invitationData.message ? JSON.parse(invitationData.message) : {}
       
-      console.log('🚀 [approveInvitation] Criando usuário real...')
+      console.log('🚀 [sendInvitationEmail] Criando usuário com email não confirmado...')
 
-      // Criar usuário real usando a API de registro do Supabase
+      // Criar usuário com email não confirmado
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invitationData.email,
         password: messageData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=signup&next=/confirm-email`,
           data: {
             full_name: messageData.full_name,
             entity_id: invitationData.entity_id,
@@ -611,8 +610,8 @@ export default function EntityUserManagement() {
       })
 
       if (authError) {
-        console.error('❌ [approveInvitation] Erro ao criar usuário:', authError)
-        setError(`Erro ao aprovar convite: ${authError.message}`)
+        console.error('❌ [sendInvitationEmail] Erro ao criar usuário:', authError)
+        setError(`Erro ao enviar convite: ${authError.message}`)
         return
       }
 
@@ -621,72 +620,105 @@ export default function EntityUserManagement() {
         return
       }
 
-      console.log('✅ [approveInvitation] Usuário criado no auth:', authData.user.id)
+      console.log('✅ [sendInvitationEmail] Usuário criado, aguardando confirmação de email:', authData.user.id)
 
       // Aguardar trigger criar o perfil
-      console.log('⏳ [approveInvitation] Aguardando trigger criar perfil...')
       await new Promise(resolve => setTimeout(resolve, 2000))
 
-      // Verificar se perfil foi criado pelo trigger
-      const { data: profileCheck } = await supabase
+      // Criar/atualizar perfil com status pending_email
+      const { error: profileError } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', authData.user.id)
+        .upsert({
+          id: authData.user.id,
+          full_name: messageData.full_name,
+          email: invitationData.email,
+          entity_id: invitationData.entity_id,
+          entity_role: invitationData.entity_role,
+          phone: messageData.phone,
+          position: messageData.position,
+          registration_type: 'entity_user',
+          registration_completed: false,
+          status: 'pending_email', // Status especial para aguardar confirmação
+          role: 'user',
+          permissions: ['read']
+        })
+
+      if (profileError) {
+        console.error('❌ [sendInvitationEmail] Erro ao criar perfil:', profileError)
+        setError(`Erro ao criar perfil: ${profileError.message}`)
+        return
+      }
+
+      // Atualizar convite para status email_sent
+      const { error: updateError } = await supabase
+        .from('entity_invitations')
+        .update({
+          status: 'email_sent',
+          email_sent_at: new Date().toISOString()
+        })
+        .eq('id', invitation.invitation_id)
+
+      if (updateError) {
+        console.error('❌ [sendInvitationEmail] Erro ao atualizar convite:', updateError)
+      }
+
+      console.log('✅ [sendInvitationEmail] Email de confirmação enviado!')
+      
+      setSuccess(`Email de confirmação enviado para ${messageData.full_name}. O usuário deve confirmar o email antes de poder fazer login.`)
+
+      // Recarregar lista
+      await fetchEntityUsers()
+
+    } catch (err) {
+      console.error('❌ [sendInvitationEmail] Erro geral:', err)
+      setError('Erro interno do servidor. Tente novamente.')
+    } finally {
+      setIsCreatingUser(false)
+    }
+  }
+
+  // Função para ativar usuário após confirmação de email
+  const activateUser = async (invitation: EntityUser) => {
+    if (!user?.id || !invitation.invitation_id) return
+
+    try {
+      setError('')
+      setIsCreatingUser(true)
+      console.log('✅ [activateUser] Ativando usuário:', invitation.email)
+
+      // Buscar dados do usuário
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', invitation.email)
         .single()
 
-      if (!profileCheck) {
-        console.log('⚠️ [approveInvitation] Perfil não foi criado pelo trigger, criando com políticas RLS...')
-        
-        // Criar perfil usando as políticas RLS atualizadas
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            full_name: messageData.full_name,
-            email: invitationData.email,
-            entity_id: invitationData.entity_id,
-            entity_role: invitationData.entity_role,
-            phone: messageData.phone,
-            position: messageData.position,
-            registration_type: 'entity_user',
-            registration_completed: true,
-            status: 'active',
-            role: 'user',
-            permissions: ['read', 'write']
-          }])
+      if (profileError || !profileData) {
+        setError('Usuário não encontrado ou email não confirmado')
+        return
+      }
 
-        if (insertError) {
-          console.error('❌ [approveInvitation] Erro ao criar perfil:', insertError)
-          setError(`Erro ao criar perfil: ${insertError.message}`)
-          return
-        }
-        
-        console.log('✅ [approveInvitation] Perfil criado com políticas RLS')
-      } else {
-        console.log('✅ [approveInvitation] Perfil já existe, atualizando...')
-        
-        // Atualizar perfil existente com dados da entidade
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: messageData.full_name,
-            entity_id: invitationData.entity_id,
-            entity_role: invitationData.entity_role,
-            phone: messageData.phone,
-            position: messageData.position,
-            registration_type: 'entity_user',
-            registration_completed: true,
-            status: 'active'
-          })
-          .eq('id', authData.user.id)
+      // Verificar se o email foi confirmado no auth
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      
+      // Como não podemos verificar outros usuários diretamente, vamos confiar no status
+      // Em produção, isso seria verificado via webhook ou função do servidor
+      
+      // Ativar usuário
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          status: 'active',
+          registration_completed: true,
+          permissions: ['read', 'write'],
+          activated_at: new Date().toISOString()
+        })
+        .eq('id', profileData.id)
 
-        if (updateError) {
-          console.error('❌ [approveInvitation] Erro ao atualizar perfil:', updateError)
-          setError(`Erro ao atualizar perfil: ${updateError.message}`)
-          return
-        }
-        
-        console.log('✅ [approveInvitation] Perfil atualizado com políticas RLS')
+      if (updateError) {
+        console.error('❌ [activateUser] Erro ao ativar usuário:', updateError)
+        setError(`Erro ao ativar usuário: ${updateError.message}`)
+        return
       }
 
       // Marcar convite como aceito
@@ -699,15 +731,14 @@ export default function EntityUserManagement() {
         .eq('id', invitation.invitation_id)
 
       if (acceptError) {
-        console.error('❌ [approveInvitation] Erro ao marcar convite como aceito:', acceptError)
-        // Não falhar aqui, o usuário foi criado
+        console.error('❌ [activateUser] Erro ao marcar convite como aceito:', acceptError)
       }
 
       // Atualizar contador de usuários na entidade
       const { data: entityData } = await supabase
         .from('entities')
         .select('current_users')
-        .eq('id', invitationData.entity_id)
+        .eq('id', profileData.entity_id)
         .single()
 
       if (entityData) {
@@ -717,26 +748,18 @@ export default function EntityUserManagement() {
             current_users: (entityData.current_users || 0) + 1,
             updated_at: new Date().toISOString()
           })
-          .eq('id', invitationData.entity_id)
+          .eq('id', profileData.entity_id)
       }
 
-      console.log('✅ [approveInvitation] Convite aprovado com sucesso!')
+      console.log('✅ [activateUser] Usuário ativado com sucesso!')
       
-      setSuccess(`✅ Convite aprovado com sucesso!
-
-👤 Usuário: ${messageData.full_name}
-📧 Email: ${invitationData.email}
-🔑 Senha: ${messageData.password}
-🆔 ID: ${authData.user.id}
-🎯 Status: Ativo e pronto para login
-
-O usuário já pode fazer login no sistema.`)
+      setSuccess(`Usuário ${profileData.full_name} ativado com sucesso! Agora pode fazer login no sistema.`)
 
       // Recarregar lista
       await fetchEntityUsers()
 
     } catch (err) {
-      console.error('❌ [approveInvitation] Erro geral:', err)
+      console.error('❌ [activateUser] Erro geral:', err)
       setError('Erro interno do servidor. Tente novamente.')
     } finally {
       setIsCreatingUser(false)
@@ -846,21 +869,7 @@ O usuário já pode fazer login no sistema.`)
 
       console.log('✅ [createUser] Processo concluído!')
       
-      setSuccess(`✅ Convite de usuário criado com sucesso!
-
-📧 Email: ${userData.email.trim().toLowerCase()}
-🔑 Senha: ${userData.password}
-👤 Cargo: ${userData.entity_role}
-🏢 Entidade: ${availableEntities.find(e => e.id === userData.entity_id)?.name}
-🎫 Token: ${invitationToken}
-
-⏳ AGUARDANDO APROVAÇÃO:
-- O convite aparecerá na lista com status "Pendente"
-- Clique em "Aprovar" para criar o usuário real
-- Após aprovação, o usuário poderá fazer login
-- Convite expira em 30 dias
-
-🎯 O convite aparecerá na lista para aprovação.`)
+      setSuccess(`Convite criado com sucesso! O usuário ${userData.full_name} aparecerá na lista aguardando aprovação.`)
       
       setShowCreateModal(false)
       
@@ -1034,7 +1043,7 @@ O usuário já pode fazer login no sistema.`)
   // Limpar mensagens apos 5 segundos
   useEffect(() => {
     if (success) {
-      const timer = setTimeout(() => setSuccess(""), 5000)
+      const timer = setTimeout(() => setSuccess(""), 3000)
       return () => clearTimeout(timer)
     }
   }, [success])
@@ -1136,9 +1145,17 @@ O usuário já pode fazer login no sistema.`)
       )}
 
       {success && (
-        <Alert>
+        <Alert className="relative">
           <CheckCircle className="h-4 w-4" />
-          <AlertDescription>{success}</AlertDescription>
+          <AlertDescription className="pr-8">{success}</AlertDescription>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-2 top-2 h-6 w-6 p-0"
+            onClick={() => setSuccess("")}
+          >
+            ×
+          </Button>
         </Alert>
       )}
 
@@ -1279,11 +1296,12 @@ O usuário já pode fazer login no sistema.`)
                         <Badge className={roleColors[user.entity_role]}>
                           {roleLabels[user.entity_role]}
                         </Badge>
-                        <Badge className={statusColors[user.status]}>
+                        <Badge className={statusColors[user.status as keyof typeof statusColors]}>
                           {user.status === 'active' ? 'Ativo' : 
                            user.status === 'inactive' ? 'Inativo' : 
                            user.status === 'suspended' ? 'Suspenso' : 
-                           user.status === 'pending' ? 'Aguardando Aprovação' : user.status}
+                           user.status === 'pending' ? 'Aguardando Aprovação' : 
+                           user.status === 'pending_email' ? 'Aguardando Email' : user.status}
                         </Badge>
 
                       </div>
@@ -1291,15 +1309,28 @@ O usuário já pode fazer login no sistema.`)
                   </div>
                   <div className="flex items-center space-x-2">
                     {user.status === 'pending' ? (
-                      // Botão de aprovação para convites pendentes
+                      // Botão para enviar email de confirmação
                       <Button
                         variant="default"
                         size="sm"
-                        onClick={() => approveInvitation(user)}
+                        onClick={() => sendInvitationEmail(user)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={isCreatingUser}
+                      >
+                        <Mail className="h-4 w-4 mr-1" />
+                        Enviar Email
+                      </Button>
+                    ) : user.status === 'pending_email' ? (
+                      // Botão para ativar após confirmação de email
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => activateUser(user)}
                         className="bg-green-600 hover:bg-green-700 text-white"
+                        disabled={isCreatingUser}
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
-                        Aprovar
+                        Ativar
                       </Button>
                     ) : (
                       // Botões normais para usuários ativos

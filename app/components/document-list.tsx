@@ -618,20 +618,27 @@ export default function DocumentList() {
                             {/* Se documento está bloqueado, mostrar apenas opções limitadas */}
                             {isDocumentBlocked(document) ? (
                               <>
-                                {/* Para documentos rejeitados, permitir apenas exclusão */}
+                                {/* Para documentos rejeitados, permitir exclusão apenas se não estiver em período de retenção */}
                                 {document.status === 'rejected' && (
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
-                                        deleteDocument(document.id)
-                                      }
-                                    }}
-                                    className="text-destructive"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Excluir
-                                  </DropdownMenuItem>
+                                  document.can_delete ? (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                          deleteDocument(document.id)
+                                        }
+                                      }}
+                                      className="text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Excluir
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem disabled className="text-muted-foreground">
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Bloqueado (Período de Retenção)
+                                    </DropdownMenuItem>
+                                  )
                                 )}
                                 {/* Para documentos em aprovação, não mostrar ações */}
                                 {document.status === 'pending_approval' && (
@@ -672,18 +679,25 @@ export default function DocumentList() {
                                   <History className="h-4 w-4 mr-2" />
                                   Versões
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                      deleteDocument(document.id)
-                                    }
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
+                                {document.can_delete ? (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                        deleteDocument(document.id)
+                                      }
+                                    }}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem disabled className="text-muted-foreground">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Bloqueado (Período de Retenção)
+                                  </DropdownMenuItem>
+                                )}
                               </>
                             )}
                           </DropdownMenuContent>
@@ -790,18 +804,25 @@ export default function DocumentList() {
                           {isDocumentBlocked(document) ? (
                             <>
                               {document.status === 'rejected' && (
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
-                                      deleteDocument(document.id)
-                                    }
-                                  }}
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-3 w-3 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
+                                document.can_delete ? (
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                        deleteDocument(document.id)
+                                      }
+                                    }}
+                                    className="text-destructive"
+                                  >
+                                    <Trash2 className="h-3 w-3 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem disabled className="text-muted-foreground">
+                                    <Trash2 className="h-3 w-3 mr-2" />
+                                    Bloqueado (Retenção)
+                                  </DropdownMenuItem>
+                                )
                               )}
                               {document.status === 'pending_approval' && (
                                 <div className="px-2 py-1 text-xs text-muted-foreground">
@@ -840,18 +861,25 @@ export default function DocumentList() {
                                 <History className="h-3 w-3 mr-2" />
                                 Versões
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                    deleteDocument(document.id)
-                                  }
-                                }}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="h-3 w-3 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
+                              {document.can_delete ? (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                      deleteDocument(document.id)
+                                    }
+                                  }}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem disabled className="text-muted-foreground">
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  Bloqueado (Período de Retenção)
+                                </DropdownMenuItem>
+                              )}
                             </>
                           )}
                         </DropdownMenuContent>
@@ -899,20 +927,32 @@ export default function DocumentList() {
                     {isDocumentBlocked(document) ? (
                       <div className="flex justify-center">
                         {document.status === 'rejected' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
-                                deleteDocument(document.id)
-                              }
-                            }}
-                            className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Excluir
-                          </Button>
+                          document.can_delete ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
+                                  deleteDocument(document.id)
+                                }
+                              }}
+                              className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Excluir
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="h-7 text-xs text-muted-foreground"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Bloqueado (Retenção)
+                            </Button>
+                          )
                         ) : (
                           <div className="text-xs text-muted-foreground text-center py-1">
                             Bloqueado
@@ -944,19 +984,30 @@ export default function DocumentList() {
                         >
                           <Download className="h-3 w-3" />
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (confirm('Tem certeza que deseja excluir este documento?')) {
-                              deleteDocument(document.id)
-                            }
-                          }}
-                          className="flex-1 h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {document.can_delete ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (confirm('Tem certeza que deseja excluir este documento?')) {
+                                deleteDocument(document.id)
+                              }
+                            }}
+                            className="flex-1 h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="flex-1 h-7 text-xs px-2 text-muted-foreground"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>

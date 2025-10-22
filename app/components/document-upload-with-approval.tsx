@@ -70,6 +70,11 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   const [showApproverSelect, setShowApproverSelect] = useState(false)
   const [isRequestingApproval, setIsRequestingApproval] = useState(false)
 
+  // Verificar se aprovação é obrigatória baseada no tipo de documento
+  const selectedDocType = documentTypes.find(dt => dt.id === selectedDocumentType)
+  const isApprovalRequired = selectedDocType?.approvalRequired || false
+  const retentionPeriod = selectedDocType?.retentionPeriod || 24
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
       file,
@@ -228,6 +233,16 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
       return
     }
 
+    // Verificar se aprovação é obrigatória e se aprovador foi selecionado
+    if (isApprovalRequired && !selectedApprover) {
+      toast({
+        title: "Aprovação obrigatória",
+        description: "Este tipo de documento requer aprovação. Por favor, selecione um aprovador.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const uploadPromises = uploadFiles.map(async (uploadFile) => {
       try {
         console.log(`\n--- PROCESSANDO ARQUIVO: ${uploadFile.file.name} ---`)
@@ -269,7 +284,10 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           tags: tags,
           file_name: uploadFile.file.name,
           file_size: uploadFile.file.size,
-          file_type: uploadFile.file.type
+          file_type: uploadFile.file.type,
+          retention_period: retentionPeriod,
+          approval_required: isApprovalRequired,
+          retention_end_date: retentionPeriod > 0 ? new Date(Date.now() + retentionPeriod * 30 * 24 * 60 * 60 * 1000).toISOString() : null
         }
 
         console.log('Dados do documento:', documentData)
@@ -491,25 +509,66 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 <SelectContent>
                   {documentTypes.map((type) => (
                     <SelectItem key={type.id} value={type.id}>
-                      {type.name}
+                      <div className="flex flex-col">
+                        <span>{type.name}</span>
+                        <div className="flex gap-2 text-xs text-gray-500">
+                          {type.approvalRequired && (
+                            <Badge variant="secondary" className="text-xs px-1 py-0">
+                              Aprovação Obrigatória
+                            </Badge>
+                          )}
+                          <span>Retenção: {type.retentionPeriod} meses</span>
+                        </div>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              
+              {/* Informações do tipo selecionado */}
+              {selectedDocType && (
+                <div className="mt-1 p-2 bg-blue-50 rounded text-xs">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {selectedDocType.approvalRequired && (
+                      <Badge variant="destructive" className="text-xs">
+                        ⚠️ Aprovação Obrigatória
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      🔒 Retenção: {selectedDocType.retentionPeriod} meses
+                    </Badge>
+                  </div>
+                  {selectedDocType.approvalRequired && (
+                    <p className="text-blue-700 mt-1">
+                      Este tipo de documento requer aprovação antes de ser publicado.
+                    </p>
+                  )}
+                  {selectedDocType.retentionPeriod > 0 && (
+                    <p className="text-blue-700 mt-1">
+                      Documentos deste tipo não podem ser excluídos durante o período de retenção.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Botão Solicitar Aprovação */}
             <div className="flex items-center">
               <Button
                 type="button"
-                variant={selectedApprover ? "default" : "outline"}
+                variant={selectedApprover ? "default" : isApprovalRequired ? "destructive" : "outline"}
                 onClick={() => setShowApproverSelect(!showApproverSelect)}
-                className="w-full h-8 text-xs"
+                className={`w-full h-8 text-xs ${isApprovalRequired ? 'animate-pulse' : ''}`}
               >
                 {selectedApprover ? (
                   <>
                     <CheckCircle className="h-3 w-3 mr-1" />
-                    Aprovador
+                    Aprovador Selecionado
+                  </>
+                ) : isApprovalRequired ? (
+                  <>
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Aprovação Obrigatória
                   </>
                 ) : (
                   <>

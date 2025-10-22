@@ -1,225 +1,224 @@
-'use client'
+"use client"
 
-import { CompleteEntitySetup } from './complete-entity-setup'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { CheckCircle, Mail, ArrowLeft } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { CheckCircle, AlertCircle, Mail, ArrowRight } from 'lucide-react'
 
 export default function ConfirmEmailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isConfirmed, setIsConfirmed] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isChecking, setIsChecking] = useState(true)
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already_confirmed'>('loading')
+  const [message, setMessage] = useState('')
+  const [userEmail, setUserEmail] = useState('')
 
-  // Verificar se as variáveis de ambiente estão configuradas
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Configuração Necessária</h1>
-          <p className="text-gray-600">As variáveis de ambiente do Supabase não estão configuradas.</p>
-        </div>
-      </div>
-    )
-  }
-  
-  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
     const handleEmailConfirmation = async () => {
-      const token = searchParams.get('token')
-      const type = searchParams.get('type')
-      const confirmed = searchParams.get('confirmed')
-      const errorParam = searchParams.get('error')
-
-      console.log('ConfirmEmailPage: Parâmetros recebidos', {
-        token: !!token,
-        type,
-        confirmed,
-        errorParam
-      })
-
-      // Se já foi confirmado via callback
-      if (confirmed === 'true') {
-        console.log('ConfirmEmailPage: Confirmado via callback')
-        setIsConfirmed(true)
-        setTimeout(() => {
-          router.push('/')
-        }, 3000)
-        return
-      }
-
-      // Se houve erro na confirmação
-      if (errorParam === 'confirmation_failed') {
-        console.log('ConfirmEmailPage: Erro na confirmação')
-        setError('Erro ao confirmar email. Tente novamente.')
-        setIsChecking(false)
-        return
-      }
-
-      // Confirmação via token (método alternativo)
-      if (token && type === 'signup') {
-        try {
-          console.log('ConfirmEmailPage: Tentando confirmar via token')
-          const { error } = await supabase.auth.verifyOtp({
-            token_hash: token,
-            type: 'signup'
-          })
-
-          if (error) {
-            console.error('Erro ao confirmar email:', error)
-            setError('Erro ao confirmar email. Tente novamente.')
-            setIsChecking(false)
-          } else {
-            console.log('ConfirmEmailPage: Email confirmado via token')
-            setIsConfirmed(true)
-            setTimeout(() => {
-              router.push('/')
-            }, 3000)
-          }
-        } catch (err) {
-          console.error('Erro inesperado:', err)
-          setError('Erro inesperado. Tente novamente.')
-          setIsChecking(false)
-        }
-      } else {
-        // Verificar se o usuário já está autenticado (confirmação automática)
-        console.log('ConfirmEmailPage: Verificando se usuário está autenticado')
-        const { data: { session } } = await supabase.auth.getSession()
+      try {
+        // Verificar se há tokens na URL (vindos do callback)
+        const token_hash = searchParams.get('token_hash')
+        const type = searchParams.get('type')
         
-        if (session?.user) {
-          console.log('ConfirmEmailPage: Usuário já autenticado')
-          setIsConfirmed(true)
-          // Não redirecionar automaticamente - deixar o CompleteEntitySetup aparecer se necessário
-          setIsChecking(false)
+        if (token_hash && type === 'signup') {
+          // Verificar sessão do usuário
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          
+          if (sessionError) {
+            console.error('Erro ao verificar sessão:', sessionError)
+            setStatus('error')
+            setMessage('Erro ao verificar confirmação de email')
+            return
+          }
+
+          if (session?.user) {
+            setUserEmail(session.user.email || '')
+            
+            // Verificar se o email já foi confirmado
+            if (session.user.email_confirmed_at) {
+              // Atualizar perfil para ativo se ainda estiver pending_email
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                  status: 'pending_email', // Manter como pending_email para admin aprovar
+                  email_confirmed_at: new Date().toISOString()
+                })
+                .eq('id', session.user.id)
+                .eq('status', 'pending_email')
+
+              if (updateError) {
+                console.error('Erro ao atualizar perfil:', updateError)
+              }
+
+              setStatus('success')
+              setMessage('Email confirmado com sucesso! Aguarde a aprovação do administrador para acessar o sistema.')
+            } else {
+              setStatus('error')
+              setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada.')
+            }
+          } else {
+            setStatus('error')
+            setMessage('Sessão não encontrada. Tente fazer login novamente.')
+          }
         } else {
-          console.log('ConfirmEmailPage: Usuário não autenticado, aguardando confirmação')
-          setIsChecking(false)
+          // Verificar se o usuário já está logado e confirmado
+          const { data: { user } } = await supabase.auth.getUser()
+          
+          if (user) {
+            setUserEmail(user.email || '')
+            
+            if (user.email_confirmed_at) {
+              setStatus('already_confirmed')
+              setMessage('Seu email já foi confirmado anteriormente.')
+            } else {
+              setStatus('error')
+              setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.')
+            }
+          } else {
+            setStatus('error')
+            setMessage('Usuário não encontrado. Faça login para confirmar seu email.')
+          }
         }
+      } catch (error) {
+        console.error('Erro ao processar confirmação:', error)
+        setStatus('error')
+        setMessage('Erro interno. Tente novamente mais tarde.')
       }
     }
 
     handleEmailConfirmation()
-  }, [searchParams, router, supabase])
+  }, [searchParams, supabase])
 
   const handleGoToLogin = () => {
     router.push('/login')
   }
 
-  const handleGoBack = () => {
-    router.push('/register')
+  const handleResendEmail = async () => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: userEmail
+      })
+
+      if (error) {
+        setMessage('Erro ao reenviar email: ' + error.message)
+      } else {
+        setMessage('Email de confirmação reenviado! Verifique sua caixa de entrada.')
+      }
+    } catch (error) {
+      setMessage('Erro ao reenviar email. Tente novamente.')
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-            {isConfirmed ? (
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            ) : (
-              <Mail className="w-8 h-8 text-blue-600" />
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4">
+            {status === 'loading' && (
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            )}
+            {status === 'success' && (
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            )}
+            {(status === 'error' || status === 'already_confirmed') && (
+              <AlertCircle className="h-12 w-12 text-orange-600" />
             )}
           </div>
-          
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            {isConfirmed ? 'Email Confirmado!' : isChecking ? 'Verificando...' : 'Aguardando Confirmação'}
+          <CardTitle>
+            {status === 'loading' && 'Verificando confirmação...'}
+            {status === 'success' && 'Email Confirmado!'}
+            {status === 'error' && 'Confirmação Pendente'}
+            {status === 'already_confirmed' && 'Email Já Confirmado'}
           </CardTitle>
-          
-          <CardDescription className="text-gray-600">
-            {isConfirmed 
-              ? 'Seu email foi confirmado com sucesso. Redirecionando para o dashboard...'
-              : isChecking
-              ? 'Verificando status da confirmação...'
-              : 'Enviamos um link de confirmação para seu email. Clique no link para ativar sua conta.'
-            }
-          </CardDescription>
         </CardHeader>
-
+        
         <CardContent className="space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{error}</p>
+          <Alert className={
+            status === 'success' ? 'border-green-200 bg-green-50' :
+            status === 'error' ? 'border-orange-200 bg-orange-50' :
+            'border-blue-200 bg-blue-50'
+          }>
+            <Mail className="h-4 w-4" />
+            <AlertDescription className={
+              status === 'success' ? 'text-green-700' :
+              status === 'error' ? 'text-orange-700' :
+              'text-blue-700'
+            }>
+              {message}
+            </AlertDescription>
+          </Alert>
+
+          {userEmail && (
+            <div className="text-sm text-gray-600 text-center">
+              <strong>Email:</strong> {userEmail}
             </div>
           )}
 
-          {isConfirmed && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 text-sm">
-                ✅ Email confirmado com sucesso! Você será redirecionado automaticamente.
-              </p>
-            </div>
-          )}
-
-                     {!isConfirmed && !error && !isChecking && (
-             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-               <p className="text-blue-800 text-sm">
-                 📧 Verifique sua caixa de entrada e clique no link de confirmação.
-                 <br />
-                 <span className="text-xs text-blue-600 mt-1 block">
-                   Não recebeu o email? Verifique sua pasta de spam.
-                 </span>
-               </p>
-             </div>
-           )}
-
-           {isChecking && (
-             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-               <p className="text-yellow-800 text-sm">
-                 🔍 Verificando status da confirmação...
-               </p>
-             </div>
-           )}
-
-          <div className="flex flex-col space-y-2">
-            {isConfirmed ? (
+          <div className="space-y-2">
+            {status === 'success' && (
               <Button 
-                onClick={handleGoToLogin}
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                onClick={handleGoToLogin} 
+                className="w-full"
               >
                 Ir para Login
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
-            ) : (
+            )}
+
+            {status === 'error' && userEmail && (
               <>
                 <Button 
-                  onClick={handleGoToLogin}
+                  onClick={handleResendEmail} 
                   variant="outline"
                   className="w-full"
                 >
-                  Já tenho conta
+                  Reenviar Email de Confirmação
+                  <Mail className="h-4 w-4 ml-2" />
                 </Button>
                 <Button 
-                  onClick={handleGoBack}
+                  onClick={handleGoToLogin} 
                   variant="ghost"
                   className="w-full"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar ao Registro
+                  Voltar ao Login
                 </Button>
               </>
             )}
+
+            {(status === 'already_confirmed' || (status === 'error' && !userEmail)) && (
+              <Button 
+                onClick={handleGoToLogin} 
+                className="w-full"
+              >
+                Ir para Login
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
           </div>
 
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              {isConfirmed 
-                ? 'Email confirmado com sucesso!'
-                : 'Após confirmar o email, você poderá fazer login normalmente.'
-              }
-            </p>
-          </div>
+          {status === 'success' && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>Próximos passos:</strong>
+              </p>
+              <ul className="text-sm text-blue-700 mt-1 space-y-1">
+                <li>• Seu email foi confirmado com sucesso</li>
+                <li>• Aguarde a aprovação do administrador</li>
+                <li>• Você receberá uma notificação quando for aprovado</li>
+                <li>• Após aprovação, poderá fazer login normalmente</li>
+              </ul>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* Componente para finalizar configuração da entidade */}
-      {isConfirmed && <CompleteEntitySetup />}
     </div>
   )
 }

@@ -744,7 +744,7 @@ export default function ElectronicSignature() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="h-full flex flex-col">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Assinatura Digital</h1>
         <p className="text-gray-600 mt-2">
@@ -752,7 +752,7 @@ export default function ElectronicSignature() {
         </p>
       </div>
 
-      <Tabs defaultValue="upload" className="space-y-6">
+      <Tabs defaultValue="upload" className="flex-1 flex flex-col space-y-6">
         <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-muted">
           <TabsTrigger
             value="upload"
@@ -786,7 +786,7 @@ export default function ElectronicSignature() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upload" className="space-y-6">
+        <TabsContent value="upload" className="flex-1 space-y-6">
           {/* Layout em blocos: 1 acima e 1 abaixo */}
           <div className="grid grid-cols-1 gap-6">
             {/* Bloco 1: Upload de PDF para Assinatura */}
@@ -916,7 +916,7 @@ export default function ElectronicSignature() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="existing" className="space-y-4">
+        <TabsContent value="existing" className="flex-1 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -1010,7 +1010,7 @@ export default function ElectronicSignature() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="template" className="space-y-4">
+        <TabsContent value="template" className="flex-1 space-y-4">
           <div className="grid grid-cols-1 gap-6">
             {/* Configurações do Modelo */}
             <Card>
@@ -1123,7 +1123,7 @@ export default function ElectronicSignature() {
           </div>
         </TabsContent>
 
-        <TabsContent value="multi-signature" className="space-y-6">
+        <TabsContent value="multi-signature" className="flex-1 space-y-6">
           {/* Layout em blocos: 2 acima e 1 abaixo */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Bloco 1: Criar Assinatura Múltipla */}
@@ -1292,7 +1292,7 @@ export default function ElectronicSignature() {
 
 
 
-        <TabsContent value="verify" className="space-y-6">
+        <TabsContent value="verify" className="flex-1 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

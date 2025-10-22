@@ -27,6 +27,10 @@ export interface Document {
   department_id?: string
   entity_id?: string
   download_url?: string
+  retention_period?: number
+  retention_end_date?: string
+  approval_required?: boolean
+  can_delete?: boolean
   author?: { full_name: string }
   category?: { name: string; color: string }
   document_type?: { name: string; color: string }
@@ -158,7 +162,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
 
       if (error) throw error
 
-      // Processar documentos para incluir URLs de download
+      // Processar documentos para incluir URLs de download e lógica de retenção
       const processedDocuments = await Promise.all(
         (data || []).map(async (doc) => {
           try {
@@ -166,13 +170,32 @@ export function useDocuments(filters: DocumentFilters = {}) {
               .from('documents')
               .createSignedUrl(doc.file_path, 3600) // 1 hora
 
+            // Calcular se o documento pode ser deletado baseado no período de retenção
+            let canDelete = true
+            
+            if (doc.retention_end_date) {
+              const retentionEndDate = new Date(doc.retention_end_date)
+              const now = new Date()
+              canDelete = now > retentionEndDate
+            } else if (doc.retention_period && doc.retention_period > 0) {
+              // Calcular baseado na data de criação + período de retenção
+              const createdDate = new Date(doc.created_at)
+              const retentionEndDate = new Date(createdDate.getTime() + doc.retention_period * 30 * 24 * 60 * 60 * 1000)
+              const now = new Date()
+              canDelete = now > retentionEndDate
+            }
+
             return {
               ...doc,
-              download_url: urlData?.signedUrl
+              download_url: urlData?.signedUrl,
+              can_delete: canDelete
             }
           } catch (error) {
             console.warn(`Erro ao gerar URL para documento ${doc.id}:`, error)
-            return doc
+            return {
+              ...doc,
+              can_delete: true // Se houver erro, permitir deleção por padrão
+            }
           }
         })
       )

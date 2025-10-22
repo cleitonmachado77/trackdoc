@@ -155,7 +155,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         )}
       >
         {/* 🎨 Header - Novo Design */}
-        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10", isExpanded ? "p-4" : "p-2")}>
+        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10 relative", isExpanded ? "p-4" : "p-2")}>
           <div className="flex items-center justify-between">
             {isExpanded ? (
               <div className="flex items-center space-x-3">

@@ -1434,7 +1434,7 @@ export default function ElectronicSignature() {
               Assinatura Concluída!
             </DialogTitle>
             <DialogDescription>
-              O documento foi assinado com sucesso e possui carimbo de tempo digital, código de verificação e QR Code para autenticação.
+              O documento foi assinado com sucesso e possui carimbo de tempo digital e código de verificação para autenticação.
             </DialogDescription>
           </DialogHeader>
 
@@ -1446,7 +1446,6 @@ export default function ElectronicSignature() {
                 <p>• Carimbo de tempo digital aplicado</p>
                 <p>• Código de verificação único gerado</p>
                 <p>• Hash de segurança calculado</p>
-                <p>• QR Code disponível para verificação</p>
               </div>
             </div>
 

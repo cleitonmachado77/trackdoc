@@ -132,14 +132,13 @@ export default function UnifiedNotificationsPage() {
     try {
       console.log('📖 Marcando notificação como lida via API:', notification.id)
       
-      const response = await fetch('/api/notifications', {
-        method: 'PATCH',
+      const response = await fetch('/api/notifications/mark-read', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: notification.id,
-          action: 'mark_read',
+          notification_id: notification.id,
           user_email: user.email
         })
       })
@@ -152,12 +151,19 @@ export default function UnifiedNotificationsPage() {
       const result = await response.json()
       console.log('✅ Notificação marcada como lida via API:', result)
 
+      // Atualizar estado local imediatamente
       setNotifications(prev => prev.map(n =>
         n.id === notification.id ? { ...n, read: true } : n
       ))
       setFilteredNotifications(prev => prev.map(n =>
         n.id === notification.id ? { ...n, read: true } : n
       ))
+
+      // Mostrar feedback de sucesso
+      toast({
+        title: "Sucesso",
+        description: "Notificação marcada como lida.",
+      })
 
       // Atualizar contador de notificações
       setTimeout(() => {
@@ -183,19 +189,25 @@ export default function UnifiedNotificationsPage() {
     try {
       console.log('📖 Marcando todas as notificações como lidas')
       
-      const { error } = await supabase
-        .from('notification_feed')
-        .update({ is_read: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false)
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_email: user.email
+        })
+      })
 
-      if (error) {
-        console.error('❌ Erro ao marcar todas como lidas:', error)
-        throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao marcar todas como lidas')
       }
 
-      console.log('✅ Todas as notificações marcadas como lidas')
+      const result = await response.json()
+      console.log('✅ Todas as notificações marcadas como lidas:', result)
 
+      // Atualizar estado local
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setFilteredNotifications(prev => prev.map(n => ({ ...n, read: true })))
 
@@ -208,14 +220,14 @@ export default function UnifiedNotificationsPage() {
 
       toast({
         title: "Sucesso",
-        description: "Todas as notificações foram marcadas como lidas.",
+        description: result.message || "Todas as notificações foram marcadas como lidas.",
       })
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao marcar todas como lidas:', error)
       toast({
         title: "Erro",
-        description: "Não foi possível marcar todas como lidas.",
+        description: `Não foi possível marcar todas como lidas: ${error.message || 'Erro desconhecido'}`,
         variant: "destructive",
       })
     }

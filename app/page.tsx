@@ -197,6 +197,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   const [showDocumentListModal, setShowDocumentListModal] = useState(false)
   const [documentListFilter, setDocumentListFilter] = useState("all")
   const [documentListTitle, setDocumentListTitle] = useState("")
+  const [showAllActivities, setShowAllActivities] = useState(false)
 
   // Processar parâmetro document da URL
   useEffect(() => {
@@ -1149,7 +1150,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             <CardContent>
               {recentActivity.length > 0 ? (
                 <div className="space-y-3">
-                  {recentActivity.slice(0, 5).map((activity, index) => {
+                  {recentActivity.slice(0, showAllActivities ? recentActivity.length : 5).map((activity, index) => {
                     // Definir ícone e cor baseado no tipo de atividade
                     const getActivityIcon = (type: string) => {
                       switch (type) {
@@ -1192,8 +1193,23 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   {/* Botão para ver mais atividades */}
                   {recentActivity.length > 5 && (
                     <div className="pt-2 border-t">
-                      <Button variant="ghost" size="sm" className="w-full text-xs">
-                        Ver todas as atividades ({recentActivity.length})
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full text-xs hover:bg-gray-100 flex items-center justify-center gap-1"
+                        onClick={() => setShowAllActivities(!showAllActivities)}
+                      >
+                        {showAllActivities ? (
+                          <>
+                            <ChevronLeft className="h-3 w-3 rotate-90" />
+                            Mostrar menos atividades
+                          </>
+                        ) : (
+                          <>
+                            <ChevronLeft className="h-3 w-3 -rotate-90" />
+                            Ver todas as atividades ({recentActivity.length})
+                          </>
+                        )}
                       </Button>
                     </div>
                   )}

@@ -159,8 +159,11 @@ export default function UnifiedNotificationsPage() {
         n.id === notification.id ? { ...n, read: true } : n
       ))
 
+      // Atualizar contador de notificações
       setTimeout(() => {
         notifyCounterChange()
+        // Também recarregar as notificações para garantir sincronização
+        fetchNotifications()
       }, 500)
 
     } catch (error: any) {
@@ -181,10 +184,10 @@ export default function UnifiedNotificationsPage() {
       console.log('📖 Marcando todas as notificações como lidas')
       
       const { error } = await supabase
-        .from('notifications')
-        .update({ status: 'read' })
-        .in('recipients', [user.email])
-        .neq('status', 'read')
+        .from('notification_feed')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
 
       if (error) {
         console.error('❌ Erro ao marcar todas como lidas:', error)
@@ -196,8 +199,11 @@ export default function UnifiedNotificationsPage() {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })))
       setFilteredNotifications(prev => prev.map(n => ({ ...n, read: true })))
 
+      // Atualizar contador de notificações
       setTimeout(() => {
         notifyCounterChange()
+        // Também recarregar as notificações para garantir sincronização
+        fetchNotifications()
       }, 500)
 
       toast({

@@ -15,10 +15,10 @@ export async function PATCH(request: NextRequest) {
     
     console.log('📖 [API] Marcando notificação como lida:', { id, user_email })
     
-    // Verificar se o usuário tem permissão para esta notificação
+    // Verificar se a notificação existe
     const { data: notification, error: checkError } = await supabase
-      .from('notifications')
-      .select('recipients')
+      .from('notification_feed')
+      .select('id')
       .eq('id', id)
       .single()
     
@@ -27,15 +27,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Notificação não encontrada' }, { status: 404 })
     }
     
-    if (!notification.recipients.includes(user_email)) {
-      console.error('❌ [API] Usuário não tem permissão para esta notificação')
-      return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
-    }
-    
-    // Atualizar status
+    // Atualizar status na tabela notification_feed
     const { data, error } = await supabase
-      .from('notifications')
-      .update({ status: 'read' })
+      .from('notification_feed')
+      .update({ is_read: true })
       .eq('id', id)
       .select()
     

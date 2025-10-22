@@ -148,14 +148,14 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
       {/* Sidebar */}
       <div
         className={cn(
-          "bg-sidebar/95 backdrop-blur-sm border-r border-border flex flex-col transition-all duration-300 z-50 h-screen shadow-lg",
+          "bg-sidebar/95 backdrop-blur-sm border-r border-border flex flex-col transition-all duration-300 z-50 h-screen shadow-lg relative",
           "fixed md:relative",
           isExpanded ? "w-64" : "w-16",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
         {/* 🎨 Header - Novo Design */}
-        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10 relative", isExpanded ? "p-4" : "p-2")}>
+        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10", isExpanded ? "p-4" : "p-2")}>
           <div className="flex items-center justify-between">
             {isExpanded ? (
               <div className="flex items-center space-x-3">
@@ -189,23 +189,24 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
             <div className={cn("flex items-center space-x-2", !isExpanded && "hidden")}>
               <SimpleThemeToggle />
             </div>
-            {/* Botão de toggle mais visível */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleSidebar}
-              className={cn(
-                "hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10",
-                "bg-background border-2 border-border shadow-md hover:shadow-lg",
-                "h-8 w-8 p-0 rounded-full transition-all duration-200",
-                "hover:bg-accent hover:border-accent-foreground/20"
-              )}
-              title={isExpanded ? "Recolher sidebar" : "Expandir sidebar"}
-            >
-              {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </Button>
           </div>
         </div>
+
+        {/* Botão de toggle mais visível - posicionado em relação ao sidebar inteiro */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={toggleSidebar}
+          className={cn(
+            "hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10",
+            "bg-background border-2 border-border shadow-md hover:shadow-lg",
+            "h-8 w-8 p-0 rounded-full transition-all duration-200",
+            "hover:bg-accent hover:border-accent-foreground/20"
+          )}
+          title={isExpanded ? "Recolher sidebar" : "Expandir sidebar"}
+        >
+          {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </Button>
 
         {/* User Profile */}
         <div className={cn("border-b border-border", isExpanded ? "p-4" : "p-2")}>

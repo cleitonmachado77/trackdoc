@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Tooltips nos Cargos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 300px;
+            background-color: #1f2937;
+            color: white;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 1;
+            right: 105%;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            margin-top: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent transparent #1f2937;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .select-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .select-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .select-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold mb-4">Cadastrar Novo Usuário</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo *</label>
+                <input type="text" placeholder="Ex: João Silva" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input type="email" placeholder="usuario@empresa.com" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
+                <input type="password" placeholder="Defina uma senha para o usuário" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Cargo *</label>
+                <div class="relative">
+                    <select class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white" onclick="toggleDropdown()">
+                        <option value="">Selecione um cargo</option>
+                    </select>
+                    <div id="dropdown" class="hidden absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 mt-1">
+                        <div class="tooltip select-item" onclick="selectRole('user', 'Usuário')">
+                            <span>Usuário</span>
+                            <span class="tooltiptext">Acesso padrão para criar, editar e visualizar documentos dentro das suas permissões.</span>
+                        </div>
+                        <div class="tooltip select-item" onclick="selectRole('manager', 'Gerente')">
+                            <span>Gerente</span>
+                            <span class="tooltiptext">Pode gerenciar documentos e usuários da sua área, com permissões administrativas limitadas.</span>
+                        </div>
+                        <div class="tooltip select-item" onclick="selectRole('admin', 'Administrador')">
+                            <span>Administrador</span>
+                            <span class="tooltiptext">Acesso completo ao sistema, pode gerenciar usuários, configurações e todas as funcionalidades da entidade.</span>
+                        </div>
+                        <div class="tooltip select-item" onclick="selectRole('viewer', 'Visualizador')">
+                            <span>Visualizador</span>
+                            <span class="tooltiptext">Acesso somente leitura, pode visualizar documentos mas não pode criar ou editar.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3 pt-4">
+                <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                    Cancelar
+                </button>
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    Cadastrar Usuário
+                </button>
+            </div>
+        </div>
+        
+        <div class="mt-6 p-4 bg-blue-50 rounded-md">
+            <h3 class="font-medium text-blue-900 mb-2">💡 Como usar:</h3>
+            <p class="text-sm text-blue-800">
+                Clique no campo "Cargo" e passe o mouse sobre cada opção para ver a descrição detalhada das permissões de cada cargo.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+        
+        function selectRole(value, label) {
+            const select = document.querySelector('select');
+            select.innerHTML = `<option value="${value}" selected>${label}</option>`;
+            document.getElementById('dropdown').classList.add('hidden');
+        }
+        
+        // Fechar dropdown ao clicar fora
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('dropdown');
+            const select = document.querySelector('select');
+            if (!dropdown.contains(event.target) && !select.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

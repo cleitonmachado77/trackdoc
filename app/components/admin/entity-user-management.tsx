@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -406,6 +407,13 @@ const roleLabels = {
   manager: "Gerente",
   user: "Usuario",
   viewer: "Visualizador",
+}
+
+const roleDescriptions = {
+  admin: "Acesso completo ao sistema, pode gerenciar usuários, configurações e todas as funcionalidades da entidade.",
+  manager: "Pode gerenciar documentos e usuários da sua área, com permissões administrativas limitadas.",
+  user: "Acesso padrão para criar, editar e visualizar documentos dentro das suas permissões.",
+  viewer: "Acesso somente leitura, pode visualizar documentos mas não pode criar ou editar.",
 }
 
 export default function EntityUserManagement() {
@@ -1433,10 +1441,43 @@ O usuário já pode fazer login no sistema.`)
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">Usuario</SelectItem>
-                  <SelectItem value="manager">Gerente</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="viewer">Visualizador</SelectItem>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="user">Usuario</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>{roleDescriptions.user}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="manager">Gerente</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>{roleDescriptions.manager}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>{roleDescriptions.admin}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem value="viewer">Visualizador</SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p>{roleDescriptions.viewer}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </SelectContent>
               </Select>
             </div>
@@ -1518,10 +1559,43 @@ O usuário já pode fazer login no sistema.`)
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">Usuario</SelectItem>
-                    <SelectItem value="manager">Gerente</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="viewer">Visualizador</SelectItem>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SelectItem value="user">Usuario</SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{roleDescriptions.user}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SelectItem value="manager">Gerente</SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{roleDescriptions.manager}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{roleDescriptions.admin}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SelectItem value="viewer">Visualizador</SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{roleDescriptions.viewer}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </SelectContent>
                 </Select>
               </div>

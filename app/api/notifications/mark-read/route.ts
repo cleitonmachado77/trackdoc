@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     const { notification_id, user_email } = await request.json()
     
     console.log('📖 [API] Marcando notificação como lida:', { notification_id, user_email })
+    console.log('🔍 [API] Buscando usuário pelo email:', user_email)
     
     if (!notification_id || !user_email) {
       return NextResponse.json({ error: 'ID da notificação e email do usuário são obrigatórios' }, { status: 400 })
@@ -32,13 +33,13 @@ export async function POST(request: NextRequest) {
     }
 
     const user_id = userData.id
+    console.log('✅ [API] Usuário encontrado:', { user_id, email: user_email })
 
-    // Verificar se a notificação existe para este usuário
+    // Verificar se a notificação existe na tabela notifications
     const { data: notification, error: checkError } = await supabase
-      .from('notification_feed')
-      .select('id, is_read')
+      .from('notifications')
+      .select('id, status, recipients, created_by')
       .eq('id', notification_id)
-      .eq('user_id', user_id)
       .single()
     
     if (checkError || !notification) {
@@ -46,18 +47,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Notificação não encontrada' }, { status: 404 })
     }
 
+    console.log('🔍 [API] Notificação encontrada:', {
+      id: notification.id,
+      status: notification.status,
+      recipients: notification.recipients,
+      created_by: notification.created_by
+    })
+
+    // Verificar se o usuário está na lista de recipients ou é o dono da notificação
+    const isRecipient = notification.recipients.includes(user_email)
+    const isOwner = notification.created_by === user_id
+    
+    if (!isRecipient && !isOwner) {
+      console.error('❌ [API] Usuário não tem acesso a esta notificação', {
+        user_email,
+        user_id,
+        recipients: notification.recipients,
+        owner_id: notification.created_by
+      })
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+    }
+
     // Se já está lida, retornar sucesso
-    if (notification.is_read) {
+    if (notification.status === 'read') {
       console.log('ℹ️ [API] Notificação já estava marcada como lida')
       return NextResponse.json({ success: true, message: 'Notificação já estava marcada como lida' })
     }
     
-    // Atualizar status na tabela notification_feed
+    // Atualizar status para 'read' na tabela base notifications
     const { data, error } = await supabase
-      .from('notification_feed')
-      .update({ is_read: true })
+      .from('notifications')
+      .update({ status: 'read' })
       .eq('id', notification_id)
-      .eq('user_id', user_id)
       .select()
     
     if (error) {

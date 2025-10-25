@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useUserProfile } from "@/hooks/use-database-data"
 import { useNotificationCounterSimple } from "@/hooks/use-notification-counter-simple"
+import { useNotificationsCounter } from "@/hooks/use-notifications-counter"
 import FixedQuickSearchModal from "./fixed-quick-search-modal"
 import BellNotificationsV2 from "./bell-notifications-v2"
 import { createBrowserClient } from "@supabase/ssr"
@@ -47,7 +48,8 @@ const supabase = createBrowserClient(
 const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprovalsCount }: SidebarProps) {
   const { user, signOut } = useAuth()
   const { profile } = useUserProfile(user?.id)
-  const { unreadCount: unreadNotificationsCount, refreshCounter } = useNotificationCounterSimple()
+  const { unreadCount: unreadNotificationsCount, refreshCounter: refreshNotificationsCounter } = useNotificationsCounter()
+  const { refreshCounter } = useNotificationCounterSimple()
   const [isExpanded, setIsExpanded] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
@@ -101,7 +103,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         badge: unreadNotificationsCount > 0 ? unreadNotificationsCount.toString() : null,
         onClick: () => {
           console.log('🔄 Forçando atualização do contador...')
-          refreshCounter()
+          refreshNotificationsCounter()
           onViewChange('notifications')
         }
       },
@@ -248,12 +250,11 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     isExpanded ? "justify-start px-3" : "justify-center px-2",
                     !isExpanded && "min-h-[44px]",
                     isActive
-                      ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary focus-visible:!bg-primary focus-visible:!text-primary-foreground"
+                      ? "!bg-primary dark:!text-white !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary dark:focus:!text-white focus:!text-primary-foreground active:!bg-primary dark:active:!text-white focus-visible:!bg-primary dark:focus-visible:!text-white focus-visible:!text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-l-sidebar-accent-foreground/30"
                   )}
                   style={isActive ? {
                     backgroundColor: 'hsl(var(--primary))',
-                    color: 'hsl(var(--primary-foreground))',
                     borderLeftColor: 'hsl(var(--primary-foreground))'
                   } : {}}
                   onClick={(e) => {

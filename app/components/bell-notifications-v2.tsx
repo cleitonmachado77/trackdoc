@@ -42,10 +42,10 @@ export default function BellNotificationsV2() {
       const supabase = getSupabaseSingleton()
 
       const { data, error } = await supabase
-        .from('notification_feed')
+        .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('is_read', false)
+        .contains('recipients', [user.email])
+        .neq('status', 'read')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -57,11 +57,16 @@ export default function BellNotificationsV2() {
         message: notification.message,
         type: notification.type,
         created_at: notification.created_at,
-        read: notification.is_read
+        read: notification.status === 'read'
       }))
 
       setNotifications(notifs)
       setUnreadCount(notifs.length)
+      
+      console.log('🔔 [BellNotifications] Contador atualizado:', {
+        total: notifs.length,
+        notifications: notifs.map(n => ({ id: n.id, title: n.title, read: n.read }))
+      })
 
     } catch (error) {
       console.error('Erro ao buscar notificações:', error)
@@ -75,6 +80,20 @@ export default function BellNotificationsV2() {
       fetchNotifications()
     }
   }, [user, loading, fetchNotifications])
+
+  // Listener para atualizações de notificações
+  useEffect(() => {
+    const handleNotificationsUpdate = () => {
+      console.log('🔔 [BellNotifications] Recebido evento de atualização de notificações')
+      fetchNotifications()
+    }
+
+    window.addEventListener('notifications-updated', handleNotificationsUpdate)
+
+    return () => {
+      window.removeEventListener('notifications-updated', handleNotificationsUpdate)
+    }
+  }, [fetchNotifications])
 
   if (loading) {
     return (

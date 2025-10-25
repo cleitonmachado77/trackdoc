@@ -15,10 +15,10 @@ export async function PATCH(request: NextRequest) {
     
     console.log('📖 [API] Marcando notificação como lida:', { id, user_email })
     
-    // Verificar se a notificação existe
+    // Verificar se a notificação existe na tabela base
     const { data: notification, error: checkError } = await supabase
-      .from('notification_feed')
-      .select('id')
+      .from('notifications')
+      .select('id, recipients')
       .eq('id', id)
       .single()
     
@@ -27,10 +27,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Notificação não encontrada' }, { status: 404 })
     }
     
-    // Atualizar status na tabela notification_feed
+    // Verificar se o usuário está nos recipients
+    if (!notification.recipients.includes(user_email)) {
+      console.error('❌ [API] Usuário não está na lista de recipients')
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 })
+    }
+    
+    // Atualizar status para 'read' na tabela notifications
     const { data, error } = await supabase
-      .from('notification_feed')
-      .update({ is_read: true })
+      .from('notifications')
+      .update({ status: 'read' })
       .eq('id', id)
       .select()
     

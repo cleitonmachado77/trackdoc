@@ -37,6 +37,7 @@ export function SignedDocumentsDisplay() {
   const [signedDocuments, setSignedDocuments] = useState<SignedDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showAll, setShowAll] = useState(false)
   const { toast } = useToast()
   const { session } = useAuth()
 
@@ -138,11 +139,18 @@ export function SignedDocumentsDisplay() {
     )
   }
 
+  // Determinar quais documentos mostrar
+  const documentsToShow = showAll ? signedDocuments : signedDocuments.slice(0, 5)
+  const hasMoreDocuments = signedDocuments.length > 5
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600">
-          {signedDocuments.length} documento(s) assinado(s)
+          {showAll 
+            ? `${signedDocuments.length} documento(s) assinado(s)` 
+            : `Mostrando ${Math.min(5, signedDocuments.length)} de ${signedDocuments.length} documento(s)`
+          }
         </p>
         <Button onClick={loadSignedDocuments} variant="outline" size="sm">
           Atualizar
@@ -150,7 +158,7 @@ export function SignedDocumentsDisplay() {
       </div>
 
       <div className="grid gap-3">
-        {signedDocuments.map((document) => (
+        {documentsToShow.map((document) => (
           <div key={document.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-100 rounded-lg">
@@ -209,6 +217,22 @@ export function SignedDocumentsDisplay() {
           </div>
         ))}
       </div>
+
+      {/* Botão para mostrar mais/menos documentos */}
+      {hasMoreDocuments && (
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={() => setShowAll(!showAll)}
+            variant="outline"
+            className="w-full max-w-xs"
+          >
+            {showAll 
+              ? `Mostrar apenas 5 recentes` 
+              : `Ver todos os ${signedDocuments.length} documentos`
+            }
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

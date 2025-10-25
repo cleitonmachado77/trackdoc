@@ -62,10 +62,10 @@ export default function NotificationBellFinal() {
       setLoading(true)
 
       const { data, error } = await supabase
-        .from('notification_feed')
+        .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('is_read', false)
+        .contains('recipients', [user.email])
+        .neq('status', 'read')
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -77,7 +77,7 @@ export default function NotificationBellFinal() {
         message: notification.message,
         type: notification.type,
         created_at: notification.created_at,
-        read: notification.is_read,
+        read: notification.status === 'read',
         process_name: notification.process_name,
         document_title: notification.document_title,
         step_name: notification.step_name
@@ -134,6 +134,20 @@ export default function NotificationBellFinal() {
 
     return () => clearInterval(interval)
   }, [user?.id, fetchNotifications])
+
+  // Listener para atualizações de notificações
+  useEffect(() => {
+    const handleNotificationsUpdate = () => {
+      console.log('🔔 [NotificationBellFinal] Recebido evento de atualização de notificações')
+      fetchNotifications()
+    }
+
+    window.addEventListener('notifications-updated', handleNotificationsUpdate)
+
+    return () => {
+      window.removeEventListener('notifications-updated', handleNotificationsUpdate)
+    }
+  }, [fetchNotifications])
 
   const getCategoryIcon = (type: string) => {
     switch (type) {

@@ -116,10 +116,12 @@ async function createMissingTables() {
         WHEN status = 'read' THEN true 
         ELSE false 
       END as is_read,
+      recipients,
+      status,
+      priority,
       created_at,
       updated_at
-    FROM public.notifications
-    WHERE recipients IS NOT NULL AND array_length(recipients, 1) > 0;
+    FROM public.notifications;
   `)
 
   // Executar comandos

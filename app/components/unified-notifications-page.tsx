@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useNotificationCounterNotifierSimple } from "@/hooks/use-notification-counter-simple"
+import { useNotificationsCounterNotifier } from "@/hooks/use-notifications-counter"
 import { useToast } from "@/hooks/use-toast"
 
 // Usar o mesmo client do contexto de autenticação
@@ -52,6 +53,7 @@ export default function UnifiedNotificationsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const { notifyCounterChange } = useNotificationCounterNotifierSimple()
+  const { notifyCounterChange: notifyNotificationsCounterChange } = useNotificationsCounterNotifier()
   const supabase = getSupabaseSingleton()
   const [notifications, setNotifications] = useState<UnifiedNotification[]>([])
   const [filteredNotifications, setFilteredNotifications] = useState<UnifiedNotification[]>([])
@@ -83,27 +85,43 @@ export default function UnifiedNotificationsPage() {
         console.log('✅ Acesso à tabela notifications OK:', testData?.length || 0, 'registros')
       }
       
+      // Usar a tabela notifications diretamente para evitar problemas com a view
+      // Adicionar timestamp para evitar cache
       const { data, error } = await supabase
-        .from('notification_feed')
+        .from('notifications')
         .select('*')
-        .eq('user_id', user.id)
+        .contains('recipients', [user.email])
         .order('created_at', { ascending: false })
         .limit(100)
 
       if (error) throw error
 
-      const unifiedNotifications: UnifiedNotification[] = (data || []).map(notification => ({
-        id: notification.id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        priority: notification.priority || 'medium',
-        category: notification.category || 'system',
-        created_at: notification.created_at,
-        read: notification.is_read,
-        metadata: notification.metadata || null,
-        source: notification.source || 'notifications'
-      }))
+      const unifiedNotifications: UnifiedNotification[] = (data || []).map(notification => {
+        const isRead = notification.status === 'read'
+        
+        // Log detalhado para debug
+        if (notification.id === 'f77eec10-f636-494d-bc0c-09cd80975cf9') {
+          console.log('🎯 [DEBUG] Notificação específica:', {
+            id: notification.id,
+            status: notification.status,
+            isRead,
+            title: notification.title
+          })
+        }
+        
+        return {
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          priority: notification.priority || 'medium',
+          category: notification.category || 'system',
+          created_at: notification.created_at,
+          read: isRead,
+          metadata: notification.metadata || null,
+          source: notification.source || 'notifications'
+        }
+      })
 
       setNotifications(unifiedNotifications)
       setFilteredNotifications(unifiedNotifications)
@@ -165,12 +183,18 @@ export default function UnifiedNotificationsPage() {
         description: "Notificação marcada como lida.",
       })
 
-      // Atualizar contador de notificações
+      // Notificar outros componentes sobre a mudança nas notificações IMEDIATAMENTE
+      console.log('📢 [UnifiedNotifications] Disparando evento notifications-updated')
+      window.dispatchEvent(new CustomEvent('notifications-updated'))
+      
+      // Atualizar contadores imediatamente
+      notifyNotificationsCounterChange()
+      
+      // Atualizar contador de aprovações e recarregar notificações
       setTimeout(() => {
         notifyCounterChange()
-        // Também recarregar as notificações para garantir sincronização
         fetchNotifications()
-      }, 500)
+      }, 100)
 
     } catch (error: any) {
       console.error('❌ Erro ao marcar como lida:', error)

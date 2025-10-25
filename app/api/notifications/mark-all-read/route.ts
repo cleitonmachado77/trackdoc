@@ -33,12 +33,12 @@ export async function POST(request: NextRequest) {
 
     const user_id = userData.id
 
-    // Atualizar todas as notificações não lidas do usuário
+    // Atualizar todas as notificações não lidas do usuário (onde ele está nos recipients)
     const { data, error } = await supabase
-      .from('notification_feed')
-      .update({ is_read: true })
-      .eq('user_id', user_id)
-      .eq('is_read', false)
+      .from('notifications')
+      .update({ status: 'read' })
+      .contains('recipients', [user_email])
+      .neq('status', 'read')
       .select()
     
     if (error) {

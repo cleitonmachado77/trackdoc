@@ -173,7 +173,10 @@ export function useDocuments(filters: DocumentFilters = {}) {
             // Calcular se o documento pode ser deletado baseado no período de retenção
             let canDelete = true
             
-            if (doc.retention_end_date) {
+            // Se o documento não tem tipo de documento associado, pode ser excluído
+            if (!doc.document_type_id) {
+              canDelete = true
+            } else if (doc.retention_end_date) {
               const retentionEndDate = new Date(doc.retention_end_date)
               const now = new Date()
               canDelete = now > retentionEndDate
@@ -183,6 +186,9 @@ export function useDocuments(filters: DocumentFilters = {}) {
               const retentionEndDate = new Date(createdDate.getTime() + doc.retention_period * 30 * 24 * 60 * 60 * 1000)
               const now = new Date()
               canDelete = now > retentionEndDate
+            } else if (doc.retention_period === 0 || doc.retention_period === null) {
+              // Se retention_period é 0 ou null, documento pode ser excluído
+              canDelete = true
             }
 
             return {

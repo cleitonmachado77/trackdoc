@@ -118,7 +118,9 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const resetPassword = async (email: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/reset-password`
+    })
     return { error }
   }
 

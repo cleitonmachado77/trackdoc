@@ -23,14 +23,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://trackdoc.com.br'),
+  metadataBase: new URL('https://www.trackdoc.app.br'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: 'TrackDoc - Gestão Inteligente de Documentos com IA',
     description: 'Revolucione a gestão de documentos da sua empresa com TrackDoc. Assinatura eletrônica, sistema automatizado, IA para criação de documentos e muito mais.',
-    url: 'https://trackdoc.com.br',
+    url: 'https://www.trackdoc.app.br',
     siteName: 'TrackDoc',
     images: [
       {
@@ -85,7 +85,7 @@ export default function LandingLayout({
             "@type": "SoftwareApplication",
             "name": "TrackDoc",
             "description": "Plataforma de gestão inteligente de documentos com IA, assinatura eletrônica e sistema automatizado para empresas.",
-            "url": "https://trackdoc.com.br",
+            "url": "https://www.trackdoc.app.br",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",
             "offers": {
@@ -108,7 +108,7 @@ export default function LandingLayout({
               "name": "TrackDoc",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://trackdoc.com.br/logo-horizontal-preto.png"
+                "url": "https://www.trackdoc.app.br/logo-horizontal-preto.png"
               }
             }
           })

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,13 +10,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { signIn, resetPassword, user } = useAuth()
+  const searchParams = useSearchParams()
+  const { signIn, user } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -26,6 +27,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+
+  // Verificar se há mensagem de sucesso na URL
+  useEffect(() => {
+    const message = searchParams.get('message')
+    if (message === 'password_updated') {
+      setSuccess("Senha redefinida com sucesso! Faça login com sua nova senha.")
+    }
+  }, [searchParams])
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -85,29 +94,7 @@ export default function LoginPage() {
     }
   }
 
-  const handleForgotPassword = async () => {
-    if (!formData.email) {
-      setError("Digite seu email para recuperar a senha")
-      return
-    }
 
-    setIsLoading(true)
-    setError("")
-
-    try {
-      const { error } = await resetPassword(formData.email)
-      
-      if (error) {
-        setError(error.message)
-      } else {
-        setSuccess("Email de recuperação enviado! Verifique sua caixa de entrada.")
-      }
-    } catch (err) {
-      setError("Erro ao enviar email de recuperação")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
@@ -188,15 +175,16 @@ export default function LoginPage() {
                     Lembrar de mim
                   </Label>
                 </div>
-                <Button
-                  type="button"
-                  variant="link"
-                  className="px-0 font-normal text-blue-600 hover:text-blue-700"
-                  onClick={handleForgotPassword}
-                  disabled={isLoading}
-                >
-                  Esqueci minha senha
-                </Button>
+                <Link href="/forgot-password">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 font-normal text-blue-600 hover:text-blue-700"
+                    disabled={isLoading}
+                  >
+                    Esqueci minha senha
+                  </Button>
+                </Link>
               </div>
 
               {/* Mensagens de Erro/Sucesso */}

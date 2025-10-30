@@ -197,10 +197,10 @@ export async function POST(request: NextRequest) {
           signature_url: signedFileName,
           title: signatureRequest.document_name,
           verification_code: signature.verificationCode,
-          verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${signature.verificationCode}`,
+          verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.app.br'}/verify/${signature.verificationCode}`,
           qr_code_data: {
             code: signature.verificationCode,
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://trackdoc.com.br'}/verify/${signature.verificationCode}`,
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.app.br'}/verify/${signature.verificationCode}`,
             documentId: signatureRequest.document_id, // ✅ ID do documento armazenado no QR code
             timestamp: signature.digitalTimestamp,
             signatureType: 'multiple',

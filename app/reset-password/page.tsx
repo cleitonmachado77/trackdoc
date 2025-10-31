@@ -173,8 +173,8 @@ export default function ResetPasswordPage() {
   // Mostrar loading enquanto valida o token
   if (isValidating) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-50 to-blue-300 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl border-0 bg-white/98 backdrop-blur-md ring-1 ring-blue-100/50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-lg border border-gray-200 bg-white">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
             <p className="text-gray-600">Validando link de recuperação...</p>
@@ -187,19 +187,19 @@ export default function ResetPasswordPage() {
   // Mostrar erro se o token não for válido
   if (!isValidToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-50 to-blue-300 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="flex justify-center mb-6">
               <img 
                 src="/logo-vertical-preto.png" 
                 alt="TrackDoc Logo" 
-                className="h-28 w-auto object-contain"
+                className="h-20 w-auto object-contain"
               />
             </div>
           </div>
 
-          <Card className="shadow-xl border-0 bg-white/98 backdrop-blur-md ring-1 ring-blue-100/50">
+          <Card className="shadow-lg border border-gray-200 bg-white">
             <CardHeader className="space-y-1 pb-6">
               <CardTitle className="text-2xl font-bold text-center text-red-600">Acesso Negado</CardTitle>
               <CardDescription className="text-center text-trackdoc-gray">
@@ -233,7 +233,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-50 to-blue-300 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo e Header */}
         <div className="text-center mb-8">
@@ -241,13 +241,13 @@ export default function ResetPasswordPage() {
             <img 
               src="/logo-vertical-preto.png" 
               alt="TrackDoc Logo" 
-              className="h-28 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
         </div>
 
         {/* Card de Redefinição */}
-        <Card className="shadow-xl border-0 bg-white/98 backdrop-blur-md ring-1 ring-blue-100/50">
+        <Card className="shadow-lg border border-gray-200 bg-white">
           <CardHeader className="space-y-1 pb-6">
             <div className="flex items-center justify-center mb-4">
               <Shield className="h-8 w-8 text-blue-600" />

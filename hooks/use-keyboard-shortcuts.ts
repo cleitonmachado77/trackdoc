@@ -12,7 +12,13 @@ interface KeyboardShortcut {
 
 export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Verificar se shortcuts é um array válido
+    if (!Array.isArray(shortcuts)) return
+    
     shortcuts.forEach(({ key, ctrlKey, shiftKey, altKey, metaKey, callback }) => {
+      // Verificar se key e event.key existem antes de usar toLowerCase
+      if (!key || !event.key) return
+      
       const keyMatches = event.key.toLowerCase() === key.toLowerCase()
       const ctrlMatches = !!ctrlKey === event.ctrlKey
       const shiftMatches = !!shiftKey === event.shiftKey

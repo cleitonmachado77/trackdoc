@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { createBrowserClient } from "@supabase/ssr"
+import { useAuth } from '@/lib/hooks/use-auth-final'
 
 interface DocumentType {
   id: string
@@ -15,6 +16,7 @@ interface DocumentType {
 }
 
 export function useDocumentTypes() {
+  const { user } = useAuth()
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,11 +28,30 @@ export function useDocumentTypes() {
 
   useEffect(() => {
     async function fetchDocumentTypes() {
+      if (!user?.id) {
+        setDocumentTypes([])
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
         setError(null)
 
-        const { data, error } = await supabase
+        // Buscar a entidade do usuário
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("entity_id")
+          .eq("id", user.id)
+          .single()
+
+        if (profileError) {
+          console.error("Erro ao buscar perfil do usuário:", profileError)
+          throw profileError
+        }
+
+        // Buscar tipos de documento da entidade do usuário OU sem entidade (criados por usuários únicos)
+        let query = supabase
           .from("document_types")
           .select(`
             id,
@@ -46,6 +67,16 @@ export function useDocumentTypes() {
           `)
           .eq("status", "active")
           .order("name")
+
+        // Se o usuário tem entidade, buscar apenas os tipos da sua entidade
+        if (profileData?.entity_id) {
+          query = query.eq("entity_id", profileData.entity_id)
+        } else {
+          // Se o usuário não tem entidade, buscar apenas os tipos sem entidade (criados por ele)
+          query = query.is("entity_id", null)
+        }
+
+        const { data, error } = await query
 
         if (error) {
           throw error
@@ -74,7 +105,7 @@ export function useDocumentTypes() {
     }
 
     fetchDocumentTypes()
-  }, []) // Removida a dependência do supabase para evitar re-renders infinitos
+  }, [user?.id]) // Dependência do usuário para recarregar quando mudar
 
   const validateFile = (file: File, documentType: DocumentType): string[] => {
     const errors: string[] = []

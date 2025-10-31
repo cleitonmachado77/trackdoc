@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -77,6 +78,7 @@ interface DocumentTypeManagementProps {
 
 /* ---------- COMPONENTE PRINCIPAL ---------- */
 export default function DocumentTypeManagement({ initialDocumentTypes = [], totalDocuments = 0 }: DocumentTypeManagementProps) {
+  const router = useRouter()
   
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<DocumentType | null>(null)
@@ -84,7 +86,7 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [typeToDelete, setTypeToDelete] = useState<DocumentType | null>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  // const router = useRouter() // Temporariamente removido
+  const [isUpdating, setIsUpdating] = useState(false)
 
   // Usar estado local para gerenciar os tipos de documento
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
@@ -93,6 +95,21 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
   useEffect(() => {
     setDocumentTypes(initialDocumentTypes)
   }, [initialDocumentTypes])
+
+  // Log quando a lista de tipos muda
+  useEffect(() => {
+    console.log("📊 [STATE] Lista de tipos atualizada:", documentTypes.length, "tipos")
+  }, [documentTypes])
+
+  // Limpeza de event listeners ao desmontar componente
+  useEffect(() => {
+    return () => {
+      // Limpar qualquer listener que possa estar causando problemas
+      console.log("🧹 [CLEANUP] Limpando componente")
+    }
+  }, [])
+
+  // Removido sistema de prevenção de navegação para debug
 
   /* --------- DERIVADOS --------- */
   const filteredTypes = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -113,77 +130,105 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
       return
     }
 
-    let result
-    if (typeData.id) {
-      result = await updateDocumentType(typeData.id, typeData)
-    } else {
-      result = await createDocumentType(typeData as Omit<DocumentType, "id">)
-    }
-
-    if (result.success) {
-      setShowTypeModal(false)
-      setSelectedType(null)
+    try {
+      setIsUpdating(true)
       
-      // Atualizar os dados localmente em vez de recarregar a página
-      if (result.data) {
-        // Se for uma criação, adicionar à lista
-        if (!typeData.id) {
-          const newType: DocumentType = {
-            id: result.data.id,
-            name: result.data.name,
-            prefix: result.data.prefix,
-            color: result.data.color,
-            requiredFields: result.data.requiredFields,
-            approvalRequired: result.data.approvalRequired,
-            retentionPeriod: result.data.retentionPeriod,
-            status: result.data.status,
-            template: result.data.template,
-            documentsCount: 0
-          }
-          // Atualizar a lista local
-          setDocumentTypes(prevTypes => [...prevTypes, newType])
-          // Limpar busca para mostrar o novo tipo
-          setSearchTerm('')
-        } else {
-          // Se for uma edição, atualizar na lista
-          setDocumentTypes(prevTypes => 
-            prevTypes.map(type => 
-              type.id === typeData.id ? { ...type, ...typeData } : type
-            )
-          )
-          // Limpar busca para mostrar as mudanças
-          setSearchTerm('')
-        }
+      let result
+      if (typeData.id) {
+        result = await updateDocumentType(typeData.id, typeData)
+      } else {
+        result = await createDocumentType(typeData as Omit<DocumentType, "id">)
       }
-      
-      // Mostrar feedback de sucesso
-      console.log("Tipo de documento salvo com sucesso!")
-      // TODO: Implementar toast de sucesso aqui
-    } else {
-      console.error("Falha ao salvar tipo de documento:", result.error)
-      // TODO: Adicionar feedback de erro para o usuário
+
+      if (result.success) {
+        console.log("✅ Tipo de documento salvo com sucesso!")
+        
+        // Fechar modal imediatamente
+        setShowTypeModal(false)
+        setSelectedType(null)
+        
+        // Atualizar estado local imediatamente para feedback visual
+        if (result.data) {
+          if (!typeData.id) {
+            // Criação - adicionar à lista
+            const newType: DocumentType = {
+              id: result.data.id,
+              name: result.data.name,
+              prefix: result.data.prefix,
+              color: result.data.color,
+              requiredFields: result.data.requiredFields,
+              approvalRequired: result.data.approvalRequired,
+              retentionPeriod: result.data.retentionPeriod,
+              status: result.data.status,
+              template: result.data.template,
+              documentsCount: 0
+            }
+            setDocumentTypes(prevTypes => [...prevTypes, newType])
+          } else {
+            // Edição - atualizar na lista
+            setDocumentTypes(prevTypes => 
+              prevTypes.map(type => 
+                type.id === typeData.id ? { ...type, ...typeData } : type
+              )
+            )
+          }
+        }
+        
+        // Estado local já foi atualizado
+        console.log("✅ [CREATE] Estado local atualizado com sucesso")
+        
+      } else {
+        console.error("Falha ao salvar tipo de documento:", result.error)
+        alert(`Erro ao salvar: ${result.error || "Erro desconhecido"}`)
+      }
+    } catch (error) {
+      console.error("Erro inesperado ao salvar tipo de documento:", error)
+      alert(`Erro inesperado: ${error instanceof Error ? error.message : "Erro desconhecido"}`)
+    } finally {
+      setIsUpdating(false)
     }
   }
 
   const handleDeleteDocumentType = async () => {
     if (!typeToDelete) return
 
-    const result = await deleteDocumentType(typeToDelete.id)
-    if (result.success) {
+    console.log("🗑️ [DELETE] Iniciando exclusão do tipo:", typeToDelete.name)
+    
+    // Salvar referência do tipo antes de limpar
+    const typeToDeleteRef = typeToDelete
+    
+    try {
+      // Executar exclusão primeiro
+      const result = await deleteDocumentType(typeToDeleteRef.id)
+      console.log("🗑️ [DELETE] Resultado da exclusão:", result)
+      
+      if (result.success) {
+        console.log("✅ Tipo de documento excluído com sucesso!")
+        
+        // Atualizar estado local imediatamente
+        setDocumentTypes(prevTypes => prevTypes.filter(type => type.id !== typeToDeleteRef.id))
+        
+        // Fechar modal após sucesso
+        setShowDeleteConfirm(false)
+        setTypeToDelete(null)
+        
+        console.log("✅ [DELETE] Estado local atualizado com sucesso")
+        
+      } else {
+        console.error("❌ [DELETE] Falha ao deletar tipo de documento:", result.error)
+        // Fechar modal mesmo em caso de erro
+        setShowDeleteConfirm(false)
+        setTypeToDelete(null)
+        // Mostrar erro via alert simples
+        alert(`Erro ao excluir: ${result.error || "Erro desconhecido"}`)
+      }
+    } catch (error) {
+      console.error("💥 [DELETE] Erro inesperado:", error)
+      // Fechar modal mesmo em caso de erro
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
-      
-      // Atualizar a lista local em vez de recarregar a página
-      setDocumentTypes(prevTypes => prevTypes.filter(type => type.id !== typeToDelete.id))
-      // Limpar busca para mostrar as mudanças
-      setSearchTerm('')
-      
-      // Mostrar feedback de sucesso
-      console.log("Tipo de documento deletado com sucesso!")
-      // TODO: Implementar toast de sucesso aqui
-    } else {
-      console.error("Falha ao deletar tipo de documento:", result.error)
-      // TODO: Adicionar feedback de erro para o usuário
+      // Mostrar erro via alert simples
+      alert(`Erro inesperado: ${error instanceof Error ? error.message : "Erro desconhecido"}`)
     }
   }
 
@@ -421,7 +466,13 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
         </Card>
       )}
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => {
+        console.log("🔄 [MODAL] Modal de exclusão:", open ? "aberto" : "fechado")
+        setShowDeleteConfirm(open)
+        if (!open) {
+          setTypeToDelete(null)
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza que deseja excluir este tipo de documento?</AlertDialogTitle>
@@ -431,8 +482,20 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteDocumentType} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogCancel onClick={() => {
+              console.log("❌ [MODAL] Cancelando exclusão")
+              setShowDeleteConfirm(false)
+              setTypeToDelete(null)
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                console.log("✅ [MODAL] Confirmando exclusão")
+                handleDeleteDocumentType()
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

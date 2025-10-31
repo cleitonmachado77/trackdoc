@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 
 export const metadata: Metadata = {
-  title: "TrackDoc - Sistema de Gestao de Documentos",
+  title: "Trackdoc I Gestão de Documentos",
   description: "Plataforma moderna para gestao interna de documentos corporativos",
   icons: {
     icon: '/favicon.svg',

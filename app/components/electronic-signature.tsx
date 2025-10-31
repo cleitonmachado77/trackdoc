@@ -753,34 +753,34 @@ export default function ElectronicSignature() {
       </div>
 
       <Tabs defaultValue="upload" className="flex-1 flex flex-col space-y-6">
-        <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-muted">
+        <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-gray-100 dark:bg-gray-800">
           <TabsTrigger
             value="upload"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             Assinatura Simples
           </TabsTrigger>
           <TabsTrigger
             value="multi-signature"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             Assinatura Múltipla
           </TabsTrigger>
           <TabsTrigger
             value="existing"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             Documento Existente
           </TabsTrigger>
           <TabsTrigger
             value="template"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             Configurar Modelo
           </TabsTrigger>
           <TabsTrigger
             value="verify"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm hover:bg-primary/10 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200"
+            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             Verificar Assinatura
           </TabsTrigger>

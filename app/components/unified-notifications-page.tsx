@@ -698,6 +698,97 @@ export default function UnifiedNotificationsPage() {
         </div>
       </div>
 
+      {/* Barra de Ações em Lote */}
+      {selectedNotifications.length > 0 && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-primary font-medium">
+                  <input
+                    type="checkbox"
+                    checked={selectedNotifications.length === filteredNotifications.length && filteredNotifications.length > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        selectAllVisible()
+                      } else {
+                        deselectAll()
+                      }
+                    }}
+                    className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                  />
+                  <span>
+                    {selectedNotifications.length} de {filteredNotifications.length} selecionada{selectedNotifications.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    // Marcar selecionadas como lidas
+                    const unreadSelected = selectedNotifications.filter(id => {
+                      const notification = notifications.find(n => n.id === id)
+                      return notification && !notification.read
+                    })
+                    
+                    if (unreadSelected.length === 0) {
+                      toast({
+                        title: "Info",
+                        description: "Todas as notificações selecionadas já estão marcadas como lidas.",
+                      })
+                      return
+                    }
+
+                    try {
+                      for (const notificationId of unreadSelected) {
+                        const notification = notifications.find(n => n.id === notificationId)
+                        if (notification && !notification.read) {
+                          await markAsRead(notification)
+                        }
+                      }
+                      
+                      toast({
+                        title: "Sucesso",
+                        description: `${unreadSelected.length} notificação(ões) marcada(s) como lida(s).`,
+                      })
+                      
+                      setSelectedNotifications([])
+                    } catch (error) {
+                      console.error('Erro ao marcar selecionadas como lidas:', error)
+                    }
+                  }}
+                  disabled={selectedNotifications.filter(id => {
+                    const notification = notifications.find(n => n.id === id)
+                    return notification && !notification.read
+                  }).length === 0}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Marcar como lidas
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir selecionadas
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deselectAll}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Configurações */}
       {showSettings && (
         <Card>
@@ -710,8 +801,8 @@ export default function UnifiedNotificationsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Ações em Lote</h4>
-                <div className="flex gap-2">
+                <h4 className="font-medium text-foreground">Ações Rápidas</h4>
+                <div className="flex gap-2 flex-wrap">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -723,27 +814,16 @@ export default function UnifiedNotificationsPage() {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={deselectAll}
-                    disabled={selectedNotifications.length === 0}
+                    onClick={markAllAsRead}
+                    disabled={notifications.filter(n => !n.read).length === 0}
                   >
-                    Deselecionar todas
+                    <Eye className="h-4 w-4 mr-2" />
+                    Marcar todas como lidas
                   </Button>
                 </div>
-                {selectedNotifications.length > 0 && (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Remover selecionadas ({selectedNotifications.length})
-                    </Button>
-                  </div>
-                )}
               </div>
               <div className="space-y-2">
-                <h4 className="font-medium text-foreground">Limpeza Automática</h4>
+                <h4 className="font-medium text-foreground">Limpeza</h4>
                 <div className="flex gap-2 flex-wrap">
                   <Button 
                     variant="outline" 
@@ -752,15 +832,6 @@ export default function UnifiedNotificationsPage() {
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Limpar lidas
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={markAllAsRead}
-                    disabled={notifications.filter(n => !n.read).length === 0}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Marcar todas como lidas
                   </Button>
                   <Button 
                     variant="destructive" 
@@ -909,7 +980,7 @@ export default function UnifiedNotificationsPage() {
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
                 <SelectItem value="approval">Aprovações</SelectItem>
-
+                <SelectItem value="workflow">Workflow</SelectItem>
                 <SelectItem value="signature">Assinatura</SelectItem>
                 <SelectItem value="system">Sistema</SelectItem>
               </SelectContent>
@@ -924,6 +995,37 @@ export default function UnifiedNotificationsPage() {
                 <SelectItem value="read">Lidas</SelectItem>
               </SelectContent>
             </Select>
+            {filteredNotifications.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedNotifications.length === filteredNotifications.length) {
+                    deselectAll()
+                  } else {
+                    selectAllVisible()
+                  }
+                }}
+                className="whitespace-nowrap"
+              >
+                {selectedNotifications.length === filteredNotifications.length ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Deselecionar todas
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      readOnly
+                      className="h-4 w-4 mr-2"
+                    />
+                    Selecionar todas
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

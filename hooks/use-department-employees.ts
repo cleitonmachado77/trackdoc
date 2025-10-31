@@ -24,26 +24,51 @@ export interface DepartmentEmployee {
 }
 
 export function useDepartmentEmployees(departmentId?: string) {
-  const { user, entity } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [employees, setEmployees] = useState<DepartmentEmployee[]>([])
   const [availableEmployees, setAvailableEmployees] = useState<DepartmentEmployee[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [entityId, setEntityId] = useState<string | null>(null)
 
-  const entityId = entity?.id || 'ebde2fef-30e2-458b-8721-d86df2f6865b'
-
-  // ✅ Debug: Verificar se entity está sendo carregado corretamente (apenas em dev)
+  // ✅ Buscar entity_id do perfil do usuário
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 [DEBUG] Entity context:', {
-        entity: entity,
-        entityId: entity?.id,
-        fallbackId: 'ebde2fef-30e2-458b-8721-d86df2f6865b',
-        finalEntityId: entityId
-      })
+    const fetchUserEntityId = async () => {
+      if (!user?.id) {
+        setEntityId(null)
+        return
+      }
+
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('entity_id')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.warn('Erro ao buscar entity_id do perfil:', profileError)
+          setEntityId(null)
+          return
+        }
+
+        setEntityId(profileData?.entity_id || null)
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 [DEBUG] Entity ID carregado:', {
+            userId: user.id,
+            entityId: profileData?.entity_id || null
+          })
+        }
+      } catch (err) {
+        console.error('Erro ao buscar entity_id:', err)
+        setEntityId(null)
+      }
     }
-  }, [entity, entityId])
+
+    fetchUserEntityId()
+  }, [user?.id])
 
   // ✅ Função auxiliar para redirecionamento com limpeza de estados
   const redirectWithCleanup = () => {
@@ -79,11 +104,11 @@ export function useDepartmentEmployees(departmentId?: string) {
   }
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && entityId !== undefined) {
       fetchEmployees()
       fetchAvailableEmployees()
     }
-  }, [user?.id, departmentId])
+  }, [user?.id, departmentId, entityId])
 
   const fetchEmployees = async () => {
     if (!departmentId) {
@@ -118,11 +143,20 @@ export function useDepartmentEmployees(departmentId?: string) {
 
       // Segundo: buscar os perfis dos usuários
       const userIds = userDepartmentsData.map(ud => ud.user_id)
-      const { data: profilesData, error: profilesError } = await supabase
+      let profilesQuery = supabase
         .from('profiles')
         .select('*')
         .in('id', userIds)
-        .eq('entity_id', entityId)
+
+      // Aplicar filtro de entidade: se usuário tem entidade, filtrar por ela
+      // Se usuário não tem entidade (usuário solo), filtrar por usuários sem entidade
+      if (entityId) {
+        profilesQuery = profilesQuery.eq('entity_id', entityId)
+      } else {
+        profilesQuery = profilesQuery.is('entity_id', null)
+      }
+
+      const { data: profilesData, error: profilesError } = await profilesQuery
 
       if (profilesError) throw profilesError
 
@@ -178,11 +212,20 @@ export function useDepartmentEmployees(departmentId?: string) {
     try {
       // Buscar funcionários que não estão neste departamento específico
       // mas podem estar em outros departamentos
-      const { data, error } = await supabase
+      let availableQuery = supabase
         .from('profiles')
         .select('*')
-        .eq('entity_id', entityId)
         .order('full_name', { ascending: true })
+
+      // Aplicar filtro de entidade: se usuário tem entidade, filtrar por ela
+      // Se usuário não tem entidade (usuário solo), filtrar por usuários sem entidade
+      if (entityId) {
+        availableQuery = availableQuery.eq('entity_id', entityId)
+      } else {
+        availableQuery = availableQuery.is('entity_id', null)
+      }
+
+      const { data, error } = await availableQuery
 
       if (error) throw error
 

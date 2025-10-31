@@ -54,6 +54,7 @@ import {
   X,
   Tag,
   Calendar,
+  Edit,
 } from "lucide-react"
 // Importações removidas - não precisamos mais de Tabs nem Alert
 import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-documents"
@@ -67,6 +68,8 @@ import { AnimatedDocumentRow } from "./animated-document-row"
 import { DocumentViewer } from "./document-viewer"
 import { DocumentVersionManager } from "./document-version-manager"
 import { DocumentVersionBadge } from "./document-version-badge"
+import DocumentEditModal from "./document-edit-modal"
+import DocumentEditIndicator from "./document-edit-indicator"
 import { getFileIconWithBackground } from "@/lib/utils/file-icons"
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -120,7 +123,7 @@ export default function DocumentList() {
     filters.date_to
   ])
 
-  const { documents, loading, error, deleteDocument, downloadDocument, refetch } = useDocuments(memoizedFilters)
+  const { documents, loading, error, deleteDocument, downloadDocument, updateDocument, refetch } = useDocuments(memoizedFilters)
   const { categories } = useCategories()
   const { departments } = useDepartments()
   const { documentTypes } = useDocumentTypes()
@@ -133,6 +136,8 @@ export default function DocumentList() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [showVersionManager, setShowVersionManager] = useState(false)
   const [selectedDocumentForVersions, setSelectedDocumentForVersions] = useState<Document | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedDocumentForEdit, setSelectedDocumentForEdit] = useState<Document | null>(null)
 
   // Carregar preferência de visualização do localStorage
   useEffect(() => {
@@ -250,6 +255,21 @@ export default function DocumentList() {
       } catch (error) {
         console.error('Erro ao deletar documento:', error)
       }
+    }
+  }
+
+  const handleEditDocument = (document: Document) => {
+    setSelectedDocumentForEdit(document)
+    setShowEditModal(true)
+  }
+
+  const handleSaveDocument = async (documentId: string, updates: Partial<Document>) => {
+    try {
+      await updateDocument(documentId, updates)
+      await refetch() // Recarregar a lista para mostrar as mudanças
+    } catch (error) {
+      console.error('Erro ao atualizar documento:', error)
+      throw error
     }
   }
 
@@ -411,9 +431,7 @@ export default function DocumentList() {
       )
     }
 
-    const approvalStatus = approvalStatuses[document.id] || []
-
-    // Se documento foi rejeitado
+    // Simplificado: apenas 3 status baseados no document.status
     if (document.status === 'rejected') {
       return (
         <>
@@ -423,61 +441,20 @@ export default function DocumentList() {
       )
     }
 
-    // Se documento está em aprovação
     if (document.status === 'pending_approval') {
       return (
         <>
           <Clock className="h-3 w-3 text-yellow-500" />
-          <span className="text-xs text-yellow-600 font-medium">Em aprovação</span>
+          <span className="text-xs text-yellow-600 font-medium">Pendente</span>
         </>
       )
     }
 
-    if (approvalStatus.length === 0) {
-      return (
-        <>
-          <CheckCircle className="h-3 w-3 text-green-500" />
-          <span className="text-xs text-green-600">Aprovado</span>
-        </>
-      )
-    }
-
-    const pendingCount = approvalStatus.filter(w => w.status === 'pending').length
-    const approvedCount = approvalStatus.filter(w => w.status === 'approved').length
-    const rejectedCount = approvalStatus.filter(w => w.status === 'rejected').length
-    const totalCount = approvalStatus.length
-
-    if (rejectedCount > 0) {
-      return (
-        <>
-          <XCircle className="h-3 w-3 text-red-500" />
-          <span className="text-xs text-red-600">Rejeitado</span>
-        </>
-      )
-    }
-
-    if (approvedCount === totalCount) {
-      return (
-        <>
-          <CheckCircle className="h-3 w-3 text-green-500" />
-          <span className="text-xs text-green-600">Aprovado</span>
-        </>
-      )
-    }
-
-    if (pendingCount > 0) {
-      return (
-        <>
-          <Clock className="h-3 w-3 text-yellow-500" />
-          <span className="text-xs text-yellow-600">{approvedCount}/{totalCount}</span>
-        </>
-      )
-    }
-
+    // Todos os outros casos: aprovado
     return (
       <>
-        <AlertCircle className="h-3 w-3 text-gray-400" />
-        <span className="text-xs text-gray-500">Pendente</span>
+        <CheckCircle className="h-3 w-3 text-green-500" />
+        <span className="text-xs text-green-600">Aprovado</span>
       </>
     )
   }
@@ -542,16 +519,22 @@ export default function DocumentList() {
                             <p className="font-medium text-sm truncate">
                               {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
                             </p>
+                            {document.document_number && (
+                              <Badge variant="outline" className="text-xs shrink-0 bg-blue-50 text-blue-700 border-blue-200">
+                                #{document.document_number}
+                              </Badge>
+                            )}
                             <Badge 
-                              variant={document.status === 'approved' ? 'default' : 
-                                      document.status === 'pending_approval' ? 'secondary' : 
-                                      document.status === 'rejected' ? 'destructive' : 'outline'}
+                              variant={
+                                document.status === 'rejected' ? 'destructive' :
+                                document.status === 'pending_approval' ? 'secondary' :
+                                'default'
+                              }
                               className="text-xs shrink-0"
                             >
-                              {document.status === 'approved' ? 'Aprovado' :
+                              {document.status === 'rejected' ? 'Rejeitado' :
                                document.status === 'pending_approval' ? 'Pendente' :
-                               document.status === 'rejected' ? 'Rejeitado' :
-                               document.status === 'draft' ? 'Rascunho' : document.status}
+                               'Aprovado'}
                             </Badge>
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -591,6 +574,12 @@ export default function DocumentList() {
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
+                        {/* Indicador sutil de edição */}
+                        <DocumentEditIndicator
+                          onClick={() => handleEditDocument(document)}
+                          disabled={isDocumentBlocked(document)}
+                        />
+                        
                         <div onClick={(e) => {
                           e.stopPropagation()
                           setSelectedDocumentForVersions(document)
@@ -659,6 +648,15 @@ export default function DocumentList() {
                                 >
                                   <Eye className="h-4 w-4 mr-2" />
                                   Visualizar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleEditDocument(document)
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar Informações
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={(e) => {
@@ -775,9 +773,22 @@ export default function DocumentList() {
                           }}>
                           {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
                         </CardTitle>
+                        {document.document_number && (
+                          <div className="mt-1">
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              #{document.document_number}
+                            </Badge>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {/* Indicador sutil de edição */}
+                      <DocumentEditIndicator
+                        onClick={() => handleEditDocument(document)}
+                        disabled={isDocumentBlocked(document)}
+                      />
+                      
                       <div onClick={(e) => {
                         e.stopPropagation()
                         setSelectedDocumentForVersions(document)
@@ -841,6 +852,15 @@ export default function DocumentList() {
                               >
                                 <Eye className="h-3 w-3 mr-2" />
                                 Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEditDocument(document)
+                                }}
+                              >
+                                <Edit className="h-3 w-3 mr-2" />
+                                Editar Informações
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={(e) => {
@@ -1253,6 +1273,16 @@ export default function DocumentList() {
         />
       )}
 
+      {/* Document Edit Modal */}
+      <DocumentEditModal
+        document={selectedDocumentForEdit}
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedDocumentForEdit(null)
+        }}
+        onSave={handleSaveDocument}
+      />
 
     </div>
   )

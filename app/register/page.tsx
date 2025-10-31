@@ -134,21 +134,21 @@ export default function RegisterPageSimple() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-trackdoc-blue-light via-white to-trackdoc-blue-light p-4">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Logo e Header */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <img 
-              src="/logo-horizontal-preto.png" 
+              src="/logo-vertical-preto.png" 
               alt="TrackDoc Logo" 
-              className="h-24 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
         </div>
 
         {/* Formulário de Registro */}
-        <Card className="shadow-trackdoc-lg border-0 bg-white/95 backdrop-blur-sm">
+        <Card className="shadow-lg border border-gray-200 bg-white">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl font-bold text-center text-trackdoc-black">Criar conta</CardTitle>
             <CardDescription className="text-center text-trackdoc-gray">

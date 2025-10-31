@@ -538,22 +538,8 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
                 <p className="text-sm">{doc.author?.full_name || 'N/A'}</p>
               </div>
               
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Status</label>
-                <div className="mt-1">
-                  <Badge variant="outline">{doc.status}</Badge>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Visibilidade</label>
-                <div className="mt-1">
-                  <Badge variant="outline">
-                    {doc.is_public ? 'Público' : 'Privado'}
-                  </Badge>
-                </div>
-              </div>
-              
+
+
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Criado em</label>
                 <p className="text-sm">{formatDate(doc.created_at)}</p>

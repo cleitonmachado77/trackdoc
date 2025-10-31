@@ -117,20 +117,62 @@ export default function MinhaContaPage() {
     try {
       setLoading(true)
 
-      const { data, error } = await supabase
+      // Primeiro buscar o perfil
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          entity:entities(name, legal_name),
-          department:departments(name)
-        `)
+        .select('*')
         .eq('id', user?.id)
         .single()
 
-      if (error) throw error
+      if (profileError) throw profileError
 
-      setProfile(data)
-      setEditedProfile(data)
+      // Depois buscar a entidade se existir
+      let entityData = null
+      if (profileData.entity_id) {
+        const { data: entity, error: entityError } = await supabase
+          .from('entities')
+          .select('name, legal_name')
+          .eq('id', profileData.entity_id)
+          .single()
+
+        if (!entityError) {
+          entityData = entity
+        }
+      }
+
+      // Buscar departamento se existir
+      let departmentData = null
+      if (profileData.department_id) {
+        const { data: department, error: departmentError } = await supabase
+          .from('departments')
+          .select('name')
+          .eq('id', profileData.department_id)
+          .single()
+
+        if (!departmentError) {
+          departmentData = department
+        }
+      }
+
+      // Combinar os dados
+      const completeProfile = {
+        ...profileData,
+        entity: entityData,
+        department: departmentData
+      }
+
+      // Debug logging para identificar o problema
+      console.log('Dados do perfil carregados:', {
+        id: completeProfile.id,
+        full_name: completeProfile.full_name,
+        entity_id: completeProfile.entity_id,
+        entity: completeProfile.entity,
+        entity_name: completeProfile.entity?.name,
+        department: completeProfile.department
+      })
+
+      setProfile(completeProfile)
+      setEditedProfile(completeProfile)
     } catch (error: any) {
       console.error('Erro ao carregar perfil:', error)
       toast({
@@ -437,17 +479,17 @@ export default function MinhaContaPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
           <TabsTrigger 
             value="profile" 
-            className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
           >
             <User className="h-4 w-4" />
             Informações Pessoais
           </TabsTrigger>
           <TabsTrigger 
             value="security" 
-            className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary transition-colors duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
           >
             <Lock className="h-4 w-4" />
             Segurança
@@ -712,8 +754,13 @@ export default function MinhaContaPage() {
                   <Label>Entidade</Label>
                   <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                     <Building className="h-4 w-4 text-gray-500" />
-                    <span>{profile.entity?.name || 'Usuário Individual'}</span>
+                    <span>
+                      {profile.entity?.name || 
+                       profile.entity?.legal_name || 
+                       (profile.entity_id ? `Entidade ID: ${profile.entity_id}` : 'Usuário Individual')}
+                    </span>
                   </div>
+
                 </div>
 
                 <div className="space-y-2">

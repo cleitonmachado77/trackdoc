@@ -105,7 +105,7 @@ export default function LoginPage() {
             <img 
               src="/logo-vertical-preto.png" 
               alt="TrackDoc Logo" 
-              className="h-28 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
         </div>

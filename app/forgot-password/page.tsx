@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-200 via-blue-50 to-blue-300 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo e Header */}
         <div className="text-center mb-8">
@@ -86,13 +86,13 @@ export default function ForgotPasswordPage() {
             <img 
               src="/logo-vertical-preto.png" 
               alt="TrackDoc Logo" 
-              className="h-28 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
         </div>
 
         {/* Card de Recuperação */}
-        <Card className="shadow-xl border-0 bg-white/98 backdrop-blur-md ring-1 ring-blue-100/50">
+        <Card className="shadow-lg border border-gray-200 bg-white">
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl font-bold text-center text-trackdoc-black">Recuperar Senha</CardTitle>
             <CardDescription className="text-center text-trackdoc-gray">

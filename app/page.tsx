@@ -722,75 +722,78 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         </div>
 
         {/* Ações Rápidas */}
-        <Card className="p-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center">
-              <Zap className="h-5 w-5 mr-2 text-yellow-600" />
+        <Card className="p-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium flex items-center">
+              <Zap className="h-4 w-4 mr-2 text-yellow-600" />
               Ações Rápidas
             </CardTitle>
-            <CardDescription>
-              Acesso rápido às principais funcionalidades
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
+                className="h-12 flex flex-col items-center justify-center space-y-1"
                 variant="outline"
+                size="sm"
                 onClick={() => setShowUploadModal(true)}
               >
-                <Plus className="h-5 w-5" />
-                <span className="text-xs">Novo Documento</span>
+                <Plus className="h-4 w-4" />
+                <span className="text-xs">Novo Doc</span>
               </Button>
 
               <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
+                className="h-12 flex flex-col items-center justify-center space-y-1"
                 variant="outline"
+                size="sm"
                 onClick={() => setActiveView('electronic-signature')}
               >
-                <PenTool className="h-5 w-5" />
-                <span className="text-xs">Assinar Documento</span>
+                <PenTool className="h-4 w-4" />
+                <span className="text-xs">Assinar</span>
               </Button>
 
               <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
+                className="h-12 flex flex-col items-center justify-center space-y-1"
                 variant="outline"
+                size="sm"
                 onClick={() => setActiveView('approvals')}
               >
-                <CheckCircle className="h-5 w-5" />
-                <span className="text-xs">Ver Aprovações</span>
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-xs">Aprovações</span>
               </Button>
 
               <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
+                className="h-12 flex flex-col items-center justify-center space-y-1"
                 variant="outline"
+                size="sm"
                 onClick={() => setShowQuickSearch(true)}
               >
-                <Search className="h-5 w-5" />
-                <span className="text-xs">Busca Rápida</span>
+                <Search className="h-4 w-4" />
+                <span className="text-xs">Buscar</span>
               </Button>
 
               <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
+                className="h-12 flex flex-col items-center justify-center space-y-1 relative"
                 variant="outline"
+                size="sm"
                 onClick={() => setActiveView('notifications')}
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4 w-4" />
                 <span className="text-xs">Notificações</span>
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground">
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground">
                     {unreadNotificationsCount}
                   </span>
                 )}
               </Button>
 
               <Button
-                className="h-16 flex flex-col items-center justify-center space-y-1"
+                className="h-12 flex flex-col items-center justify-center space-y-1"
                 variant="outline"
+                size="sm"
                 onClick={() => { setActiveView('admin'); setAdminView('overview') }}
               >
-                <Settings className="h-5 w-5" />
-                <span className="text-xs">Administração</span>
+                <Settings className="h-4 w-4" />
+                <span className="text-xs">Admin</span>
               </Button>
             </div>
           </CardContent>
@@ -1538,25 +1541,15 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           <AdminGuard>
             <div className="space-y-6">
               {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAdminView("overview")}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Voltar ao Início
-                  </Button>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div>
                     <h1 className="text-2xl font-bold text-gray-900">Administração</h1>
                     <p className="text-gray-600">
                       Gerencie usuários, configurações e relatórios do sistema
                     </p>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {adminView === "overview" && (
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -1574,8 +1567,22 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                         </>
                       )}
                     </Button>
-                  )}
+                  </div>
                 </div>
+                
+                {/* Botão Voltar - Abaixo do título */}
+                {adminView !== "overview" && (
+                  <div className="flex items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAdminView("overview")}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Voltar ao Início
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Ações Rápidas de Admin */}

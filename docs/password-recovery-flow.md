@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O sistema de recuperação de senha foi completamente implementado e otimizado para funcionar com o novo domínio `www.trackdoc.app.br`.
+O sistema de recuperação de senha foi completamente implementado e otimizado para funcionar com o domínio `www.trackdoc.com.br`.
 
 ## Fluxo Completo
 
@@ -15,7 +15,7 @@ O sistema de recuperação de senha foi completamente implementado e otimizado p
 ### 2. Email de Recuperação
 - Email é enviado pelo Supabase com link seguro
 - Link contém tokens de autenticação temporários
-- Redirecionamento configurado para: `https://www.trackdoc.app.br/auth/callback`
+- Redirecionamento configurado para: `https://www.trackdoc.com.br/auth/callback`
 
 ### 3. Callback de Autenticação (`/auth/callback`)
 - Processa o código de autorização do email
@@ -61,12 +61,12 @@ O sistema de recuperação de senha foi completamente implementado e otimizado p
 
 ### Variáveis de Ambiente
 ```env
-NEXT_PUBLIC_SITE_URL=https://www.trackdoc.app.br
+NEXT_PUBLIC_SITE_URL=https://www.trackdoc.com.br
 ```
 
 ### Supabase Config (`lib/supabase/config.ts`)
 - URLs de redirecionamento atualizadas para novo domínio
-- Fallbacks corrigidos para `www.trackdoc.app.br`
+- Fallbacks corrigidos para `www.trackdoc.com.br`
 
 ### Contexto de Autenticação
 - `resetPasswordForEmail` configurado com `redirectTo` correto
@@ -76,8 +76,8 @@ NEXT_PUBLIC_SITE_URL=https://www.trackdoc.app.br
 
 ⚠️ **IMPORTANTE**: Configure no painel do Supabase:
 
-1. **Site URL**: `https://www.trackdoc.app.br`
-2. **Redirect URLs**: `https://www.trackdoc.app.br/auth/callback`
+1. **Site URL**: `https://www.trackdoc.com.br`
+2. **Redirect URLs**: `https://www.trackdoc.com.br/auth/callback`
 
 ## Segurança
 

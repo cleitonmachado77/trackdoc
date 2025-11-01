@@ -163,7 +163,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               <div className="flex items-center space-x-3">
                 <div
                   className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => window.location.href = '/landing'}
+                  onClick={() => window.location.href = 'https://www.trackdoc.com.br/'}
                   title="Ir para página inicial"
                 >
                   <img
@@ -177,7 +177,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               <div className="flex items-center justify-center w-full">
                 <div
                   className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => window.location.href = '/landing'}
+                  onClick={() => window.location.href = 'https://www.trackdoc.com.br/'}
                   title="Ir para página inicial"
                 >
                   <img

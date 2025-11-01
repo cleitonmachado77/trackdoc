@@ -727,10 +727,10 @@ export async function POST(request: NextRequest) {
            signature_url: signedFileName,
            title: documentTitle, // ✅ NOVO CAMPO
            verification_code: signature.verificationCode,
-           verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.app.br'}/verify/${signature.verificationCode}`,
+           verification_url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.com.br'}/verify/${signature.verificationCode}`,
            qr_code_data: JSON.stringify({
              code: signature.verificationCode,
-             url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.app.br'}/verify/${signature.verificationCode}`,
+             url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.com.br'}/verify/${signature.verificationCode}`,
              documentId: signature.documentId,
              timestamp: signature.digitalTimestamp
            }),

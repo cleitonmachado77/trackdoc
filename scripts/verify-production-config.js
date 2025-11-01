@@ -27,7 +27,7 @@ if (fs.existsSync(envPath)) {
   requiredVars.forEach(varName => {
     if (envContent.includes(varName)) {
       const line = envContent.split('\n').find(line => line.startsWith(varName))
-      if (line && line.includes('trackdoc.app.br')) {
+      if (line && line.includes('trackdoc.com.br')) {
         console.log(`✅ ${varName} configurado corretamente`)
       } else if (line && line.includes('your_')) {
         console.log(`⚠️  ${varName} precisa ser substituído pelo valor real`)
@@ -59,7 +59,7 @@ filesToCheck.forEach(filePath => {
     
     switch (filePath) {
       case 'app/auth/callback/route.ts':
-        if (content.includes('NEXT_PUBLIC_APP_URL') && content.includes('trackdoc.app.br')) {
+        if (content.includes('NEXT_PUBLIC_APP_URL') && content.includes('trackdoc.com.br')) {
           console.log('✅ Callback configurado para produção')
         } else {
           console.log('⚠️  Callback pode não estar configurado corretamente')
@@ -97,8 +97,8 @@ filesToCheck.forEach(filePath => {
 
 console.log('\n📋 Checklist de Deploy:\n')
 console.log('□ Configurar URLs no painel do Supabase:')
-console.log('  - Site URL: https://www.trackdoc.app.br')
-console.log('  - Redirect URLs: https://www.trackdoc.app.br/auth/callback')
+console.log('  - Site URL: https://www.trackdoc.com.br')
+console.log('  - Redirect URLs: https://www.trackdoc.com.br/auth/callback')
 console.log('□ Substituir variáveis do Supabase no .env.local')
 console.log('□ Fazer deploy das alterações')
 console.log('□ Testar fluxo de registro completo')

@@ -10,15 +10,14 @@ export default function LandingRedirect() {
   const { user, loading } = useAuth()
 
   useEffect(() => {
-    // Só redirecionar para landing se:
+    // Só redirecionar para o site principal se:
     // 1. Não está carregando
     // 2. Não tem usuário
     // 3. Não está em uma página de autenticação
-    // 4. Não está na própria landing page
-    const authPages = ['/login', '/register', '/verify-email', '/reset-password', '/confirm-email', '/landing']
+    const authPages = ['/login', '/register', '/verify-email', '/reset-password', '/confirm-email']
     
     if (!loading && !user && !authPages.includes(pathname)) {
-      router.push('/landing')
+      window.location.href = 'https://www.trackdoc.com.br/'
     }
   }, [user, loading, router, pathname])
 

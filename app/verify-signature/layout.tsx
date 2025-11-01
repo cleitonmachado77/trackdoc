@@ -22,14 +22,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://www.trackdoc.app.br'),
+  metadataBase: new URL('https://www.trackdoc.com.br'),
   alternates: {
     canonical: '/verify-signature',
   },
   openGraph: {
     title: 'Verificar Assinatura - TrackDoc',
     description: 'Verifique a autenticidade e validade de assinaturas eletrônicas do TrackDoc. Ferramenta pública para validação de documentos assinados digitalmente.',
-    url: 'https://www.trackdoc.app.br/verify-signature',
+    url: 'https://www.trackdoc.com.br/verify-signature',
     siteName: 'TrackDoc',
     images: [
       {
@@ -79,7 +79,7 @@ export default function VerifySignatureLayout({
             "@type": "WebApplication",
             "name": "Verificação de Assinaturas TrackDoc",
             "description": "Ferramenta pública para verificação de assinaturas eletrônicas",
-            "url": "https://www.trackdoc.app.br/verify-signature",
+            "url": "https://www.trackdoc.com.br/verify-signature",
             "applicationCategory": "BusinessApplication",
             "operatingSystem": "Web",
             "offers": {
@@ -96,7 +96,7 @@ export default function VerifySignatureLayout({
               "name": "TrackDoc",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://www.trackdoc.app.br/logo-horizontal-preto.png"
+                "url": "https://www.trackdoc.com.br/logo-horizontal-preto.png"
               }
             }
           })

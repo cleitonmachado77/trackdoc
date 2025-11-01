@@ -105,7 +105,7 @@ export default function RegisterPageSimple() {
             registration_type: 'individual'
           },
           // Configurar URL de redirecionamento correta para produção
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback`
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.com.br'}/auth/callback`
         }
       })
 

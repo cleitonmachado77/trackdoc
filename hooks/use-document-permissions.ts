@@ -106,16 +106,29 @@ export function useDocumentPermissions() {
 
       if (userError) throw userError
 
-      // Buscar permissões dos departamentos do usuário
+      // Buscar departamento primário do usuário
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('department_id')
+        .eq('id', user.id)
+        .single()
+
+      // Buscar departamentos adicionais do usuário
       const { data: userDepartments } = await supabase
         .from('user_departments')
         .select('department_id')
         .eq('user_id', user.id)
 
+      // Combinar departamentos
+      let departmentIds = userDepartments?.map(ud => ud.department_id) || []
+      if (userProfile?.department_id) {
+        departmentIds.push(userProfile.department_id)
+      }
+      // Remover duplicatas
+      departmentIds = [...new Set(departmentIds)]
+
       let departmentPermissions: any[] = []
-      if (userDepartments && userDepartments.length > 0) {
-        const departmentIds = userDepartments.map(ud => ud.department_id)
-        
+      if (departmentIds.length > 0) {
         const { data: deptPermissions, error: deptError } = await supabase
           .from('document_permissions')
           .select(`
@@ -287,16 +300,29 @@ export function useDocumentPermissions() {
 
       if (userError) throw userError
 
-      // Buscar permissões dos departamentos do usuário
+      // Buscar departamento primário do usuário
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('department_id')
+        .eq('id', user.id)
+        .single()
+
+      // Buscar departamentos adicionais do usuário
       const { data: userDepartments } = await supabase
         .from('user_departments')
         .select('department_id')
         .eq('user_id', user.id)
 
+      // Combinar departamentos
+      let departmentIds = userDepartments?.map(ud => ud.department_id) || []
+      if (userProfile?.department_id) {
+        departmentIds.push(userProfile.department_id)
+      }
+      // Remover duplicatas
+      departmentIds = [...new Set(departmentIds)]
+
       let departmentPermissions: any[] = []
-      if (userDepartments && userDepartments.length > 0) {
-        const departmentIds = userDepartments.map(ud => ud.department_id)
-        
+      if (departmentIds.length > 0) {
         const { data: deptPermissions, error: deptError } = await supabase
           .from('document_permissions')
           .select(`

@@ -70,6 +70,8 @@ import { DocumentVersionManager } from "./document-version-manager"
 import { DocumentVersionBadge } from "./document-version-badge"
 import DocumentEditModal from "./document-edit-modal"
 import DocumentEditIndicator from "./document-edit-indicator"
+import DocumentVisibilityBadge from "./document-visibility-badge"
+import DocumentPermissionsModal from "./document-permissions-modal"
 import { getFileIconWithBackground } from "@/lib/utils/file-icons"
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -138,6 +140,8 @@ export default function DocumentList() {
   const [selectedDocumentForVersions, setSelectedDocumentForVersions] = useState<Document | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedDocumentForEdit, setSelectedDocumentForEdit] = useState<Document | null>(null)
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false)
+  const [selectedDocumentForPermissions, setSelectedDocumentForPermissions] = useState<Document | null>(null)
 
   // Carregar preferência de visualização do localStorage
   useEffect(() => {
@@ -261,6 +265,11 @@ export default function DocumentList() {
   const handleEditDocument = (document: Document) => {
     setSelectedDocumentForEdit(document)
     setShowEditModal(true)
+  }
+
+  const handleManagePermissions = (document: Document) => {
+    setSelectedDocumentForPermissions(document)
+    setShowPermissionsModal(true)
   }
 
   const handleSaveDocument = async (documentId: string, updates: Partial<Document>) => {
@@ -536,6 +545,13 @@ export default function DocumentList() {
                                document.status === 'pending_approval' ? 'Pendente' :
                                'Aprovado'}
                             </Badge>
+                            <DocumentVisibilityBadge
+                              documentId={document.id}
+                              isPublic={document.is_public}
+                              authorId={document.author_id}
+                              currentUserId={user?.id}
+                              className="shrink-0"
+                            />
                           </div>
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <div className="flex items-center gap-1">
@@ -661,6 +677,15 @@ export default function DocumentList() {
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation()
+                                    handleManagePermissions(document)
+                                  }}
+                                >
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  Gerenciar Permissões
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
                                     downloadDocument(document)
                                   }}
                                 >
@@ -773,13 +798,19 @@ export default function DocumentList() {
                           }}>
                           {searchTerm ? highlightSearchTerm(document.title, searchTerm) : document.title}
                         </CardTitle>
-                        {document.document_number && (
-                          <div className="mt-1">
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {document.document_number && (
                             <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                               #{document.document_number}
                             </Badge>
-                          </div>
-                        )}
+                          )}
+                          <DocumentVisibilityBadge
+                            documentId={document.id}
+                            isPublic={document.is_public}
+                            authorId={document.author_id}
+                            currentUserId={user?.id}
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -861,6 +892,15 @@ export default function DocumentList() {
                               >
                                 <Edit className="h-3 w-3 mr-2" />
                                 Editar Informações
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleManagePermissions(document)
+                                }}
+                              >
+                                <Shield className="h-3 w-3 mr-2" />
+                                Gerenciar Permissões
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={(e) => {
@@ -1283,6 +1323,20 @@ export default function DocumentList() {
         }}
         onSave={handleSaveDocument}
       />
+
+      {/* Document Permissions Modal */}
+      {selectedDocumentForPermissions && (
+        <DocumentPermissionsModal
+          document={selectedDocumentForPermissions}
+          open={showPermissionsModal}
+          onOpenChange={(open) => {
+            setShowPermissionsModal(open)
+            if (!open) {
+              setSelectedDocumentForPermissions(null)
+            }
+          }}
+        />
+      )}
 
     </div>
   )

@@ -33,6 +33,8 @@ import { useDocumentTypes } from "@/hooks/use-document-types"
 import { useUsers } from "@/hooks/use-users"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@supabase/ssr"
+import DocumentVisibilityManager, { DocumentVisibilitySettings } from "./document-visibility-manager"
+import { useDocumentPermissions } from "@/hooks/use-document-permissions"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -59,6 +61,7 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
   const { departments } = useDepartments()
   const { documentTypes, validateFile } = useDocumentTypes()
   const { users } = useUsers()
+  const { grantPermission } = useDocumentPermissions()
 
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("")
@@ -70,6 +73,12 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
   const [selectedApprover, setSelectedApprover] = useState<string>("")
   const [showApproverSelect, setShowApproverSelect] = useState(false)
   const [isRequestingApproval, setIsRequestingApproval] = useState(false)
+  const [visibilitySettings, setVisibilitySettings] = useState<DocumentVisibilitySettings>({
+    visibility_type: 'public',
+    allowed_departments: [],
+    allowed_users: [],
+    permission_types: ['read']
+  })
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
@@ -190,6 +199,11 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
 
         console.log('Documento criado com sucesso:', document)
         
+        // Aplicar configurações de visibilidade
+        if (document && visibilitySettings.visibility_type === 'restricted') {
+          await applyVisibilitySettings(document.id, visibilitySettings)
+        }
+        
         // Se foi selecionado um aprovador, solicitar aprovação
         if (selectedApprover && document) {
           await requestApproval(document.id, selectedApprover)
@@ -229,6 +243,45 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
 
   const removeTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove))
+  }
+
+  // Função para aplicar configurações de visibilidade
+  const applyVisibilitySettings = async (documentId: string, settings: DocumentVisibilitySettings) => {
+    try {
+      console.log('Aplicando configurações de visibilidade:', settings)
+      
+      // Para cada departamento selecionado, criar permissões
+      for (const departmentId of settings.allowed_departments) {
+        for (const permissionType of settings.permission_types) {
+          await grantPermission({
+            document_id: documentId,
+            department_id: departmentId,
+            permission_type: permissionType as any
+          })
+        }
+      }
+      
+      // Para cada usuário selecionado, criar permissões
+      for (const userId of settings.allowed_users) {
+        for (const permissionType of settings.permission_types) {
+          await grantPermission({
+            document_id: documentId,
+            user_id: userId,
+            permission_type: permissionType as any
+          })
+        }
+      }
+      
+      console.log('Configurações de visibilidade aplicadas com sucesso')
+      
+    } catch (error) {
+      console.error('Erro ao aplicar configurações de visibilidade:', error)
+      toast({
+        title: "Aviso",
+        description: "Documento criado, mas houve erro ao aplicar configurações de visibilidade.",
+        variant: "destructive",
+      })
+    }
   }
 
   // Função para solicitar aprovação
@@ -446,16 +499,17 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               </Select>
             </div>
 
-            <div className="flex items-center space-x-2 pt-4">
-              <input
-                type="checkbox"
-                id="isPublic"
-                checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
-                className="rounded"
-              />
-              <Label htmlFor="isPublic" className="text-xs">Documento público</Label>
             </div>
+
+          {/* Controle de Visibilidade */}
+          <div className="col-span-full">
+            <DocumentVisibilityManager
+              value={visibilitySettings}
+              onChange={setVisibilitySettings}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           </div>
 
           <div>

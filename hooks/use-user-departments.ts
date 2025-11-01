@@ -2,45 +2,33 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/hooks/use-auth-final'
 
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
 export interface UserDepartment {
   id: string
-  user_id: string
-  department_id: string
-  role_in_department: 'member' | 'manager' | 'supervisor'
-  is_primary: boolean
-  assigned_at: string
-  assigned_by?: string
-  notes?: string
-  // Dados do usuário
-  user: {
-    id: string
-    full_name: string
-    email: string
-    role: string
-    entity_id?: string
-    created_at: string
-    updated_at: string
-  }
-  // Dados do departamento
-  department: {
-    id: string
-    name: string
-    description?: string
-    entity_id: string
-    created_at: string
-    updated_at: string
-  }
+  name: string
+  description?: string
+  isPrimary: boolean
+  roleInDepartment?: string
 }
+
+
 
 export function useUserDepartments() {
   const { user } = useAuth()
-  const [userDepartments, setUserDepartments] = useState<UserDepartment[]>([])
+  const [departments, setDepartments] = useState<UserDepartment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.id) {
       fetchUserDepartments()
+    } else {
+      setDepartments([])
+      setLoading(false)
     }
   }, [user?.id])
 
@@ -49,89 +37,115 @@ export function useUserDepartments() {
       setLoading(true)
       setError(null)
 
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Buscar departamento primário do usuário
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          department_id,
+          department:departments!profiles_department_id_fkey(
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('id', user!.id)
+        .maybeSingle()
 
-      // Buscar o profile do usuário para obter entity_id
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b' // ID padrão da entidade
-      
-      if (user?.id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('entity_id')
-          .eq('id', user.id)
-          .single()
-        
-        if (profileData?.entity_id) {
-          entityId = profileData.entity_id
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError
+      }
+
+      // Buscar departamentos adicionais do usuário
+      const { data: userDepartments, error: deptError } = await supabase
+        .from('user_departments')
+        .select(`
+          role_in_department,
+          department:departments(
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('user_id', user!.id)
+
+      if (deptError) throw deptError
+
+      // Combinar departamentos
+      const allDepartments: UserDepartment[] = []
+
+      // Adicionar departamento primário
+      if (userProfile?.department) {
+        const dept = userProfile.department as any
+        allDepartments.push({
+          id: dept.id,
+          name: dept.name,
+          description: dept.description,
+          isPrimary: true
+        })
+      }
+
+      // Adicionar departamentos adicionais
+      if (userDepartments) {
+        for (const ud of userDepartments) {
+          if (ud.department) {
+            const dept = ud.department as any
+            // Verificar se já não foi adicionado como primário
+            const exists = allDepartments.find(d => d.id === dept.id)
+            if (!exists) {
+              allDepartments.push({
+                id: dept.id,
+                name: dept.name,
+                description: dept.description,
+                isPrimary: false,
+                roleInDepartment: ud.role_in_department
+              })
+            } else {
+              // Se já existe como primário, adicionar o papel
+              exists.roleInDepartment = ud.role_in_department
+            }
+          }
         }
       }
 
-      const { data, error } = await supabase
-        .from('user_departments')
-        .select(`
-          *,
-          user:profiles!user_departments_user_id_fkey(
-            id,
-            full_name,
-            email,
-            role,
-            entity_id,
-            created_at,
-            updated_at
-          ),
-          department:departments!user_departments_department_id_fkey(
-            id,
-            name,
-            description,
-            entity_id,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('user.entity_id', entityId)
-
-      if (error) throw error
-
-      setUserDepartments(data || [])
+      setDepartments(allDepartments)
     } catch (err) {
-      console.error('Erro ao buscar usuários por departamento:', err)
-      setError(err instanceof Error ? err.message : 'Erro desconhecido')
+      console.error('Erro ao buscar departamentos do usuário:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao carregar departamentos')
     } finally {
       setLoading(false)
     }
   }
 
-  // Função para buscar usuários de um departamento específico
-  const getUsersByDepartment = (departmentId: string) => {
-    return userDepartments
-      .filter(ud => ud.department_id === departmentId)
-      .map(ud => ud.user)
+  const getDepartmentIds = () => {
+    return departments.map(d => d.id)
   }
 
-  // Função para buscar departamentos de um usuário específico
-  const getDepartmentsByUser = (userId: string) => {
-    return userDepartments
-      .filter(ud => ud.user_id === userId)
-      .map(ud => ud.department)
+  const getPrimaryDepartment = () => {
+    return departments.find(d => d.isPrimary)
   }
 
-  // Função para verificar se um usuário pertence a um departamento
-  const isUserInDepartment = (userId: string, departmentId: string) => {
-    return userDepartments.some(ud => 
-      ud.user_id === userId && ud.department_id === departmentId
-    )
+  const getAdditionalDepartments = () => {
+    return departments.filter(d => !d.isPrimary)
+  }
+
+  const isInDepartment = (departmentId: string) => {
+    return departments.some(d => d.id === departmentId)
+  }
+
+  const getDepartmentRole = (departmentId: string) => {
+    const dept = departments.find(d => d.id === departmentId)
+    return dept?.roleInDepartment
   }
 
   return {
-    userDepartments,
+    departments,
     loading,
     error,
-    fetchUserDepartments,
-    getUsersByDepartment,
-    getDepartmentsByUser,
-    isUserInDepartment
+    getDepartmentIds,
+    getPrimaryDepartment,
+    getAdditionalDepartments,
+    isInDepartment,
+    getDepartmentRole,
+    refetch: fetchUserDepartments
   }
 }

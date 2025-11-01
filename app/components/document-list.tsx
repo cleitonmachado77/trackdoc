@@ -55,6 +55,7 @@ import {
   Tag,
   Calendar,
   Edit,
+  Shield,
 } from "lucide-react"
 // Importações removidas - não precisamos mais de Tabs nem Alert
 import { useDocuments, type Document, type DocumentFilters } from "@/hooks/use-documents"

@@ -174,12 +174,40 @@ export default function AuditModal({ open, onOpenChange, document }: AuditModalP
         
         if (error) throw error
         
-        const link = document.createElement('a')
-        link.href = data.signedUrl
-        link.download = document.title || 'documento.pdf'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Obter a extensão do arquivo original
+        const fileExtension = document.file_name?.split('.').pop() || 'pdf'
+        const fileName = `${document.title || 'documento'}.${fileExtension}`
+        
+        // Tentar download direto primeiro
+        try {
+          const response = await fetch(data.signedUrl)
+          const blob = await response.blob()
+          
+          // Criar URL do blob
+          const blobUrl = window.URL.createObjectURL(blob)
+          
+          // Criar link para download
+          const link = document.createElement('a')
+          link.href = blobUrl
+          link.download = fileName
+          link.style.display = 'none'
+          
+          // Adicionar ao DOM, clicar e remover
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          
+          // Limpar URL do blob
+          window.URL.revokeObjectURL(blobUrl)
+          
+          console.log('📥 Download iniciado:', fileName)
+          
+        } catch (fetchError) {
+          console.warn('Fetch falhou, tentando método alternativo:', fetchError)
+          
+          // Fallback: abrir em nova aba
+          window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+        }
       } catch (error) {
         console.error('Erro ao baixar arquivo:', error)
         // Fallback para URL pública se o signed URL falhar

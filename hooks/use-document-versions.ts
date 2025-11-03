@@ -331,12 +331,47 @@ export function useDocumentVersions(documentId?: string) {
       if (error) throw error
 
       if (data?.signedUrl) {
-        const link = document.createElement('a')
-        link.href = data.signedUrl
-        link.download = `${version.file_name?.replace(/^\d+-[a-z0-9]+\./, '') || 'documento'}`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Extrair nome original do arquivo removendo timestamp e hash
+        let originalFileName = version.file_name || 'documento'
+        
+        // Remover padrão timestamp-hash. do início do nome
+        originalFileName = originalFileName.replace(/^\d+-[a-z0-9]+\./, '')
+        
+        // Se ainda não tem extensão, adicionar .pdf
+        if (!originalFileName.includes('.')) {
+          originalFileName += '.pdf'
+        }
+        
+        // Tentar download direto primeiro
+        try {
+          const response = await fetch(data.signedUrl)
+          const blob = await response.blob()
+          
+          // Criar URL do blob
+          const blobUrl = window.URL.createObjectURL(blob)
+          
+          // Criar link para download
+          const link = document.createElement('a')
+          link.href = blobUrl
+          link.download = originalFileName
+          link.style.display = 'none'
+          
+          // Adicionar ao DOM, clicar e remover
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          
+          // Limpar URL do blob
+          window.URL.revokeObjectURL(blobUrl)
+          
+          console.log('📥 Download de versão iniciado:', originalFileName)
+          
+        } catch (fetchError) {
+          console.warn('Fetch falhou, tentando método alternativo:', fetchError)
+          
+          // Fallback: abrir em nova aba
+          window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+        }
       }
     } catch (error: any) {
       console.error('Erro ao baixar versão:', error)

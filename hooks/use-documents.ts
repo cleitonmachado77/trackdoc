@@ -483,12 +483,49 @@ export function useDocuments(filters: DocumentFilters = {}) {
       if (error) throw error
 
       if (data?.signedUrl) {
-        const link = document.createElement('a')
-        link.href = data.signedUrl
-        link.download = `${doc.title}.${doc.file_name?.split('.').pop() || 'pdf'}`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Debug: verificar dados do documento
+        console.log('🔍 Debug download:', {
+          title: doc.title,
+          file_name: doc.file_name,
+          file_path: doc.file_path
+        })
+        
+        // Obter a extensão do arquivo original
+        const fileExtension = doc.file_name?.split('.').pop() || 'pdf'
+        const fileName = `${doc.title}.${fileExtension}`
+        
+        console.log('📥 Nome do arquivo para download:', fileName)
+        
+        // Tentar download direto primeiro
+        try {
+          const response = await fetch(data.signedUrl)
+          const blob = await response.blob()
+          
+          // Criar URL do blob
+          const blobUrl = window.URL.createObjectURL(blob)
+          
+          // Criar link para download
+          const link = document.createElement('a')
+          link.href = blobUrl
+          link.download = fileName
+          link.style.display = 'none'
+          
+          // Adicionar ao DOM, clicar e remover
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          
+          // Limpar URL do blob
+          window.URL.revokeObjectURL(blobUrl)
+          
+        } catch (fetchError) {
+          console.warn('Fetch falhou, tentando método alternativo:', fetchError)
+          
+          // Fallback: abrir em nova aba
+          window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+        }
+        
+        console.log('📥 Download iniciado:', fileName)
       }
     } catch (error: any) {
       console.error('Erro ao baixar documento:', error)

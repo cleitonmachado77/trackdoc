@@ -19,8 +19,20 @@ const nextConfig = {
   // ✅ Configurações otimizadas para PRODUÇÃO
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['@supabase/ssr', '@supabase/supabase-js', 'lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+    optimizePackageImports: [
+      '@supabase/ssr', 
+      '@supabase/supabase-js', 
+      'lucide-react', 
+      '@radix-ui/react-dialog', 
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      'recharts'
+    ],
     missingSuspenseWithCSRBailout: false,
+    // Otimizações adicionais
+    serverComponentsExternalPackages: ['@supabase/ssr'],
+    optimizeServerReact: true,
   },
   
 
@@ -67,13 +79,14 @@ const nextConfig = {
   
   // ✅ Otimizações de webpack para produção
   webpack: (config, { dev, isServer }) => {
-    if (!dev && !isServer) {
-      // ✅ Otimizações apenas para produção
+    // Otimizações para desenvolvimento também
+    if (!isServer) {
       config.optimization = {
         ...config.optimization,
-        minimize: true,
         splitChunks: {
           chunks: 'all',
+          minSize: 20000,
+          maxSize: 244000,
           cacheGroups: {
             default: false,
             vendors: false,
@@ -81,8 +94,9 @@ const nextConfig = {
             vendor: {
               name: 'vendor',
               chunks: 'all',
-              test: /node_modules/,
-              priority: 20
+              test: /[\\/]node_modules[\\/]/,
+              priority: 20,
+              enforce: true
             },
             // Chunk separado para Supabase
             supabase: {
@@ -90,13 +104,23 @@ const nextConfig = {
               test: /[\\/]node_modules[\\/](@supabase)[\\/]/,
               chunks: 'all',
               priority: 30,
+              enforce: true
             },
             // Chunk para UI components
             ui: {
               name: 'ui',
-              test: /[\\/]node_modules[\\/](@radix-ui)[\\/]/,
+              test: /[\\/]node_modules[\\/](@radix-ui|lucide-react)[\\/]/,
               chunks: 'all',
               priority: 25,
+              enforce: true
+            },
+            // Chunk para gráficos
+            charts: {
+              name: 'charts',
+              test: /[\\/]node_modules[\\/](recharts|d3)[\\/]/,
+              chunks: 'all',
+              priority: 24,
+              enforce: true
             },
             // Commons chunk para código compartilhado
             commons: {
@@ -109,6 +133,12 @@ const nextConfig = {
         },
       }
     }
+
+    // Otimizações adicionais
+    if (!dev) {
+      config.optimization.minimize = true
+    }
+
     return config
   },
   

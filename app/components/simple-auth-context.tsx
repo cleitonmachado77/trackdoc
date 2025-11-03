@@ -42,45 +42,64 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       return
     }
 
-    // Verificar sessão atual com tratamento de erro
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.warn('Erro ao obter sessão:', error.message)
-        // Limpar dados inválidos
-        setSession(null)
-        setUser(null)
-      } else {
-        setSession(session)
-        setUser(session?.user ?? null)
-      }
-      setLoading(false)
-    }).catch((error) => {
-      console.warn('Erro ao verificar sessão:', error.message)
-      // Em caso de erro, limpar estado e continuar
-      setSession(null)
-      setUser(null)
-      setLoading(false)
-    })
+    let isMounted = true
 
-    // Listener de mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event)
+    // Verificar sessão atual com tratamento de erro otimizado
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
         
-        // Se houve erro de token, limpar tudo
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          console.warn('Token refresh falhou, limpando sessão')
+        if (!isMounted) return
+        
+        if (error) {
+          console.warn('Erro ao obter sessão:', error.message)
           setSession(null)
           setUser(null)
         } else {
           setSession(session)
           setUser(session?.user ?? null)
         }
-        setLoading(false)
+      } catch (error) {
+        if (!isMounted) return
+        console.warn('Erro ao verificar sessão:', error)
+        setSession(null)
+        setUser(null)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    initializeAuth()
+
+    // Listener de mudanças de autenticação otimizado
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!isMounted) return
+        
+        console.log('Auth state changed:', event)
+        
+        // Otimizar eventos para reduzir re-renderizações
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh falhou, limpando sessão')
+          setSession(null)
+          setUser(null)
+        } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          setSession(session)
+          setUser(session?.user ?? null)
+        }
+        
+        if (loading) {
+          setLoading(false)
+        }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {

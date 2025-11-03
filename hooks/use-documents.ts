@@ -91,95 +91,67 @@ export function useDocuments(filters: DocumentFilters = {}) {
     }
   }, [user?.id])
 
-  const filterDocumentsByPermissions = async (documents: any[], userId: string): Promise<any[]> => {
+  const filterDocumentsByPermissions = useCallback(async (documents: any[], userId: string): Promise<any[]> => {
     try {
-      // Buscar departamento primário do usuário
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('department_id')
-        .eq('id', userId)
-        .single()
-
-      // Buscar departamentos adicionais do usuário
-      const { data: userDepartments } = await supabase
-        .from('user_departments')
-        .select('department_id')
-        .eq('user_id', userId)
+      // Otimização: Buscar dados do usuário em uma única query
+      const [userProfileResult, userDepartmentsResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('department_id')
+          .eq('id', userId)
+          .single(),
+        supabase
+          .from('user_departments')
+          .select('department_id')
+          .eq('user_id', userId)
+      ])
 
       // Combinar departamentos
-      let userDepartmentIds = userDepartments?.map(ud => ud.department_id) || []
-      if (userProfile?.department_id) {
-        userDepartmentIds.push(userProfile.department_id)
+      let userDepartmentIds = userDepartmentsResult.data?.map(ud => ud.department_id) || []
+      if (userProfileResult.data?.department_id) {
+        userDepartmentIds.push(userProfileResult.data.department_id)
       }
-      // Remover duplicatas
       userDepartmentIds = [...new Set(userDepartmentIds)]
 
-      // Filtrar documentos
-      const filteredDocuments = []
+      // Otimização: Separar documentos por tipo para reduzir queries
+      const userDocuments = documents.filter(doc => doc.author_id === userId)
+      const publicDocuments = documents.filter(doc => doc.is_public && doc.author_id !== userId)
+      const privateDocuments = documents.filter(doc => !doc.is_public && doc.author_id !== userId)
 
-      for (const doc of documents) {
-        // 1. Se o usuário é o autor, sempre pode ver
-        if (doc.author_id === userId) {
-          filteredDocuments.push(doc)
-          continue
-        }
-
-        // 2. Se o documento é público, pode ver
-        if (doc.is_public) {
-          filteredDocuments.push(doc)
-          continue
-        }
-
-        // 3. Verificar se há permissões específicas
-        let hasPermission = false
-
-        if (userDepartmentIds.length > 0) {
-          const { data: permissions } = await supabase
-            .from('document_permissions')
-            .select('*')
-            .eq('document_id', doc.id)
-            .eq('permission_type', 'read')
-            .or(`user_id.eq.${userId},department_id.in.(${userDepartmentIds.join(',')})`)
-
-          hasPermission = permissions && permissions.length > 0
-        } else {
-          // Se não tem departamentos, verificar apenas permissão direta
-          const { data: permissions } = await supabase
-            .from('document_permissions')
-            .select('*')
-            .eq('document_id', doc.id)
-            .eq('user_id', userId)
-            .eq('permission_type', 'read')
-
-          hasPermission = permissions && permissions.length > 0
-        }
-
-        // Se há permissões, pode ver
-        if (hasPermission) {
-          filteredDocuments.push(doc)
-          continue
-        }
-
-        // 4. Se não há permissões específicas e não é público, verificar se é documento privado sem restrições
-        const { data: hasAnyPermissions } = await supabase
-          .from('document_permissions')
-          .select('id')
-          .eq('document_id', doc.id)
-          .limit(1)
-
-        // Se não há nenhuma permissão definida e não é público, é considerado privado do autor
-        if (!hasAnyPermissions || hasAnyPermissions.length === 0) {
-          // Não adicionar à lista (usuário não tem acesso)
-          continue
-        }
+      // Se não há documentos privados, retornar rapidamente
+      if (privateDocuments.length === 0) {
+        return [...userDocuments, ...publicDocuments]
       }
 
-      return filteredDocuments
+      // Buscar permissões para todos os documentos privados de uma vez
+      const privateDocIds = privateDocuments.map(doc => doc.id)
+      
+      let permissionsQuery = supabase
+        .from('document_permissions')
+        .select('document_id')
+        .in('document_id', privateDocIds)
+        .eq('permission_type', 'read')
+
+      if (userDepartmentIds.length > 0) {
+        permissionsQuery = permissionsQuery.or(`user_id.eq.${userId},department_id.in.(${userDepartmentIds.join(',')})`)
+      } else {
+        permissionsQuery = permissionsQuery.eq('user_id', userId)
+      }
+
+      const { data: permissions } = await permissionsQuery
+
+      // Criar set de documentos com permissão para busca rápida
+      const allowedDocIds = new Set(permissions?.map(p => p.document_id) || [])
+
+      // Filtrar documentos privados baseado nas permissões
+      const allowedPrivateDocuments = privateDocuments.filter(doc => allowedDocIds.has(doc.id))
+
+      return [...userDocuments, ...publicDocuments, ...allowedPrivateDocuments]
     } catch (error) {
       console.error('Erro ao filtrar documentos por permissões:', error)
       return documents // Em caso de erro, retornar todos os documentos
     }
-  }
+  }, [])
 
   const fetchDocuments = useCallback(async () => {
     if (!user?.id) {
@@ -253,49 +225,32 @@ export function useDocuments(filters: DocumentFilters = {}) {
       // Filtrar documentos baseado em permissões
       const filteredData = await filterDocumentsByPermissions(data || [], user.id)
 
-      // Processar documentos para incluir URLs de download e lógica de retenção
-      const processedDocuments = await Promise.all(
-        filteredData.map(async (doc) => {
-          try {
-            const { data: urlData } = await supabase.storage
-              .from('documents')
-              .createSignedUrl(doc.file_path, 3600) // 1 hora
+      // Otimização: Processar documentos sem gerar URLs desnecessariamente
+      // URLs serão geradas apenas quando necessário (no download)
+      const processedDocuments = filteredData.map((doc) => {
+        // Calcular se o documento pode ser deletado baseado no período de retenção
+        let canDelete = true
+        
+        if (!doc.document_type_id) {
+          canDelete = true
+        } else if (doc.retention_end_date) {
+          const retentionEndDate = new Date(doc.retention_end_date)
+          const now = new Date()
+          canDelete = now > retentionEndDate
+        } else if (doc.retention_period && doc.retention_period > 0) {
+          const createdDate = new Date(doc.created_at)
+          const retentionEndDate = new Date(createdDate.getTime() + doc.retention_period * 30 * 24 * 60 * 60 * 1000)
+          const now = new Date()
+          canDelete = now > retentionEndDate
+        } else if (doc.retention_period === 0 || doc.retention_period === null) {
+          canDelete = true
+        }
 
-            // Calcular se o documento pode ser deletado baseado no período de retenção
-            let canDelete = true
-            
-            // Se o documento não tem tipo de documento associado, pode ser excluído
-            if (!doc.document_type_id) {
-              canDelete = true
-            } else if (doc.retention_end_date) {
-              const retentionEndDate = new Date(doc.retention_end_date)
-              const now = new Date()
-              canDelete = now > retentionEndDate
-            } else if (doc.retention_period && doc.retention_period > 0) {
-              // Calcular baseado na data de criação + período de retenção
-              const createdDate = new Date(doc.created_at)
-              const retentionEndDate = new Date(createdDate.getTime() + doc.retention_period * 30 * 24 * 60 * 60 * 1000)
-              const now = new Date()
-              canDelete = now > retentionEndDate
-            } else if (doc.retention_period === 0 || doc.retention_period === null) {
-              // Se retention_period é 0 ou null, documento pode ser excluído
-              canDelete = true
-            }
-
-            return {
-              ...doc,
-              download_url: urlData?.signedUrl,
-              can_delete: canDelete
-            }
-          } catch (error) {
-            console.warn(`Erro ao gerar URL para documento ${doc.id}:`, error)
-            return {
-              ...doc,
-              can_delete: true // Se houver erro, permitir deleção por padrão
-            }
-          }
-        })
-      )
+        return {
+          ...doc,
+          can_delete: canDelete
+        }
+      })
 
       setDocuments(processedDocuments)
 

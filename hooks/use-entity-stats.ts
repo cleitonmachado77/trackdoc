@@ -69,97 +69,51 @@ export function useEntityStats() {
 
       if (!entityId) return
 
-      // Buscar estatísticas básicas diretamente das tabelas
-      // Contar total de documentos
-      const { count: totalDocuments } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('entity_id', entityId)
+      // Otimização: Fazer todas as contagens em paralelo
+      const [
+        totalDocumentsResult,
+        draftDocumentsResult,
+        pendingDocumentsResult,
+        approvedDocumentsResult,
+        totalUsersResult,
+        activeUsersResult,
+        categoryStatsResult,
+        typeStatsResult,
+        recentActivityResult
+      ] = await Promise.all([
+        supabase.from('documents').select('*', { count: 'exact', head: true }).eq('entity_id', entityId),
+        supabase.from('documents').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'draft'),
+        supabase.from('documents').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'pending'),
+        supabase.from('documents').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'approved'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('entity_id', entityId),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'active'),
+        supabase.from('documents').select('category_id, categories!documents_category_id_fkey(name, color)').eq('entity_id', entityId).not('category_id', 'is', null),
+        supabase.from('documents').select('document_type_id, document_types!documents_document_type_id_fkey(name, color)').eq('entity_id', entityId).not('document_type_id', 'is', null),
+        supabase.from('audit_logs').select('id, action, created_at, profiles!audit_logs_user_id_fkey(full_name)').eq('entity_id', entityId).order('created_at', { ascending: false }).limit(10)
+      ])
 
-      // Contar documentos rascunho
-      const { count: draftDocuments } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('entity_id', entityId)
-        .eq('status', 'draft')
+      // Verificar erros
+      const errors = [
+        categoryStatsResult.error,
+        typeStatsResult.error,
+        recentActivityResult.error
+      ].filter(Boolean)
 
-      // Contar documentos pendentes
-      const { count: pendingDocuments } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('entity_id', entityId)
-        .eq('status', 'pending')
+      if (errors.length > 0) {
+        console.warn('Alguns erros ao buscar estatísticas:', errors)
+      }
 
-      // Contar documentos aprovados
-      const { count: approvedDocuments } = await supabase
-        .from('documents')
-        .select('*', { count: 'exact', head: true })
-        .eq('entity_id', entityId)
-        .eq('status', 'approved')
+      const basicStats = {
+        total_documents: totalDocumentsResult.count || 0,
+        draft_documents: draftDocumentsResult.count || 0,
+        pending_documents: pendingDocumentsResult.count || 0,
+        approved_documents: approvedDocumentsResult.count || 0,
+        total_users: totalUsersResult.count || 0,
+        active_users: activeUsersResult.count || 0
+      }
 
-      // Contar total de usuários
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('entity_id', entityId)
-
-      // Contar usuários ativos
-      const { count: activeUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('entity_id', entityId)
-        .eq('status', 'active')
-
-      const basicStats = [{
-        total_documents: totalDocuments || 0,
-        draft_documents: draftDocuments || 0,
-        pending_documents: pendingDocuments || 0,
-        approved_documents: approvedDocuments || 0,
-        total_users: totalUsers || 0,
-        active_users: activeUsers || 0
-      }]
-
-      // Buscar documentos por categoria
-      const { data: categoryStats, error: categoryError } = await supabase
-        .from('documents')
-        .select(`
-          category_id,
-          categories!documents_category_id_fkey(name, color)
-        `)
-        .eq('entity_id', entityId)
-        .not('category_id', 'is', null)
-
-      if (categoryError) throw categoryError
-
-      // Buscar documentos por tipo
-      const { data: typeStats, error: typeError } = await supabase
-        .from('documents')
-        .select(`
-          document_type_id,
-          document_types!documents_document_type_id_fkey(name, color)
-        `)
-        .eq('entity_id', entityId)
-        .not('document_type_id', 'is', null)
-
-      if (typeError) throw typeError
-
-      // Buscar atividade recente
-      const { data: recentActivity, error: activityError } = await supabase
-        .from('audit_logs')
-        .select(`
-          id,
-          action,
-          created_at,
-          profiles!audit_logs_user_id_fkey(full_name)
-        `)
-        .eq('entity_id', entityId)
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-      if (activityError) throw activityError
-
-      // Processar estatísticas por categoria
-      const categoryCounts = categoryStats?.reduce((acc: any, doc: any) => {
+      // Processar estatísticas por categoria (otimizado)
+      const categoryCounts = categoryStatsResult.data?.reduce((acc: any, doc: any) => {
         const categoryName = doc.categories?.name || 'Sem categoria'
         const categoryColor = doc.categories?.color || '#6B7280'
         
@@ -168,16 +122,16 @@ export function useEntityStats() {
         }
         acc[categoryName].count++
         return acc
-      }, {})
+      }, {}) || {}
 
-      const documentsByCategory = Object.entries(categoryCounts || {}).map(([name, data]: [string, any]) => ({
+      const documentsByCategory = Object.entries(categoryCounts).map(([name, data]: [string, any]) => ({
         category: name,
         count: data.count,
         color: data.color
       }))
 
-      // Processar estatísticas por tipo
-      const typeCounts = typeStats?.reduce((acc: any, doc: any) => {
+      // Processar estatísticas por tipo (otimizado)
+      const typeCounts = typeStatsResult.data?.reduce((acc: any, doc: any) => {
         const typeName = doc.document_types?.name || 'Sem tipo'
         const typeColor = doc.document_types?.color || '#6B7280'
         
@@ -186,16 +140,16 @@ export function useEntityStats() {
         }
         acc[typeName].count++
         return acc
-      }, {})
+      }, {}) || {}
 
-      const documentsByType = Object.entries(typeCounts || {}).map(([name, data]: [string, any]) => ({
+      const documentsByType = Object.entries(typeCounts).map(([name, data]: [string, any]) => ({
         type: name,
         count: data.count,
         color: data.color
       }))
 
       // Processar atividade recente
-      const processedActivity = recentActivity?.map((log: any) => ({
+      const processedActivity = recentActivityResult.data?.map((log: any) => ({
         id: log.id,
         action: log.action,
         user_name: log.profiles?.full_name || 'Usuário desconhecido',
@@ -203,12 +157,7 @@ export function useEntityStats() {
       })) || []
 
       const entityStats: EntityStats = {
-        total_documents: basicStats?.[0]?.total_documents || 0,
-        draft_documents: basicStats?.[0]?.draft_documents || 0,
-        pending_documents: basicStats?.[0]?.pending_documents || 0,
-        approved_documents: basicStats?.[0]?.approved_documents || 0,
-        total_users: basicStats?.[0]?.total_users || 0,
-        active_users: basicStats?.[0]?.active_users || 0,
+        ...basicStats,
         recent_activity: processedActivity,
         documents_by_category: documentsByCategory,
         documents_by_type: documentsByType

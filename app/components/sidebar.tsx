@@ -77,19 +77,12 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         icon: FileText,
         badge: null,
       },
-      // {
-      //   id: "ai-create",
-      //   label: "Criar com IA",
-      //   icon: Sparkles,
-      //   badge: "Novo",
-      // },
       {
         id: "electronic-signature",
         label: "Assinatura Eletrônica",
         icon: PenTool,
         badge: null,
       },
-
       {
         id: "approvals",
         label: "Aprovações",
@@ -102,8 +95,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         icon: Bell,
         badge: unreadNotificationsCount > 0 ? unreadNotificationsCount.toString() : null,
         onClick: () => {
-          console.log('🔄 Forçando atualização do contador...')
-          refreshNotificationsCounter()
+          // Otimização: Remover refresh desnecessário
           onViewChange('notifications')
         }
       },
@@ -121,8 +113,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
       },
     ]
 
-    // ✅ MUDANÇA: Adicionar item de administração para todos os usuários autenticados
-    // Isso permite que usuários sem entidade possam criar uma entidade
+    // Adicionar administração apenas se o perfil estiver carregado
     if (profile) {
       baseItems.push({
         id: "admin",
@@ -133,7 +124,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
     }
 
     return baseItems
-  }, [pendingApprovalsCount, unreadNotificationsCount, profile?.role, onViewChange])
+  }, [pendingApprovalsCount, unreadNotificationsCount, profile, onViewChange])
 
   return (
     <>

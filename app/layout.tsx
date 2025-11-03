@@ -47,5 +47,6 @@ export default function RootLayout({
 }
 
 // Forçar renderização dinâmica globalmente
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// Otimização: Remover force-dynamic desnecessário que causa lentidão
+// export const dynamic = 'force-dynamic'
+// export const revalidate = 0

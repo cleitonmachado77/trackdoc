@@ -50,147 +50,137 @@ export function useApprovals() {
       setLoading(true)
       setError(null)
 
-      // Buscar aprovações pendentes (documentos que o usuário criou)
-      const { data: pendingData, error: pendingError } = await supabase
-        .from('approval_requests')
-        .select('*')
-        .eq('status', 'pending')
-        .order('step_order', { ascending: true })
+      // Otimização: Fazer todas as queries principais em paralelo
+      const [pendingResult, myResult, sentResult] = await Promise.all([
+        // Buscar aprovações pendentes
+        supabase
+          .from('approval_requests')
+          .select('*')
+          .eq('status', 'pending')
+          .order('step_order', { ascending: true }),
 
-      if (pendingError) throw pendingError
+        // Buscar aprovações do usuário
+        supabase
+          .from('approval_requests')
+          .select('*')
+          .eq('approver_id', user!.id)
+          .order('created_at', { ascending: false }),
 
-      // Buscar TODAS as aprovações que o usuário precisa fazer (incluindo aprovadas e rejeitadas)
-      const { data: myData, error: myError } = await supabase
-        .from('approval_requests')
-        .select('*')
-        .eq('approver_id', user!.id)
-        .order('created_at', { ascending: false })
-
-      if (myError) throw myError
-
-      // Buscar documentos que o usuário enviou para aprovação
-      const { data: sentData, error: sentError } = await supabase
-        .from('documents')
-        .select(`
-          id,
-          title,
-          status,
-          created_at,
-          approval_requests (
+        // Buscar documentos enviados para aprovação
+        supabase
+          .from('documents')
+          .select(`
             id,
+            title,
             status,
-            comments,
-            approved_at,
-            approver_id,
-            profiles!approval_requests_approver_id_fkey (
-              full_name
+            created_at,
+            approval_requests (
+              id,
+              status,
+              comments,
+              approved_at,
+              approver_id,
+              profiles!approval_requests_approver_id_fkey (
+                full_name
+              )
             )
-          )
-        `)
-        .eq('author_id', user!.id)
-        .in('status', ['pending_approval', 'approved', 'rejected'])
-        .order('created_at', { ascending: false })
+          `)
+          .eq('author_id', user!.id)
+          .in('status', ['pending_approval', 'approved', 'rejected'])
+          .order('created_at', { ascending: false })
+      ])
 
-      if (sentError) throw sentError
+      if (pendingResult.error) throw pendingResult.error
+      if (myResult.error) throw myResult.error
+      if (sentResult.error) throw sentResult.error
 
-      // Buscar dados relacionados separadamente
+      // Otimização: Enriquecer dados de forma mais eficiente
       const enrichApprovals = async (approvals: any[]) => {
-        return Promise.all(
-          approvals.map(async (approval) => {
-            const relations = {
-              document_title: '',
-              approver_name: '',
-              document_author_name: '',
-              document_file_path: '',
-              document_file_name: '',
-              document_file_type: ''
-            }
+        if (approvals.length === 0) return []
 
-            // Buscar título do documento
-            if (approval.document_id) {
-              try {
-                const { data: docData } = await supabase
-                  .from('documents')
-                  .select('title, author_id, file_path, file_name, file_type')
-                  .eq('id', approval.document_id)
-                  .single()
-                relations.document_title = docData?.title || ''
-                // Construir URL completa do Supabase Storage
-                if (docData?.file_path) {
-                  // Se já é uma URL completa, usar como está
-                  if (docData.file_path.startsWith('http')) {
-                    relations.document_file_path = docData.file_path
-                  } else {
-                    // Construir URL do Supabase Storage
-                    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-                    if (supabaseUrl) {
-                      relations.document_file_path = `${supabaseUrl}/storage/v1/object/public/documents/${docData.file_path}`
-                    } else {
-                      console.error('NEXT_PUBLIC_SUPABASE_URL não está definido')
-                      relations.document_file_path = ''
-                    }
-                  }
-                } else {
-                  relations.document_file_path = ''
-                }
-                
-                relations.document_file_name = docData?.file_name || ''
-                relations.document_file_type = docData?.file_type || ''
+        // Buscar todos os documentos de uma vez
+        const documentIds = [...new Set(approvals.map(a => a.document_id).filter(Boolean))]
+        const approverIds = [...new Set(approvals.map(a => a.approver_id).filter(Boolean))]
 
-                // Log para debug
-                console.log('Documento encontrado:', {
-                  id: approval.document_id,
-                  title: docData?.title,
-                  file_path: docData?.file_path,
-                  final_url: relations.document_file_path,
-                  supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL
-                })
+        const [documentsResult, approversResult] = await Promise.all([
+          documentIds.length > 0 ? supabase
+            .from('documents')
+            .select('id, title, author_id, file_path, file_name, file_type')
+            .in('id', documentIds) : Promise.resolve({ data: [] }),
 
-                // Buscar nome do autor do documento
-                if (docData?.author_id) {
-                  try {
-                    const { data: authorData } = await supabase
-                      .from('profiles')
-                      .select('full_name')
-                      .eq('id', docData.author_id)
-                      .single()
-                    relations.document_author_name = authorData?.full_name || ''
-                  } catch (e) {
-                    console.warn('Erro ao buscar autor do documento:', e)
-                  }
-                }
-              } catch (e) {
-                console.warn('Erro ao buscar documento:', e)
+          approverIds.length > 0 ? supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', approverIds) : Promise.resolve({ data: [] })
+        ])
+
+        // Criar maps para busca rápida com tipagem correta
+        const documentsMap = new Map<string, any>()
+        const approversMap = new Map<string, any>()
+
+        // Preencher maps de forma segura
+        documentsResult.data?.forEach(doc => {
+          if (doc?.id) {
+            documentsMap.set(doc.id, doc)
+          }
+        })
+
+        approversResult.data?.forEach(profile => {
+          if (profile?.id) {
+            approversMap.set(profile.id, profile)
+          }
+        })
+
+        // Buscar autores dos documentos
+        const authorIds = [...new Set(documentsResult.data?.map((doc: any) => doc.author_id).filter(Boolean) || [])]
+        const authorsResult = authorIds.length > 0 ? await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', authorIds) : { data: [] }
+
+        const authorsMap = new Map<string, any>()
+        authorsResult.data?.forEach(profile => {
+          if (profile?.id) {
+            authorsMap.set(profile.id, profile)
+          }
+        })
+
+        // Enriquecer aprovações com tipagem correta
+        return approvals.map(approval => {
+          const doc: any = documentsMap.get(approval.document_id)
+          const approver: any = approversMap.get(approval.approver_id)
+          const author: any = doc ? authorsMap.get(doc.author_id) : null
+
+          // Construir URL do arquivo de forma otimizada
+          let document_file_path = ''
+          if (doc?.file_path) {
+            if (doc.file_path.startsWith('http')) {
+              document_file_path = doc.file_path
+            } else {
+              const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+              if (supabaseUrl) {
+                document_file_path = `${supabaseUrl}/storage/v1/object/public/documents/${doc.file_path}`
               }
             }
+          }
 
-            // Buscar nome do aprovador
-            if (approval.approver_id) {
-              try {
-                const { data: approverData } = await supabase
-                  .from('profiles')
-                  .select('full_name')
-                  .eq('id', approval.approver_id)
-                  .single()
-                relations.approver_name = approverData?.full_name || ''
-              } catch (e) {
-                console.warn('Erro ao buscar aprovador:', e)
-              }
-            }
-
-            return {
-              ...approval,
-              ...relations
-            }
-          })
-        )
+          return {
+            ...approval,
+            document_title: doc?.title || '',
+            approver_name: approver?.full_name || '',
+            document_author_name: author?.full_name || '',
+            document_file_path,
+            document_file_name: doc?.file_name || '',
+            document_file_type: doc?.file_type || ''
+          }
+        })
       }
 
-      // Processar dados enviados para aprovação
-      const processSentApprovals = (sentData || []).map(doc => {
+      // Processar dados enviados para aprovação (otimizado)
+      const processSentApprovals = (sentResult.data || []).map(doc => {
         const approvals = doc.approval_requests || []
-        const latestapproval = approvals[approvals.length - 1] // Último approval
-        
+        const latestApproval = approvals[approvals.length - 1]
+
         return {
           id: doc.id,
           document_id: doc.id,
@@ -198,26 +188,20 @@ export function useApprovals() {
           status: doc.status,
           created_at: doc.created_at,
           approval_requests: approvals,
-          latest_approval: latestapproval,
-                   // Para compatibilidade com a interface existente
-         approver_id: latestapproval?.approver_id || '',
-         approver_name: latestapproval?.profiles?.[0]?.full_name || '',
-          comments: latestapproval?.comments || '',
-          approved_at: latestapproval?.approved_at || '',
+          latest_approval: latestApproval,
+          approver_id: latestApproval?.approver_id || '',
+          approver_name: latestApproval?.profiles?.[0]?.full_name || '',
+          comments: latestApproval?.comments || '',
+          approved_at: latestApproval?.approved_at || '',
           step_order: approvals.length
         }
       })
 
-      const enrichedPending = await enrichApprovals(pendingData || [])
-      const enrichedMy = await enrichApprovals(myData || [])
-
-      // Log para debug das estatísticas
-      console.log('Estatísticas de Aprovação:', {
-        total: enrichedMy.length,
-        pending: enrichedMy.filter(a => a.status === 'pending').length,
-        approved: enrichedMy.filter(a => a.status === 'approved').length,
-        rejected: enrichedMy.filter(a => a.status === 'rejected').length
-      })
+      // Enriquecer dados em paralelo
+      const [enrichedPending, enrichedMy] = await Promise.all([
+        enrichApprovals(pendingResult.data || []),
+        enrichApprovals(myResult.data || [])
+      ])
 
       setPendingApprovals(enrichedPending)
       setMyApprovals(enrichedMy)
@@ -264,7 +248,7 @@ export function useApprovals() {
   const approveDocument = async (approvalId: string, approved: boolean, comments?: string) => {
     try {
       setError(null)
-      
+
       console.log('🔄 [APPROVE] Usando API route diretamente...')
 
       // Usar API route diretamente (comprovadamente funciona)
@@ -288,7 +272,7 @@ export function useApprovals() {
 
       const result = await response.json()
       const approvalData = result.data
-      
+
       console.log('✅ [APPROVE] API route funcionou!', result)
 
       // Buscar informações do documento e autor para a notificação
@@ -303,7 +287,7 @@ export function useApprovals() {
           .select('title, author_id')
           .eq('id', approvalData.document_id)
           .single()
-        
+
         documentTitle = docData?.title || 'Documento'
 
         // Buscar email do autor
@@ -316,13 +300,13 @@ export function useApprovals() {
           authorEmail = authorData?.email || ''
         }
 
-                 // Buscar nome do aprovador
-         const { data: approverData } = await supabase
-           .from('profiles')
-           .select('full_name')
-           .eq('id', user!.id)
-           .single()
-         approverName = approverData?.full_name || 'Aprovador'
+        // Buscar nome do aprovador
+        const { data: approverData } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user!.id)
+          .single()
+        approverName = approverData?.full_name || 'Aprovador'
 
       } catch (e) {
         console.warn('Erro ao buscar dados para notificação:', e)
@@ -331,7 +315,7 @@ export function useApprovals() {
       // Criar notificação para o autor do documento
       if (authorEmail) {
         try {
-          const notificationTitle = approved 
+          const notificationTitle = approved
             ? `Documento Aprovado: ${documentTitle}`
             : `Documento Rejeitado: ${documentTitle}`
 

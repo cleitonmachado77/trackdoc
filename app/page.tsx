@@ -86,6 +86,7 @@ import DocumentUploadWithApproval from "./components/document-upload-with-approv
 import EntityUserManagement from "./components/admin/entity-user-management"
 import EntityManagement from "./components/admin/entity-management"
 import ElectronicSignature from "./components/electronic-signature"
+import PerformanceMonitor from "./components/performance-monitor"
 
 import ChatPage from "./chat/page"
 import MinhaContaPage from "./minha-conta/page"
@@ -160,7 +161,7 @@ const DocumentManagementPlatform = memo(function DocumentManagementPlatform() {
 export default DocumentManagementPlatform
 
 const DocumentManagementPlatformContent = memo(function DocumentManagementPlatformContent() {
-  // Hooks para dados reais
+  // Hooks para dados reais - otimizados para carregamento lazy
   const { user } = useAuth()
   const { documents, loading: documentsLoading, error: documentsError, createDocument, updateDocument, deleteDocument, changeDocumentStatus, stats: documentStats } = useDocuments()
   const { myApprovals, sentApprovals, loading: approvalsLoading } = useApprovals()
@@ -171,6 +172,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   const { stats: notificationStats } = useNotifications()
   const { signatures, documents: signatureDocuments, loading: signatureLoading } = useElectronicSignatures()
   const searchParams = useSearchParams()
+
+  // Loading state otimizado
+  const isInitialLoading = documentsLoading && documents.length === 0
 
   // Estados
   const [searchTerm, setSearchTerm] = useState("")
@@ -1908,6 +1912,31 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     }
   }
 
+  // Mostrar loading otimizado durante carregamento inicial
+  if (isInitialLoading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <div className="w-64 bg-sidebar border-r border-border flex items-center justify-center">
+          <div className="animate-pulse">
+            <div className="h-8 w-32 bg-gray-300 rounded mb-4"></div>
+            <div className="space-y-2">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-4 w-24 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Carregando TrackDoc</h2>
+            <p className="text-gray-600">Preparando seu ambiente de trabalho...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
@@ -2017,6 +2046,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Monitor de Performance (apenas em desenvolvimento) */}
+      {process.env.NODE_ENV === 'development' && <PerformanceMonitor />}
     </div>
   )
 })

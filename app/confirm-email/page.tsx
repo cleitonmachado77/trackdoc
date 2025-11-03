@@ -23,116 +23,122 @@ export default function ConfirmEmailPage() {
   useEffect(() => {
     const handleEmailConfirmation = async () => {
       try {
-        // Verificar se há tokens na URL (vindos do callback)
+        // Verificar se há tokens na URL (vindos do callback) ou se foi confirmado
         const token_hash = searchParams.get('token_hash')
         const type = searchParams.get('type')
+        const confirmed = searchParams.get('confirmed')
+        const error = searchParams.get('error')
         
-        if (token_hash && type === 'signup') {
-          // Verificar sessão do usuário
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        // Se houver erro na URL, exibir mensagem
+        if (error) {
+          setStatus('error')
+          setMessage('Erro ao confirmar email. Tente novamente ou entre em contato com o suporte.')
+          return
+        }
+
+        // Verificar sessão do usuário (pode vir do callback ou já estar logado)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('❌ [ConfirmEmail] Erro ao verificar sessão:', sessionError)
+          setStatus('error')
+          setMessage('Erro ao verificar confirmação de email. Tente fazer login novamente.')
+          return
+        }
+
+        // Se há sessão, processar confirmação
+        if (session?.user) {
+          setUserEmail(session.user.email || '')
           
-          if (sessionError) {
-            console.error('Erro ao verificar sessão:', sessionError)
-            setStatus('error')
-            setMessage('Erro ao verificar confirmação de email')
-            return
-          }
-
-          if (session?.user) {
-            setUserEmail(session.user.email || '')
+          // Verificar se o email já foi confirmado
+          if (session.user.email_confirmed_at) {
+            console.log('✅ [ConfirmEmail] Email confirmado, ativando usuário automaticamente...')
             
-            // Verificar se o email já foi confirmado
-            if (session.user.email_confirmed_at) {
-              console.log('✅ [ConfirmEmail] Email confirmado, ativando usuário automaticamente...')
-              
-              // 🚀 NOVO: Ativar usuário automaticamente após confirmação de email
-              const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                  status: 'active', // Ativar automaticamente
-                  registration_completed: true,
-                  permissions: ['read', 'write'],
-                  email_confirmed_at: new Date().toISOString(),
-                  activated_at: new Date().toISOString()
-                })
-                .eq('id', session.user.id)
+            // Verificar se o usuário já está ativo para evitar processamento duplicado
+            const { data: currentProfile } = await supabase
+              .from('profiles')
+              .select('status, entity_id')
+              .eq('id', session.user.id)
+              .single()
 
-              if (updateError) {
-                console.error('❌ [ConfirmEmail] Erro ao ativar usuário:', updateError)
-                setStatus('error')
-                setMessage('Email confirmado, mas houve erro ao ativar a conta. Entre em contato com o administrador.')
-                return
-              }
+            // Se já está ativo, apenas mostrar mensagem
+            if (currentProfile?.status === 'active') {
+              setStatus('already_confirmed')
+              setMessage('Seu email já foi confirmado e sua conta já está ativa. Você pode fazer login no sistema.')
+              return
+            }
 
-              // Buscar dados do perfil para atualizar contador da entidade
-              const { data: profileData } = await supabase
-                .from('profiles')
-                .select('entity_id')
-                .eq('id', session.user.id)
+            // 🚀 Ativar usuário automaticamente após confirmação de email
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({
+                status: 'active', // Ativar automaticamente
+                registration_completed: true,
+                permissions: ['read', 'write'],
+                email_confirmed_at: new Date().toISOString(),
+                activated_at: new Date().toISOString()
+              })
+              .eq('id', session.user.id)
+
+            if (updateError) {
+              console.error('❌ [ConfirmEmail] Erro ao ativar usuário:', updateError)
+              setStatus('error')
+              setMessage('Email confirmado, mas houve erro ao ativar a conta. Entre em contato com o administrador.')
+              return
+            }
+
+            // Buscar dados do perfil para atualizar contador da entidade
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('entity_id')
+              .eq('id', session.user.id)
+              .single()
+
+            if (profileData?.entity_id) {
+              // Atualizar contador de usuários na entidade
+              const { data: entityData } = await supabase
+                .from('entities')
+                .select('current_users')
+                .eq('id', profileData.entity_id)
                 .single()
 
-              if (profileData?.entity_id) {
-                // Atualizar contador de usuários na entidade
-                const { data: entityData } = await supabase
-                  .from('entities')
-                  .select('current_users')
-                  .eq('id', profileData.entity_id)
-                  .single()
-
-                if (entityData) {
-                  await supabase
-                    .from('entities')
-                    .update({ 
-                      current_users: (entityData.current_users || 0) + 1,
-                      updated_at: new Date().toISOString()
-                    })
-                    .eq('id', profileData.entity_id)
-                }
-
-                // Marcar convite como aceito se existir
+              if (entityData) {
                 await supabase
-                  .from('entity_invitations')
-                  .update({
-                    status: 'accepted',
-                    accepted_at: new Date().toISOString()
+                  .from('entities')
+                  .update({ 
+                    current_users: (entityData.current_users || 0) + 1,
+                    updated_at: new Date().toISOString()
                   })
-                  .eq('email', session.user.email)
-                  .eq('entity_id', profileData.entity_id)
+                  .eq('id', profileData.entity_id)
               }
 
-              console.log('✅ [ConfirmEmail] Usuário ativado automaticamente!')
-              
-              setStatus('success')
-              setMessage('Email confirmado e conta ativada com sucesso! Você já pode fazer login no sistema.')
-            } else {
-              setStatus('error')
-              setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada.')
+              // Marcar convite como aceito se existir
+              await supabase
+                .from('entity_invitations')
+                .update({
+                  status: 'accepted',
+                  accepted_at: new Date().toISOString()
+                })
+                .eq('email', session.user.email)
+                .eq('entity_id', profileData.entity_id)
             }
+
+            console.log('✅ [ConfirmEmail] Usuário ativado automaticamente!')
+            
+            setStatus('success')
+            setMessage('Email confirmado e conta ativada com sucesso! Você já pode fazer login no sistema.')
           } else {
+            // Email ainda não confirmado
             setStatus('error')
-            setMessage('Sessão não encontrada. Tente fazer login novamente.')
+            setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.')
           }
         } else {
-          // Verificar se o usuário já está logado e confirmado
-          const { data: { user } } = await supabase.auth.getUser()
-          
-          if (user) {
-            setUserEmail(user.email || '')
-            
-            if (user.email_confirmed_at) {
-              setStatus('already_confirmed')
-              setMessage('Seu email já foi confirmado anteriormente.')
-            } else {
-              setStatus('error')
-              setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.')
-            }
-          } else {
-            setStatus('error')
-            setMessage('Usuário não encontrado. Faça login para confirmar seu email.')
-          }
+          // Não há sessão - usuário precisa clicar no link do email
+          setStatus('error')
+          setMessage('Sessão não encontrada. Por favor, clique no link de confirmação enviado por email.')
         }
       } catch (error) {
-        console.error('Erro ao processar confirmação:', error)
+        console.error('❌ [ConfirmEmail] Erro ao processar confirmação:', error)
         setStatus('error')
         setMessage('Erro interno. Tente novamente mais tarde.')
       }

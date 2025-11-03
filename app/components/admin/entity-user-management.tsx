@@ -677,11 +677,16 @@ export default function EntityUserManagement() {
 
       try {
         // Criar usuário com email não confirmado automaticamente
+        // Usar URL absoluta para produção
+        const baseUrl = typeof window !== 'undefined' 
+          ? (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin)
+          : (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.com.br')
+        
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: userData.email.trim().toLowerCase(),
           password: userData.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?type=signup&next=/confirm-email`,
+            emailRedirectTo: `${baseUrl}/auth/callback?type=signup&next=/confirm-email`,
             data: {
               full_name: userData.full_name.trim(),
               entity_id: userData.entity_id,

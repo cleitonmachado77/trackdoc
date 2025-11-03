@@ -680,7 +680,7 @@ export default function EntityUserManagement() {
         // Usar URL absoluta para produção
         const baseUrl = typeof window !== 'undefined' 
           ? (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin)
-          : (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.com.br')
+          : (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br')
         
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: userData.email.trim().toLowerCase(),

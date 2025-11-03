@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     // Gerar URL de exemplo como seria criada
     const exampleVerificationCode = 'TEST123'
-    const generatedUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.com.br'}/verify/${exampleVerificationCode}`
+    const generatedUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.trackdoc.app.br'}/verify/${exampleVerificationCode}`
 
     return NextResponse.json({
       success: true,

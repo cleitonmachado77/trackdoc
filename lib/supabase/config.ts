@@ -4,7 +4,7 @@ export const supabaseConfig = {
   anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   // URL base da aplicação para redirecionamentos
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.com.br',
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br',
 }
 
 // Configurações de timeout e retry
@@ -15,7 +15,7 @@ export const supabaseOptions = {
     detectSessionInUrl: true,
     flowType: 'pkce' as const,
     // Configurar URLs de redirecionamento corretas
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.com.br'}/auth/callback`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback`,
   },
   global: {
     headers: {

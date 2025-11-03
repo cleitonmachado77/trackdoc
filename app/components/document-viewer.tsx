@@ -117,7 +117,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
         
         const link = document.createElement('a')
         link.href = data.signedUrl
-        link.download = doc.file_name
+        link.download = `${doc.title}.${doc.file_name?.split('.').pop() || 'pdf'}`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)

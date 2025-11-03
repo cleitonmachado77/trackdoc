@@ -716,8 +716,8 @@ export async function POST(request: NextRequest) {
            return cleanName || null
          }
          
-         const documentTitle = extractTitle(signedFileName)
-         console.log('📝 Título extraído:', documentTitle, 'do arquivo:', signedFileName)
+         const documentTitle = documentName // Usar o título correto do documento
+         console.log('📝 Título do documento:', documentTitle)
 
          const { error: insertError } = await supabase.from('document_signatures').insert({
            user_id: user.id,

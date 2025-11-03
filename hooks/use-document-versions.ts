@@ -333,7 +333,7 @@ export function useDocumentVersions(documentId?: string) {
       if (data?.signedUrl) {
         const link = document.createElement('a')
         link.href = data.signedUrl
-        link.download = version.file_name
+        link.download = `${version.file_name?.replace(/^\d+-[a-z0-9]+\./, '') || 'documento'}`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)

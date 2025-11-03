@@ -257,12 +257,10 @@ export default function PendingApprovalDocuments() {
                     <User className="h-4 w-4" />
                     Autor: {item.document.author.full_name}
                   </div>
-                  {item.document.file_name && (
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      {item.document.file_name}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" />
+                    Documento para aprovação
+                  </div>
                 </div>
                 
                 <Dialog open={showApprovalDialog && selectedDocument?.id === item.id} onOpenChange={(open) => {
@@ -299,9 +297,7 @@ export default function PendingApprovalDocuments() {
                             <p><strong>Descrição:</strong> {item.document.description}</p>
                           )}
                           <p><strong>Autor:</strong> {item.document.author.full_name}</p>
-                          {item.document.file_name && (
-                            <p><strong>Arquivo:</strong> {item.document.file_name}</p>
-                          )}
+
                         </div>
                       </div>
 

@@ -20,7 +20,6 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: [
-      '@supabase/ssr', 
       '@supabase/supabase-js', 
       'lucide-react', 
       '@radix-ui/react-dialog', 
@@ -30,7 +29,7 @@ const nextConfig = {
       'recharts'
     ],
     missingSuspenseWithCSRBailout: false,
-    // Otimizações adicionais
+    // Otimizações adicionais - removido conflito com @supabase/ssr
     serverComponentsExternalPackages: ['@supabase/ssr'],
     optimizeServerReact: true,
   },

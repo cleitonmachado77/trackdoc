@@ -262,8 +262,8 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
                 <Input
                   placeholder="Rua e número"
                   value={formData.address.street}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     address: { ...prev.address, street: e.target.value }
                   }))}
                   disabled={isCreating}
@@ -271,8 +271,8 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
                 <Input
                   placeholder="Cidade"
                   value={formData.address.city}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     address: { ...prev.address, city: e.target.value }
                   }))}
                   disabled={isCreating}
@@ -280,8 +280,8 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
                 <Input
                   placeholder="Estado"
                   value={formData.address.state}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     address: { ...prev.address, state: e.target.value }
                   }))}
                   disabled={isCreating}
@@ -289,8 +289,8 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
                 <Input
                   placeholder="CEP"
                   value={formData.address.zip_code}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     address: { ...prev.address, zip_code: e.target.value }
                   }))}
                   disabled={isCreating}
@@ -314,9 +314,9 @@ function CreateEntityInterface({ onEntityCreated }: { onEntityCreated: () => voi
             )}
 
             {/* Botão */}
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isCreating || !formData.name.trim() || !formData.email.trim()}
             >
               {isCreating ? (
@@ -426,6 +426,7 @@ export default function EntityUserManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [userToDelete, setUserToDelete] = useState<EntityUser | null>(null)
+  const [deleteType, setDeleteType] = useState<'remove' | 'delete'>('remove')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -450,9 +451,9 @@ export default function EntityUserManagement() {
   })
 
   // Lista de entidades disponíveis para o usuário logado
-  const [availableEntities, setAvailableEntities] = useState<Array<{id: string, name: string}>>([])
+  const [availableEntities, setAvailableEntities] = useState<Array<{ id: string, name: string }>>([])
   const [loadingEntities, setLoadingEntities] = useState(false)
-  
+
   // Informações da entidade do usuário
   const [entityInfo, setEntityInfo] = useState<{
     id: string
@@ -470,9 +471,9 @@ export default function EntityUserManagement() {
     try {
       setLoading(true)
       setError('')
-      
+
       console.log('🔍 [fetchEntityUsers] Buscando usuários da entidade para:', user.id)
-      
+
       // Primeiro buscar o entity_id do perfil do usuário logado
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -554,9 +555,9 @@ export default function EntityUserManagement() {
       // Combinar usuários reais com convites pendentes
       const allUsers = [...(data || []), ...pendingUsers]
       setEntityUsers(allUsers)
-      
+
       console.log('✅ [fetchEntityUsers] Usuários e convites carregados:', allUsers.length)
-      
+
     } catch (err) {
       console.error('❌ [fetchEntityUsers] Erro geral:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
@@ -588,7 +589,7 @@ export default function EntityUserManagement() {
       }
 
       const messageData = invitationData.message ? JSON.parse(invitationData.message) : {}
-      
+
       console.log('🚀 [sendInvitationEmail] Criando usuário com email não confirmado...')
 
       // Criar usuário com email não confirmado
@@ -663,7 +664,7 @@ export default function EntityUserManagement() {
       }
 
       console.log('✅ [sendInvitationEmail] Email de confirmação enviado!')
-      
+
       setSuccess(`Email de confirmação enviado para ${messageData.full_name}. O usuário deve confirmar o email antes de poder fazer login.`)
 
       // Recarregar lista
@@ -700,10 +701,10 @@ export default function EntityUserManagement() {
 
       // Verificar se o email foi confirmado no auth
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-      
+
       // Como não podemos verificar outros usuários diretamente, vamos confiar no status
       // Em produção, isso seria verificado via webhook ou função do servidor
-      
+
       // Ativar usuário
       const { error: updateError } = await supabase
         .from('profiles')
@@ -744,7 +745,7 @@ export default function EntityUserManagement() {
       if (entityData) {
         await supabase
           .from('entities')
-          .update({ 
+          .update({
             current_users: (entityData.current_users || 0) + 1,
             updated_at: new Date().toISOString()
           })
@@ -752,7 +753,7 @@ export default function EntityUserManagement() {
       }
 
       console.log('✅ [activateUser] Usuário ativado com sucesso!')
-      
+
       setSuccess(`Usuário ${profileData.full_name} ativado com sucesso! Agora pode fazer login no sistema.`)
 
       // Recarregar lista
@@ -837,7 +838,7 @@ export default function EntityUserManagement() {
       const invitationToken = crypto.randomUUID()
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + 30) // Expira em 30 dias
-      
+
       // Criar convite na tabela entity_invitations
       const { error: invitationError } = await supabase
         .from('entity_invitations')
@@ -869,7 +870,7 @@ export default function EntityUserManagement() {
 
       // 🚀 NOVO: Enviar email automaticamente após criar o convite
       console.log('📧 [createUser] Enviando email automaticamente...')
-      
+
       try {
         // Criar usuário com email não confirmado automaticamente
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -895,7 +896,7 @@ export default function EntityUserManagement() {
           setSuccess(`Usuário ${userData.full_name} criado, mas houve erro ao enviar email: ${authError.message}. Use o botão "Enviar Email" manualmente.`)
         } else {
           console.log('✅ [createUser] Email enviado automaticamente!')
-          
+
           // Aguardar trigger criar o perfil
           await new Promise(resolve => setTimeout(resolve, 2000))
 
@@ -939,9 +940,9 @@ export default function EntityUserManagement() {
       }
 
       console.log('✅ [createUser] Processo concluído!')
-      
+
       setShowCreateModal(false)
-      
+
       // Limpar formulário
       setFormData({
         full_name: "",
@@ -952,10 +953,10 @@ export default function EntityUserManagement() {
         phone: "",
         position: ""
       })
-      
+
       // Recarregar lista de usuários
       await fetchEntityUsers()
-      
+
     } catch (err) {
       console.error('❌ [createUser] Erro geral:', err)
       setError('Erro interno do servidor. Tente novamente.')
@@ -1011,12 +1012,12 @@ export default function EntityUserManagement() {
 
       if (error) throw error
 
-      setEntityUsers(prev => prev.map(user => 
-        user.id === userData.id 
+      setEntityUsers(prev => prev.map(user =>
+        user.id === userData.id
           ? { ...user, ...userData }
           : user
       ))
-      
+
       setSuccess('Usuario atualizado com sucesso!')
       setShowUserModal(false)
       setSelectedUser(null)
@@ -1029,25 +1030,174 @@ export default function EntityUserManagement() {
     if (!userToDelete) return
 
     try {
-      // Remover usuario da entidade (nao deletar do sistema)
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          entity_id: null,
-          entity_role: null,
-          status: 'suspended'
-        })
-        .eq('id', userToDelete.id)
+      setError('')
+      console.log(`🗑️ [handleDeleteUser] Iniciando ${deleteType === 'delete' ? 'exclusão' : 'remoção'} do usuário:`, userToDelete.email)
 
-      if (error) throw error
+      if (deleteType === 'remove') {
+        // Apenas remover da entidade (não deletar do sistema)
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            entity_id: null,
+            entity_role: null,
+            status: 'suspended'
+          })
+          .eq('id', userToDelete.id)
 
+        if (error) throw error
+
+        // Decrementar contador da entidade
+        if (userToDelete.status === 'active') {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('entity_id')
+            .eq('id', userToDelete.id)
+            .single()
+
+          if (profileData?.entity_id) {
+            const { data: entityData } = await supabase
+              .from('entities')
+              .select('current_users')
+              .eq('id', profileData.entity_id)
+              .single()
+
+            if (entityData && entityData.current_users > 0) {
+              await supabase
+                .from('entities')
+                .update({ 
+                  current_users: entityData.current_users - 1,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', profileData.entity_id)
+            }
+          }
+        }
+
+        setSuccess(`Usuário ${userToDelete.full_name} removido da entidade com sucesso!`)
+        console.log('✅ [handleDeleteUser] Usuário removido da entidade')
+
+      } else {
+        // Excluir completamente do sistema
+        console.log('🗑️ [handleDeleteUser] Excluindo usuário completamente...')
+
+        // 1. Primeiro, remover referências em outras tabelas
+        
+        // Remover de convites se existir
+        if (userToDelete.invitation_id) {
+          await supabase
+            .from('entity_invitations')
+            .delete()
+            .eq('id', userToDelete.invitation_id)
+        }
+
+        // Remover de departamentos de usuário
+        await supabase
+          .from('user_departments')
+          .delete()
+          .eq('user_id', userToDelete.id)
+
+        // Remover permissões de documentos
+        await supabase
+          .from('document_permissions')
+          .delete()
+          .eq('user_id', userToDelete.id)
+
+        // Atualizar documentos criados pelo usuário (transferir para admin ou marcar como órfãos)
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('entity_role', 'admin')
+          .eq('entity_id', userToDelete.id.startsWith('invitation-') ? null : 
+            (await supabase.from('profiles').select('entity_id').eq('id', userToDelete.id).single()).data?.entity_id)
+          .limit(1)
+          .single()
+
+        if (adminProfile) {
+          await supabase
+            .from('documents')
+            .update({ author_id: adminProfile.id })
+            .eq('author_id', userToDelete.id)
+        }
+
+        // Remover de aprovações
+        await supabase
+          .from('approval_requests')
+          .delete()
+          .eq('approver_id', userToDelete.id)
+
+        // Remover notificações
+        await supabase
+          .from('notifications')
+          .delete()
+          .eq('created_by', userToDelete.id)
+
+        // 2. Decrementar contador da entidade se usuário estava ativo
+        if (userToDelete.status === 'active') {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('entity_id')
+            .eq('id', userToDelete.id)
+            .single()
+
+          if (profileData?.entity_id) {
+            const { data: entityData } = await supabase
+              .from('entities')
+              .select('current_users')
+              .eq('id', profileData.entity_id)
+              .single()
+
+            if (entityData && entityData.current_users > 0) {
+              await supabase
+                .from('entities')
+                .update({ 
+                  current_users: entityData.current_users - 1,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', profileData.entity_id)
+            }
+          }
+        }
+
+        // 3. Excluir perfil
+        if (!userToDelete.id.startsWith('invitation-')) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', userToDelete.id)
+
+          if (profileError) throw profileError
+
+          // 4. Tentar excluir do auth (pode falhar se não tiver permissões admin)
+          try {
+            // Usar função do servidor se disponível
+            const { error: authError } = await supabase.functions.invoke('delete-user', {
+              body: { user_id: userToDelete.id }
+            })
+            
+            if (authError) {
+              console.warn('⚠️ [handleDeleteUser] Não foi possível excluir do auth:', authError)
+            } else {
+              console.log('✅ [handleDeleteUser] Usuário excluído do auth')
+            }
+          } catch (authDeleteError) {
+            console.warn('⚠️ [handleDeleteUser] Auth delete não disponível:', authDeleteError)
+          }
+        }
+
+        setSuccess(`Usuário ${userToDelete.full_name} excluído completamente do sistema!`)
+        console.log('✅ [handleDeleteUser] Usuário excluído completamente')
+      }
+
+      // Remover da lista local
       setEntityUsers(prev => prev.filter(user => user.id !== userToDelete.id))
-      
+
       setShowDeleteConfirm(false)
       setUserToDelete(null)
-      setSuccess('Usuario removido da entidade com sucesso!')
+      setDeleteType('remove')
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao remover usuario')
+      console.error('❌ [handleDeleteUser] Erro:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao processar usuário')
     }
   }
 
@@ -1055,7 +1205,7 @@ export default function EntityUserManagement() {
     const searchLower = searchTerm.toLowerCase()
     const fullName = (user?.full_name || '').toLowerCase()
     const email = (user?.email || '').toLowerCase()
-    
+
     return fullName.includes(searchLower) || email.includes(searchLower)
   })
 
@@ -1139,7 +1289,7 @@ export default function EntityUserManagement() {
       try {
         setDebugInfo('Verificando perfil do usuário...')
         console.log('🔍 [EntityUserManagement] Verificando admin de entidade para usuário:', user.id)
-        
+
         // Verificação simples direta no banco
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -1148,7 +1298,7 @@ export default function EntityUserManagement() {
           .single()
 
         console.log('📊 [EntityUserManagement] Perfil encontrado:', profileData)
-        
+
         if (profileError) {
           setDebugInfo(`Erro ao buscar perfil: ${profileError.message}`)
           console.error('❌ Erro ao buscar perfil:', profileError)
@@ -1163,7 +1313,7 @@ export default function EntityUserManagement() {
         if (profileData.entity_id) {
           setIsEntityAdmin(true)
           setUserEntityId(profileData.entity_id)
-          
+
           // Buscar informações completas da entidade
           const { data: entityData, error: entityError } = await supabase
             .from('entities')
@@ -1200,8 +1350,8 @@ export default function EntityUserManagement() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={async () => {
               try {
                 setError('')
@@ -1209,7 +1359,7 @@ export default function EntityUserManagement() {
                   method: 'POST'
                 })
                 const result = await response.json()
-                
+
                 if (response.ok) {
                   if (result.activated > 0) {
                     setSuccess(`${result.activated} usuário(s) ativado(s) automaticamente!`)
@@ -1229,7 +1379,7 @@ export default function EntityUserManagement() {
             Verificar Confirmações
           </Button>
         </div>
-        
+
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar Usuario
@@ -1283,7 +1433,7 @@ export default function EntityUserManagement() {
                 <p className="text-sm text-gray-600 mt-1">
                   <span className="font-medium">Tipo:</span> {
                     entityInfo.type === 'company' ? 'Empresa' :
-                    entityInfo.type === 'organization' ? 'Organização' : 'Individual'
+                      entityInfo.type === 'organization' ? 'Organização' : 'Individual'
                   }
                 </p>
               </div>
@@ -1397,11 +1547,11 @@ export default function EntityUserManagement() {
                           {roleLabels[user.entity_role]}
                         </Badge>
                         <Badge className={statusColors[user.status as keyof typeof statusColors]}>
-                          {user.status === 'active' ? 'Ativo' : 
-                           user.status === 'inactive' ? 'Inativo' : 
-                           user.status === 'suspended' ? 'Suspenso' : 
-                           user.status === 'pending' ? 'Aguardando Aprovação' : 
-                           user.status === 'pending_email' ? 'Aguardando Email' : user.status}
+                          {user.status === 'active' ? 'Ativo' :
+                            user.status === 'inactive' ? 'Inativo' :
+                              user.status === 'suspended' ? 'Suspenso' :
+                                user.status === 'pending' ? 'Aguardando Aprovação' :
+                                  user.status === 'pending_email' ? 'Aguardando Email' : user.status}
                         </Badge>
 
                       </div>
@@ -1463,17 +1613,38 @@ export default function EntityUserManagement() {
                         </Button>
                       </>
                     )}
-                    {user.id !== user?.id && user.status !== 'pending' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setUserToDelete(user)
-                          setShowDeleteConfirm(true)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    {user.id !== user?.id && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setUserToDelete(user)
+                              setDeleteType('remove')
+                              setShowDeleteConfirm(true)
+                            }}
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            <UserX className="h-4 w-4 mr-2" />
+                            Remover da Entidade
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setUserToDelete(user)
+                              setDeleteType('delete')
+                              setShowDeleteConfirm(true)
+                            }}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir Completamente
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
                 </div>
@@ -1500,11 +1671,11 @@ export default function EntityUserManagement() {
               >
                 <SelectTrigger>
                   <SelectValue placeholder={
-                    loadingEntities 
-                      ? "Carregando entidades..." 
+                    loadingEntities
+                      ? "Carregando entidades..."
                       : availableEntities.length === 0
-                      ? "Nenhuma entidade disponível"
-                      : "Selecione uma entidade"
+                        ? "Nenhuma entidade disponível"
+                        : "Selecione uma entidade"
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -1570,7 +1741,7 @@ export default function EntityUserManagement() {
               <Label htmlFor="role">Cargo *</Label>
               <Select
                 value={formData.entity_role}
-                onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') => 
+                onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') =>
                   setFormData({ ...formData, entity_role: value })
                 }
               >
@@ -1587,7 +1758,7 @@ export default function EntityUserManagement() {
                         <p>{roleDescriptions.user}</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <SelectItem value="manager">Gerente</SelectItem>
@@ -1596,7 +1767,7 @@ export default function EntityUserManagement() {
                         <p>{roleDescriptions.manager}</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <SelectItem value="admin">Administrador</SelectItem>
@@ -1605,7 +1776,7 @@ export default function EntityUserManagement() {
                         <p>{roleDescriptions.admin}</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <SelectItem value="viewer">Visualizador</SelectItem>
@@ -1641,7 +1812,7 @@ export default function EntityUserManagement() {
               <Button variant="outline" onClick={() => setShowCreateModal(false)}>
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={() => createUser({
                   full_name: formData.full_name,
                   email: formData.email,
@@ -1688,7 +1859,7 @@ export default function EntityUserManagement() {
                 <Label htmlFor="role">Cargo</Label>
                 <Select
                   value={selectedUser.entity_role}
-                  onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') => 
+                  onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') =>
                     setSelectedUser({ ...selectedUser, entity_role: value })
                   }
                 >
@@ -1705,7 +1876,7 @@ export default function EntityUserManagement() {
                           <p>{roleDescriptions.user}</p>
                         </TooltipContent>
                       </Tooltip>
-                      
+
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <SelectItem value="manager">Gerente</SelectItem>
@@ -1714,7 +1885,7 @@ export default function EntityUserManagement() {
                           <p>{roleDescriptions.manager}</p>
                         </TooltipContent>
                       </Tooltip>
-                      
+
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <SelectItem value="admin">Administrador</SelectItem>
@@ -1723,7 +1894,7 @@ export default function EntityUserManagement() {
                           <p>{roleDescriptions.admin}</p>
                         </TooltipContent>
                       </Tooltip>
-                      
+
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <SelectItem value="viewer">Visualizador</SelectItem>
@@ -1740,7 +1911,7 @@ export default function EntityUserManagement() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={selectedUser.status}
-                  onValueChange={(value: 'active' | 'inactive' | 'suspended') => 
+                  onValueChange={(value: 'active' | 'inactive' | 'suspended') =>
                     setSelectedUser({ ...selectedUser, status: value })
                   }
                 >
@@ -1850,8 +2021,8 @@ export default function EntityUserManagement() {
               )}
             </div>
             <div className="flex justify-end space-x-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setShowPasswordModal(false)
                   setNewPassword("")
@@ -1860,7 +2031,7 @@ export default function EntityUserManagement() {
               >
                 Cancelar
               </Button>
-              <Button 
+              <Button
                 onClick={() => updateUserPassword(selectedUserForPassword!.id, newPassword)}
                 disabled={!canUpdatePassword}
               >
@@ -1875,16 +2046,74 @@ export default function EntityUserManagement() {
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover Usuario da Entidade</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja remover {userToDelete?.full_name} da entidade? 
-              Esta acao nao exclui o usuario do sistema, apenas o remove da entidade.
+            <AlertDialogTitle className="flex items-center">
+              {deleteType === 'remove' ? (
+                <>
+                  <UserX className="h-5 w-5 mr-2 text-orange-600" />
+                  Remover Usuário da Entidade
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-5 w-5 mr-2 text-red-600" />
+                  Excluir Usuário Completamente
+                </>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              {deleteType === 'remove' ? (
+                <div>
+                  <p className="mb-2">
+                    Tem certeza que deseja <strong>remover</strong> {userToDelete?.full_name} da entidade?
+                  </p>
+                  <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+                    <p className="text-sm text-orange-800">
+                      <strong>O que acontecerá:</strong>
+                    </p>
+                    <ul className="text-sm text-orange-700 mt-1 space-y-1">
+                      <li>• O usuário será removido desta entidade</li>
+                      <li>• A conta será suspensa temporariamente</li>
+                      <li>• O usuário não será excluído do sistema</li>
+                      <li>• Pode ser adicionado a outra entidade futuramente</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="mb-2">
+                    Tem certeza que deseja <strong>excluir completamente</strong> {userToDelete?.full_name} do sistema?
+                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                    <p className="text-sm text-red-800">
+                      <strong>⚠️ ATENÇÃO - Esta ação é irreversível!</strong>
+                    </p>
+                    <ul className="text-sm text-red-700 mt-1 space-y-1">
+                      <li>• O usuário será excluído permanentemente</li>
+                      <li>• Todos os dados serão removidos</li>
+                      <li>• Documentos criados serão transferidos para admin</li>
+                      <li>• Não será possível recuperar a conta</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser}>
-              Remover
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              className={deleteType === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-orange-600 hover:bg-orange-700'}
+            >
+              {deleteType === 'remove' ? (
+                <>
+                  <UserX className="h-4 w-4 mr-2" />
+                  Remover da Entidade
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir Completamente
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

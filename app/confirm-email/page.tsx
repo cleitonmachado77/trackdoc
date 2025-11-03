@@ -43,22 +43,67 @@ export default function ConfirmEmailPage() {
             
             // Verificar se o email já foi confirmado
             if (session.user.email_confirmed_at) {
-              // Atualizar perfil para ativo se ainda estiver pending_email
+              console.log('✅ [ConfirmEmail] Email confirmado, ativando usuário automaticamente...')
+              
+              // 🚀 NOVO: Ativar usuário automaticamente após confirmação de email
               const { error: updateError } = await supabase
                 .from('profiles')
                 .update({
-                  status: 'pending_email', // Manter como pending_email para admin aprovar
-                  email_confirmed_at: new Date().toISOString()
+                  status: 'active', // Ativar automaticamente
+                  registration_completed: true,
+                  permissions: ['read', 'write'],
+                  email_confirmed_at: new Date().toISOString(),
+                  activated_at: new Date().toISOString()
                 })
                 .eq('id', session.user.id)
-                .eq('status', 'pending_email')
 
               if (updateError) {
-                console.error('Erro ao atualizar perfil:', updateError)
+                console.error('❌ [ConfirmEmail] Erro ao ativar usuário:', updateError)
+                setStatus('error')
+                setMessage('Email confirmado, mas houve erro ao ativar a conta. Entre em contato com o administrador.')
+                return
               }
 
+              // Buscar dados do perfil para atualizar contador da entidade
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('entity_id')
+                .eq('id', session.user.id)
+                .single()
+
+              if (profileData?.entity_id) {
+                // Atualizar contador de usuários na entidade
+                const { data: entityData } = await supabase
+                  .from('entities')
+                  .select('current_users')
+                  .eq('id', profileData.entity_id)
+                  .single()
+
+                if (entityData) {
+                  await supabase
+                    .from('entities')
+                    .update({ 
+                      current_users: (entityData.current_users || 0) + 1,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('id', profileData.entity_id)
+                }
+
+                // Marcar convite como aceito se existir
+                await supabase
+                  .from('entity_invitations')
+                  .update({
+                    status: 'accepted',
+                    accepted_at: new Date().toISOString()
+                  })
+                  .eq('email', session.user.email)
+                  .eq('entity_id', profileData.entity_id)
+              }
+
+              console.log('✅ [ConfirmEmail] Usuário ativado automaticamente!')
+              
               setStatus('success')
-              setMessage('Email confirmado com sucesso! Aguarde a aprovação do administrador para acessar o sistema.')
+              setMessage('Email confirmado e conta ativada com sucesso! Você já pode fazer login no sistema.')
             } else {
               setStatus('error')
               setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada.')
@@ -205,15 +250,15 @@ export default function ConfirmEmailPage() {
           </div>
 
           {status === 'success' && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>Próximos passos:</strong>
+            <div className="mt-4 p-3 bg-green-50 rounded-md">
+              <p className="text-sm text-green-800">
+                <strong>Conta ativada com sucesso!</strong>
               </p>
-              <ul className="text-sm text-blue-700 mt-1 space-y-1">
-                <li>• Seu email foi confirmado com sucesso</li>
-                <li>• Aguarde a aprovação do administrador</li>
-                <li>• Você receberá uma notificação quando for aprovado</li>
-                <li>• Após aprovação, poderá fazer login normalmente</li>
+              <ul className="text-sm text-green-700 mt-1 space-y-1">
+                <li>• Seu email foi confirmado automaticamente</li>
+                <li>• Sua conta foi ativada e está pronta para uso</li>
+                <li>• Você já pode fazer login no sistema</li>
+                <li>• Acesse todas as funcionalidades disponíveis</li>
               </ul>
             </div>
           )}

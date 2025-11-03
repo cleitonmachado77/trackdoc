@@ -1200,9 +1200,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                   {/* Botão para ver mais atividades */}
                   {recentActivity.length > 5 && (
                     <div className="pt-2 border-t">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="w-full text-xs hover:bg-gray-100 flex items-center justify-center gap-1"
                         onClick={() => setShowAllActivities(!showAllActivities)}
                       >
@@ -1573,7 +1573,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     </Button>
                   </div>
                 </div>
-                
+
                 {/* Botão Voltar - Abaixo do título */}
                 {adminView !== "overview" && (
                   <div className="flex items-center">

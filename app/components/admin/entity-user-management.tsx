@@ -867,9 +867,78 @@ export default function EntityUserManagement() {
 
       console.log('✅ [createUser] Convite criado com sucesso!')
 
-      console.log('✅ [createUser] Processo concluído!')
+      // 🚀 NOVO: Enviar email automaticamente após criar o convite
+      console.log('📧 [createUser] Enviando email automaticamente...')
       
-      setSuccess(`Convite criado com sucesso! O usuário ${userData.full_name} aparecerá na lista aguardando aprovação.`)
+      try {
+        // Criar usuário com email não confirmado automaticamente
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: userData.email.trim().toLowerCase(),
+          password: userData.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?type=signup&next=/confirm-email`,
+            data: {
+              full_name: userData.full_name.trim(),
+              entity_id: userData.entity_id,
+              entity_role: userData.entity_role,
+              phone: userData.phone?.trim(),
+              position: userData.position?.trim(),
+              created_by_admin: true,
+              registration_type: 'entity_user'
+            }
+          }
+        })
+
+        if (authError) {
+          console.error('❌ [createUser] Erro ao enviar email:', authError)
+          // Não falhar o processo, apenas avisar
+          setSuccess(`Usuário ${userData.full_name} criado, mas houve erro ao enviar email: ${authError.message}. Use o botão "Enviar Email" manualmente.`)
+        } else {
+          console.log('✅ [createUser] Email enviado automaticamente!')
+          
+          // Aguardar trigger criar o perfil
+          await new Promise(resolve => setTimeout(resolve, 2000))
+
+          // Criar/atualizar perfil com status pending_email
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: authData.user!.id,
+              full_name: userData.full_name.trim(),
+              email: userData.email.trim().toLowerCase(),
+              entity_id: userData.entity_id,
+              entity_role: userData.entity_role,
+              phone: userData.phone?.trim(),
+              position: userData.position?.trim(),
+              registration_type: 'entity_user',
+              registration_completed: false,
+              status: 'pending_email', // Status para aguardar confirmação
+              role: 'user',
+              permissions: ['read']
+            })
+
+          if (profileError) {
+            console.error('❌ [createUser] Erro ao criar perfil:', profileError)
+          }
+
+          // Atualizar convite para status email_sent
+          await supabase
+            .from('entity_invitations')
+            .update({
+              status: 'email_sent',
+              email_sent_at: new Date().toISOString()
+            })
+            .eq('email', userData.email.trim().toLowerCase())
+            .eq('entity_id', userData.entity_id)
+
+          setSuccess(`Usuário ${userData.full_name} criado e email de confirmação enviado automaticamente! O usuário deve confirmar o email para ativar a conta.`)
+        }
+      } catch (emailError) {
+        console.error('❌ [createUser] Erro ao enviar email automaticamente:', emailError)
+        setSuccess(`Usuário ${userData.full_name} criado, mas houve erro ao enviar email automaticamente. Use o botão "Enviar Email" manualmente.`)
+      }
+
+      console.log('✅ [createUser] Processo concluído!')
       
       setShowCreateModal(false)
       
@@ -1129,7 +1198,38 @@ export default function EntityUserManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-end items-center">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                setError('')
+                const response = await fetch('/api/activate-confirmed-users', {
+                  method: 'POST'
+                })
+                const result = await response.json()
+                
+                if (response.ok) {
+                  if (result.activated > 0) {
+                    setSuccess(`${result.activated} usuário(s) ativado(s) automaticamente!`)
+                    await fetchEntityUsers()
+                  } else {
+                    setSuccess('Nenhum usuário pendente de ativação encontrado.')
+                  }
+                } else {
+                  setError(result.error || 'Erro ao verificar usuários')
+                }
+              } catch (err) {
+                setError('Erro ao verificar usuários pendentes')
+              }
+            }}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Verificar Confirmações
+          </Button>
+        </div>
+        
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar Usuario
@@ -1309,29 +1409,35 @@ export default function EntityUserManagement() {
                   </div>
                   <div className="flex items-center space-x-2">
                     {user.status === 'pending' ? (
-                      // Botão para enviar email de confirmação
+                      // Botão para reenviar email (caso o automático tenha falhado)
                       <Button
-                        variant="default"
+                        variant="outline"
                         size="sm"
                         onClick={() => sendInvitationEmail(user)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="border-blue-600 text-blue-600 hover:bg-blue-50"
                         disabled={isCreatingUser}
                       >
                         <Mail className="h-4 w-4 mr-1" />
-                        Enviar Email
+                        Reenviar Email
                       </Button>
                     ) : user.status === 'pending_email' ? (
-                      // Botão para ativar após confirmação de email
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => activateUser(user)}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        disabled={isCreatingUser}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Ativar
-                      </Button>
+                      // Informação de que está aguardando confirmação
+                      <div className="flex items-center space-x-2">
+                        <Badge className="bg-blue-100 text-blue-800">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Aguardando Confirmação
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => sendInvitationEmail(user)}
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                          disabled={isCreatingUser}
+                        >
+                          <Mail className="h-4 w-4 mr-1" />
+                          Reenviar
+                        </Button>
+                      </div>
                     ) : (
                       // Botões normais para usuários ativos
                       <>

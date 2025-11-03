@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
@@ -21,7 +21,6 @@ import {
   Edit,
   Trash2,
   Shield,
-  Mail,
   Calendar,
   UserCheck,
   UserX,
@@ -30,7 +29,6 @@ import {
   EyeOff,
   AlertCircle,
   Building2,
-  Send,
   Clock,
   Key,
 } from "lucide-react"
@@ -367,7 +365,7 @@ interface EntityUser {
   full_name: string | null
   email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended' | 'pending' | 'pending_email'
+  status: 'active' | 'inactive' | 'suspended' | 'pending'
   created_at: string
   last_login?: string | null
   phone?: string | null
@@ -397,10 +395,9 @@ const roleColors = {
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
-  inactive: "bg-red-100 text-red-800",
+  inactive: "bg-blue-100 text-blue-800", // Inativo = aguardando confirmação de email
   suspended: "bg-yellow-100 text-yellow-800",
   pending: "bg-orange-100 text-orange-800",
-  pending_email: "bg-blue-100 text-blue-800",
 }
 
 const roleLabels = {
@@ -520,7 +517,9 @@ export default function EntityUserManagement() {
         throw error
       }
 
-      // Buscar também convites pendentes
+      // Buscar também convites pendentes (apenas se não houver perfil correspondente)
+      const existingEmails = new Set((data || []).map(u => u.email?.toLowerCase()).filter(Boolean))
+      
       const { data: invitations } = await supabase
         .from('entity_invitations')
         .select('*')
@@ -530,8 +529,13 @@ export default function EntityUserManagement() {
 
       console.log('📨 [fetchEntityUsers] Convites pendentes:', invitations?.length || 0)
 
+      // Filtrar convites - apenas mostrar se não existe perfil com o mesmo email
+      const pendingInvitations = (invitations || []).filter(invitation => 
+        !existingEmails.has(invitation.email.toLowerCase())
+      )
+
       // Converter convites em formato de usuário para exibição
-      const pendingUsers = (invitations || []).map(invitation => {
+      const pendingUsers = pendingInvitations.map(invitation => {
         const messageData = invitation.message ? JSON.parse(invitation.message) : {}
         return {
           id: `invitation-${invitation.id}`,
@@ -552,7 +556,7 @@ export default function EntityUserManagement() {
         }
       })
 
-      // Combinar usuários reais com convites pendentes
+      // Combinar usuários reais com convites pendentes (sem duplicação)
       const allUsers = [...(data || []), ...pendingUsers]
       setEntityUsers(allUsers)
 
@@ -566,206 +570,6 @@ export default function EntityUserManagement() {
     }
   }
 
-  // Função para enviar email de confirmação ao usuário convidado
-  const sendInvitationEmail = async (invitation: EntityUser) => {
-    if (!user?.id || !invitation.invitation_id) return
-
-    try {
-      setError('')
-      setIsCreatingUser(true)
-      console.log('📧 [sendInvitationEmail] Enviando email de confirmação:', invitation.email)
-
-      // Buscar dados completos do convite
-      const { data: invitationData, error: fetchError } = await supabase
-        .from('entity_invitations')
-        .select('*')
-        .eq('id', invitation.invitation_id)
-        .single()
-
-      if (fetchError || !invitationData) {
-        console.error('❌ [sendInvitationEmail] Erro ao buscar convite:', fetchError)
-        setError('Erro ao buscar dados do convite')
-        return
-      }
-
-      const messageData = invitationData.message ? JSON.parse(invitationData.message) : {}
-
-      console.log('🚀 [sendInvitationEmail] Criando usuário com email não confirmado...')
-
-      // Criar usuário com email não confirmado
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: invitationData.email,
-        password: messageData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?type=signup&next=/confirm-email`,
-          data: {
-            full_name: messageData.full_name,
-            entity_id: invitationData.entity_id,
-            entity_role: invitationData.entity_role,
-            phone: messageData.phone,
-            position: messageData.position,
-            created_by_admin: true,
-            registration_type: 'entity_user'
-          }
-        }
-      })
-
-      if (authError) {
-        console.error('❌ [sendInvitationEmail] Erro ao criar usuário:', authError)
-        setError(`Erro ao enviar convite: ${authError.message}`)
-        return
-      }
-
-      if (!authData.user) {
-        setError('Erro: Usuário não foi criado corretamente')
-        return
-      }
-
-      console.log('✅ [sendInvitationEmail] Usuário criado, aguardando confirmação de email:', authData.user.id)
-
-      // Aguardar trigger criar o perfil
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Criar/atualizar perfil com status pending_email
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authData.user.id,
-          full_name: messageData.full_name,
-          email: invitationData.email,
-          entity_id: invitationData.entity_id,
-          entity_role: invitationData.entity_role,
-          phone: messageData.phone,
-          position: messageData.position,
-          registration_type: 'entity_user',
-          registration_completed: false,
-          status: 'pending_email', // Status especial para aguardar confirmação
-          role: 'user',
-          permissions: ['read']
-        })
-
-      if (profileError) {
-        console.error('❌ [sendInvitationEmail] Erro ao criar perfil:', profileError)
-        setError(`Erro ao criar perfil: ${profileError.message}`)
-        return
-      }
-
-      // Atualizar convite para status email_sent
-      const { error: updateError } = await supabase
-        .from('entity_invitations')
-        .update({
-          status: 'email_sent',
-          email_sent_at: new Date().toISOString()
-        })
-        .eq('id', invitation.invitation_id)
-
-      if (updateError) {
-        console.error('❌ [sendInvitationEmail] Erro ao atualizar convite:', updateError)
-      }
-
-      console.log('✅ [sendInvitationEmail] Email de confirmação enviado!')
-
-      setSuccess(`Email de confirmação enviado para ${messageData.full_name}. O usuário deve confirmar o email antes de poder fazer login.`)
-
-      // Recarregar lista
-      await fetchEntityUsers()
-
-    } catch (err) {
-      console.error('❌ [sendInvitationEmail] Erro geral:', err)
-      setError('Erro interno do servidor. Tente novamente.')
-    } finally {
-      setIsCreatingUser(false)
-    }
-  }
-
-  // Função para ativar usuário após confirmação de email
-  const activateUser = async (invitation: EntityUser) => {
-    if (!user?.id || !invitation.invitation_id) return
-
-    try {
-      setError('')
-      setIsCreatingUser(true)
-      console.log('✅ [activateUser] Ativando usuário:', invitation.email)
-
-      // Buscar dados do usuário
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', invitation.email)
-        .single()
-
-      if (profileError || !profileData) {
-        setError('Usuário não encontrado ou email não confirmado')
-        return
-      }
-
-      // Verificar se o email foi confirmado no auth
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-
-      // Como não podemos verificar outros usuários diretamente, vamos confiar no status
-      // Em produção, isso seria verificado via webhook ou função do servidor
-
-      // Ativar usuário
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          status: 'active',
-          registration_completed: true,
-          permissions: ['read', 'write'],
-          activated_at: new Date().toISOString()
-        })
-        .eq('id', profileData.id)
-
-      if (updateError) {
-        console.error('❌ [activateUser] Erro ao ativar usuário:', updateError)
-        setError(`Erro ao ativar usuário: ${updateError.message}`)
-        return
-      }
-
-      // Marcar convite como aceito
-      const { error: acceptError } = await supabase
-        .from('entity_invitations')
-        .update({
-          status: 'accepted',
-          accepted_at: new Date().toISOString()
-        })
-        .eq('id', invitation.invitation_id)
-
-      if (acceptError) {
-        console.error('❌ [activateUser] Erro ao marcar convite como aceito:', acceptError)
-      }
-
-      // Atualizar contador de usuários na entidade
-      const { data: entityData } = await supabase
-        .from('entities')
-        .select('current_users')
-        .eq('id', profileData.entity_id)
-        .single()
-
-      if (entityData) {
-        await supabase
-          .from('entities')
-          .update({
-            current_users: (entityData.current_users || 0) + 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', profileData.entity_id)
-      }
-
-      console.log('✅ [activateUser] Usuário ativado com sucesso!')
-
-      setSuccess(`Usuário ${profileData.full_name} ativado com sucesso! Agora pode fazer login no sistema.`)
-
-      // Recarregar lista
-      await fetchEntityUsers()
-
-    } catch (err) {
-      console.error('❌ [activateUser] Erro geral:', err)
-      setError('Erro interno do servidor. Tente novamente.')
-    } finally {
-      setIsCreatingUser(false)
-    }
-  }
 
   const createUser = async (userData: {
     full_name: string
@@ -893,14 +697,14 @@ export default function EntityUserManagement() {
         if (authError) {
           console.error('❌ [createUser] Erro ao enviar email:', authError)
           // Não falhar o processo, apenas avisar
-          setSuccess(`Usuário ${userData.full_name} criado, mas houve erro ao enviar email: ${authError.message}. Use o botão "Enviar Email" manualmente.`)
+          setError(`Erro ao enviar email automaticamente: ${authError.message}. Tente criar o usuário novamente.`)
         } else {
           console.log('✅ [createUser] Email enviado automaticamente!')
 
           // Aguardar trigger criar o perfil
           await new Promise(resolve => setTimeout(resolve, 2000))
 
-          // Criar/atualizar perfil com status pending_email
+          // Criar/atualizar perfil com status inactive (será ativado após confirmação de email)
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert({
@@ -913,7 +717,7 @@ export default function EntityUserManagement() {
               position: userData.position?.trim(),
               registration_type: 'entity_user',
               registration_completed: false,
-              status: 'pending_email', // Status para aguardar confirmação
+              status: 'inactive', // Status válido - será ativado automaticamente após confirmação de email
               role: 'user',
               permissions: ['read']
             })
@@ -922,21 +726,27 @@ export default function EntityUserManagement() {
             console.error('❌ [createUser] Erro ao criar perfil:', profileError)
           }
 
-          // Atualizar convite para status email_sent
-          await supabase
+          // Atualizar convite para accepted (se existir) - perfil já foi criado
+          const { error: invitationUpdateError } = await supabase
             .from('entity_invitations')
             .update({
-              status: 'email_sent',
-              email_sent_at: new Date().toISOString()
+              status: 'accepted',
+              updated_at: new Date().toISOString()
             })
             .eq('email', userData.email.trim().toLowerCase())
             .eq('entity_id', userData.entity_id)
+            .eq('status', 'pending')
+
+          if (invitationUpdateError) {
+            // Não é crítico se o convite não existir ou não puder ser atualizado
+            console.log('ℹ️ [createUser] Não foi possível atualizar convite:', invitationUpdateError.message)
+          }
 
           setSuccess(`Usuário ${userData.full_name} criado e email de confirmação enviado automaticamente! O usuário deve confirmar o email para ativar a conta.`)
         }
       } catch (emailError) {
         console.error('❌ [createUser] Erro ao enviar email automaticamente:', emailError)
-        setSuccess(`Usuário ${userData.full_name} criado, mas houve erro ao enviar email automaticamente. Use o botão "Enviar Email" manualmente.`)
+        setError(`Erro ao enviar email automaticamente. Tente criar o usuário novamente.`)
       }
 
       console.log('✅ [createUser] Processo concluído!')
@@ -1167,20 +977,26 @@ export default function EntityUserManagement() {
 
           if (profileError) throw profileError
 
-          // 4. Tentar excluir do auth (pode falhar se não tiver permissões admin)
+          // 4. Tentar excluir do auth via API route local (opcional - pode falhar sem afetar a exclusão)
           try {
-            // Usar função do servidor se disponível
-            const { error: authError } = await supabase.functions.invoke('delete-user', {
-              body: { user_id: userToDelete.id }
+            // Tentar via API route local primeiro (resolve problemas de CORS)
+            const response = await fetch('/api/admin/delete-user', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ user_id: userToDelete.id })
             })
-            
-            if (authError) {
-              console.warn('⚠️ [handleDeleteUser] Não foi possível excluir do auth:', authError)
+
+            if (response.ok) {
+              console.log('✅ [handleDeleteUser] Usuário excluído completamente (perfil + auth)')
             } else {
-              console.log('✅ [handleDeleteUser] Usuário excluído do auth')
+              // Silenciosamente ignorar - a exclusão do perfil já foi bem-sucedida
+              console.log('ℹ️ [handleDeleteUser] Usuário excluído do perfil. Exclusão do auth pode requerer ação manual.')
             }
           } catch (authDeleteError) {
-            console.warn('⚠️ [handleDeleteUser] Auth delete não disponível:', authDeleteError)
+            // Silenciosamente ignorar - a exclusão do perfil já foi bem-sucedida
+            // Não logar erro para não poluir o console
           }
         }
 
@@ -1349,37 +1165,6 @@ export default function EntityUserManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                setError('')
-                const response = await fetch('/api/activate-confirmed-users', {
-                  method: 'POST'
-                })
-                const result = await response.json()
-
-                if (response.ok) {
-                  if (result.activated > 0) {
-                    setSuccess(`${result.activated} usuário(s) ativado(s) automaticamente!`)
-                    await fetchEntityUsers()
-                  } else {
-                    setSuccess('Nenhum usuário pendente de ativação encontrado.')
-                  }
-                } else {
-                  setError(result.error || 'Erro ao verificar usuários')
-                }
-              } catch (err) {
-                setError('Erro ao verificar usuários pendentes')
-              }
-            }}
-          >
-            <CheckCircle className="h-4 w-4 mr-2" />
-            Verificar Confirmações
-          </Button>
-        </div>
-
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Cadastrar Usuario
@@ -1548,46 +1333,21 @@ export default function EntityUserManagement() {
                         </Badge>
                         <Badge className={statusColors[user.status as keyof typeof statusColors]}>
                           {user.status === 'active' ? 'Ativo' :
-                            user.status === 'inactive' ? 'Inativo' :
+                            user.status === 'inactive' ? 'Aguardando Confirmação de Email' :
                               user.status === 'suspended' ? 'Suspenso' :
-                                user.status === 'pending' ? 'Aguardando Aprovação' :
-                                  user.status === 'pending_email' ? 'Aguardando Email' : user.status}
+                                user.status === 'pending' ? 'Aguardando Envio de Email' : user.status}
                         </Badge>
 
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {user.status === 'pending' ? (
-                      // Botão para reenviar email (caso o automático tenha falhado)
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => sendInvitationEmail(user)}
-                        className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                        disabled={isCreatingUser}
-                      >
-                        <Mail className="h-4 w-4 mr-1" />
-                        Reenviar Email
-                      </Button>
-                    ) : user.status === 'pending_email' ? (
+                    {user.status === 'pending' || user.status === 'inactive' ? (
                       // Informação de que está aguardando confirmação
-                      <div className="flex items-center space-x-2">
-                        <Badge className="bg-blue-100 text-blue-800">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Aguardando Confirmação
-                        </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => sendInvitationEmail(user)}
-                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                          disabled={isCreatingUser}
-                        >
-                          <Mail className="h-4 w-4 mr-1" />
-                          Reenviar
-                        </Button>
-                      </div>
+                      <Badge className="bg-blue-100 text-blue-800">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {user.status === 'pending' ? 'Aguardando Envio de Email' : 'Aguardando Confirmação de Email'}
+                      </Badge>
                     ) : (
                       // Botões normais para usuários ativos
                       <>
@@ -1611,6 +1371,27 @@ export default function EntityUserManagement() {
                         >
                           <Key className="h-4 w-4" />
                         </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setUserToDelete(user)
+                                  setDeleteType('delete')
+                                  setShowDeleteConfirm(true)
+                                }}
+                                className="text-gray-500 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Excluir usuário</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </>
                     )}
                     {user.id !== user?.id && (
@@ -1659,6 +1440,9 @@ export default function EntityUserManagement() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Cadastrar Novo Usuario</DialogTitle>
+            <DialogDescription>
+              Preencha os dados abaixo para criar um novo usuário na entidade. Um email de confirmação será enviado automaticamente.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Seleção de Entidade */}
@@ -1836,6 +1620,9 @@ export default function EntityUserManagement() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do usuário. O email não pode ser alterado.
+            </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
@@ -1962,6 +1749,9 @@ export default function EntityUserManagement() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Alterar Senha - {selectedUserForPassword?.full_name}</DialogTitle>
+            <DialogDescription>
+              Defina uma nova senha para este usuário. Um email será enviado com as novas credenciais.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -2059,43 +1849,39 @@ export default function EntityUserManagement() {
                 </>
               )}
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
+            <AlertDialogDescription>
+              {deleteType === 'remove' 
+                ? `Tem certeza que deseja remover ${userToDelete?.full_name} da entidade?`
+                : `Tem certeza que deseja excluir completamente ${userToDelete?.full_name} do sistema?`
+              }
+            </AlertDialogDescription>
+            <div className="space-y-3 mt-4">
               {deleteType === 'remove' ? (
-                <div>
-                  <p className="mb-2">
-                    Tem certeza que deseja <strong>remover</strong> {userToDelete?.full_name} da entidade?
+                <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
+                  <p className="text-sm text-orange-800 font-semibold mb-2">
+                    O que acontecerá:
                   </p>
-                  <div className="bg-orange-50 border border-orange-200 rounded-md p-3">
-                    <p className="text-sm text-orange-800">
-                      <strong>O que acontecerá:</strong>
-                    </p>
-                    <ul className="text-sm text-orange-700 mt-1 space-y-1">
-                      <li>• O usuário será removido desta entidade</li>
-                      <li>• A conta será suspensa temporariamente</li>
-                      <li>• O usuário não será excluído do sistema</li>
-                      <li>• Pode ser adicionado a outra entidade futuramente</li>
-                    </ul>
-                  </div>
+                  <ul className="text-sm text-orange-700 space-y-1 list-disc list-inside">
+                    <li>O usuário será removido desta entidade</li>
+                    <li>A conta será suspensa temporariamente</li>
+                    <li>O usuário não será excluído do sistema</li>
+                    <li>Pode ser adicionado a outra entidade futuramente</li>
+                  </ul>
                 </div>
               ) : (
-                <div>
-                  <p className="mb-2">
-                    Tem certeza que deseja <strong>excluir completamente</strong> {userToDelete?.full_name} do sistema?
+                <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <p className="text-sm text-red-800 font-semibold mb-2">
+                    ⚠️ ATENÇÃO - Esta ação é irreversível!
                   </p>
-                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                    <p className="text-sm text-red-800">
-                      <strong>⚠️ ATENÇÃO - Esta ação é irreversível!</strong>
-                    </p>
-                    <ul className="text-sm text-red-700 mt-1 space-y-1">
-                      <li>• O usuário será excluído permanentemente</li>
-                      <li>• Todos os dados serão removidos</li>
-                      <li>• Documentos criados serão transferidos para admin</li>
-                      <li>• Não será possível recuperar a conta</li>
-                    </ul>
-                  </div>
+                  <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
+                    <li>O usuário será excluído permanentemente</li>
+                    <li>Todos os dados serão removidos</li>
+                    <li>Documentos criados serão transferidos para admin</li>
+                    <li>Não será possível recuperar a conta</li>
+                  </ul>
                 </div>
               )}
-            </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

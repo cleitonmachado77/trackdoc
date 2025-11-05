@@ -69,14 +69,15 @@ export default function ConfirmEmailPage() {
             }
 
             // 🚀 Ativar usuário automaticamente após confirmação de email
+            console.log('🔧 [ConfirmEmail] Ativando usuário:', session.user.id)
+            
             const { error: updateError } = await supabase
               .from('profiles')
               .update({
                 status: 'active', // Ativar automaticamente
                 registration_completed: true,
                 permissions: ['read', 'write'],
-                email_confirmed_at: new Date().toISOString(),
-                activated_at: new Date().toISOString()
+                updated_at: new Date().toISOString()
               })
               .eq('id', session.user.id)
 

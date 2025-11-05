@@ -471,6 +471,13 @@ export default function EntityUserManagement() {
 
       console.log('🔍 [fetchEntityUsers] Buscando usuários da entidade para:', user.id)
 
+      // 🔧 Primeiro, tentar corrigir status de usuários que confirmaram email
+      try {
+        await fetch('/api/fix-user-status', { method: 'POST' })
+      } catch (fixError) {
+        console.log('ℹ️ [fetchEntityUsers] Correção de status não executada:', fixError)
+      }
+
       // Primeiro buscar o entity_id do perfil do usuário logado
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -1170,10 +1177,33 @@ export default function EntityUserManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Cadastrar Usuario
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Cadastrar Usuario
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                setError('')
+                const response = await fetch('/api/fix-user-status', { method: 'POST' })
+                const result = await response.json()
+                if (result.fixed > 0) {
+                  setSuccess(`${result.fixed} usuário(s) ativado(s) automaticamente`)
+                  await fetchEntityUsers() // Recarregar lista
+                } else {
+                  setSuccess('Todos os usuários já estão com status correto')
+                }
+              } catch (err) {
+                setError('Erro ao corrigir status dos usuários')
+              }
+            }}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Corrigir Status
+          </Button>
+        </div>
       </div>
 
       {/* Alertas */}

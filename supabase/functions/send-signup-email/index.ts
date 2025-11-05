@@ -1,6 +1,6 @@
-// @deno-types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts"
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,12 +34,7 @@ serve(async (req) => {
       )
     }
 
-    // Configurar cliente Supabase com service role key
-    const supabaseUrl = (globalThis as any).Deno?.env?.get('SUPABASE_URL') || process.env.SUPABASE_URL!
-    const supabaseServiceKey = (globalThis as any).Deno?.env?.get('SUPABASE_SERVICE_ROLE_KEY') || process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    console.log('📧 [send-signup-email] Enviando email para:', email)
+    console.log('📧 [send-signup-email] Preparando email para:', email)
 
     // Gerar link de confirmação manual
     const confirmationToken = crypto.randomUUID()
@@ -120,88 +115,25 @@ serve(async (req) => {
       </html>
     `
 
-    // Tentar enviar via Supabase Auth primeiro
-    try {
-      const { data, error } = await supabase.auth.admin.generateLink({
-        type: 'signup',
-        email: email,
-        options: {
-          data: {
-            full_name: full_name,
-            confirmation_token: confirmationToken
-          }
-        }
-      })
-
-      if (!error) {
-        console.log('✅ [send-signup-email] Email enviado via Supabase Auth')
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Email enviado via Supabase Auth',
-            method: 'supabase_auth'
-          }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
+    // Por enquanto, apenas retornar o template de email preparado
+    // Em produção, aqui você integraria com SendGrid, Mailgun, etc.
+    
+    console.log('📧 [send-signup-email] Email template preparado')
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Template de email preparado com sucesso',
+        method: 'template_generation',
+        confirmation_url: confirmationUrl,
+        email_template: emailHtml,
+        recipient: email
+      }),
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
-    } catch (authError) {
-      console.log('⚠️ [send-signup-email] Supabase Auth falhou, tentando método alternativo')
-    }
-
-    // Fallback: Tentar enviar via fetch para serviço de email
-    try {
-      // Aqui você pode integrar com SendGrid, Mailgun, etc.
-      // Por enquanto, vamos simular o envio e salvar o token para confirmação manual
-      
-      // Salvar token de confirmação na tabela para validação posterior
-      const { error: tokenError } = await supabase
-        .from('email_confirmations')
-        .insert([{
-          email: email,
-          token: confirmationToken,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 horas
-          email_content: emailHtml,
-          created_at: new Date().toISOString()
-        }])
-
-      if (tokenError) {
-        console.error('❌ [send-signup-email] Erro ao salvar token:', tokenError)
-      }
-
-      // Por enquanto, retornar sucesso com o HTML do email para debug
-      console.log('📧 [send-signup-email] Email preparado (fallback mode)')
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Email preparado para envio',
-          method: 'fallback',
-          confirmation_url: confirmationUrl,
-          debug_email_html: emailHtml // Remover em produção
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-
-    } catch (fallbackError) {
-      console.error('❌ [send-signup-email] Erro no fallback:', fallbackError)
-      
-      return new Response(
-        JSON.stringify({ 
-          error: 'Erro ao enviar email',
-          details: fallbackError.message 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
+    )
 
   } catch (error) {
     console.error('❌ [send-signup-email] Erro geral:', error)

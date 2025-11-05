@@ -83,7 +83,7 @@ import DocumentAccessReport from "./components/admin/document-access-report"
 import DocumentCreationSelector from "./components/document-creation-selector"
 import DocumentList from "./components/document-list"
 import DocumentUploadWithApproval from "./components/document-upload-with-approval"
-import EntityUserManagement from "./components/admin/entity-user-management"
+import EntityUserManagementSimple from "./components/admin/entity-user-management-simple"
 import EntityManagement from "./components/admin/entity-management"
 import ElectronicSignature from "./components/electronic-signature"
 import PerformanceMonitor from "./components/performance-monitor"
@@ -1842,7 +1842,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {adminView === "billing" && <BillingManagement />}
               {adminView === "billing-stats" && <BillingStats />}
 
-              {adminView === "entity-users" && <EntityUserManagement />}
+              {adminView === "entity-users" && <EntityUserManagementSimple />}
               {adminView === "entities" && <EntityManagement />}
               {adminView === "system-logs" && <SystemLogs />}
 

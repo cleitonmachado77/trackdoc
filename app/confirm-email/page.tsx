@@ -68,60 +68,35 @@ export default function ConfirmEmailPage() {
               return
             }
 
-            // 🚀 Ativar usuário automaticamente após confirmação de email
-            console.log('🔧 [ConfirmEmail] Ativando usuário:', session.user.id)
+            // 🚀 Ativar usuário automaticamente após confirmação de email usando API
+            console.log('🔧 [ConfirmEmail] Ativando usuário via API:', session.user.id)
             
-            const { error: updateError } = await supabase
-              .from('profiles')
-              .update({
-                status: 'active', // Ativar automaticamente
-                registration_completed: true,
-                permissions: ['read', 'write'],
-                updated_at: new Date().toISOString()
+            try {
+              const response = await fetch('/api/activate-user', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  user_id: session.user.id
+                })
               })
-              .eq('id', session.user.id)
-
-            if (updateError) {
-              console.error('❌ [ConfirmEmail] Erro ao ativar usuário:', updateError)
+              
+              const result = await response.json()
+              
+              if (!response.ok) {
+                console.error('❌ [ConfirmEmail] Erro na API de ativação:', result)
+                setStatus('error')
+                setMessage(`Email confirmado, mas houve erro ao ativar a conta: ${result.error}. Entre em contato com o administrador.`)
+                return
+              }
+              
+              console.log('✅ [ConfirmEmail] Usuário ativado com sucesso via API!')
+            } catch (activationError) {
+              console.error('❌ [ConfirmEmail] Erro na ativação via API:', activationError)
               setStatus('error')
               setMessage('Email confirmado, mas houve erro ao ativar a conta. Entre em contato com o administrador.')
               return
-            }
-
-            // Buscar dados do perfil para atualizar contador da entidade
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('entity_id')
-              .eq('id', session.user.id)
-              .single()
-
-            if (profileData?.entity_id) {
-              // Atualizar contador de usuários na entidade
-              const { data: entityData } = await supabase
-                .from('entities')
-                .select('current_users')
-                .eq('id', profileData.entity_id)
-                .single()
-
-              if (entityData) {
-                await supabase
-                  .from('entities')
-                  .update({ 
-                    current_users: (entityData.current_users || 0) + 1,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('id', profileData.entity_id)
-              }
-
-              // Marcar convite como aceito se existir
-              await supabase
-                .from('entity_invitations')
-                .update({
-                  status: 'accepted',
-                  accepted_at: new Date().toISOString()
-                })
-                .eq('email', session.user.email)
-                .eq('entity_id', profileData.entity_id)
             }
 
             console.log('✅ [ConfirmEmail] Usuário ativado automaticamente!')

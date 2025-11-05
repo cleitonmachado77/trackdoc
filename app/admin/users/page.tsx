@@ -1,9 +1,9 @@
 "use client"
 
-import EntityUserManagementSimple from "@/app/components/admin/entity-user-management-simple"
+import EntityUserManagement from "@/app/components/admin/entity-user-management"
 
 export default function AdminUsersPage() {
-  return <EntityUserManagementSimple />
+  return <EntityUserManagement />
 }
 
 export const dynamic = 'force-dynamic'

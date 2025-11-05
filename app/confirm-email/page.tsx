@@ -14,10 +14,19 @@ export default function ConfirmEmailPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already_confirmed'>('loading')
   const [message, setMessage] = useState('')
   const [userEmail, setUserEmail] = useState('')
+  const [errorParam, setErrorParam] = useState<string | null>(null)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        flowType: 'implicit',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true
+      }
+    }
   )
 
   useEffect(() => {
@@ -27,10 +36,58 @@ export default function ConfirmEmailPage() {
         const token_hash = searchParams.get('token_hash')
         const type = searchParams.get('type')
         const confirmed = searchParams.get('confirmed')
-        const error = searchParams.get('error')
+        const code = searchParams.get('code')
+        const callbackType = searchParams.get('type')
+        const errorFromUrl = searchParams.get('error')
+        setErrorParam(errorFromUrl)
         
-        // Se houver erro na URL, exibir mensagem
-        if (error) {
+        // Se há código, tentar processar no cliente
+        if (code && callbackType === 'signup') {
+          console.log('🔧 [ConfirmEmail] Processando código de confirmação no cliente:', code)
+          
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+            
+            if (!error && data.session) {
+              console.log('✅ [ConfirmEmail] Sessão criada no cliente para:', data.user?.email)
+              setUserEmail(data.user?.email || '')
+              
+              // Tentar ativar usuário
+              const response = await fetch('/api/activate-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: data.user?.id })
+              })
+              
+              const result = await response.json()
+              
+              if (response.ok && result.success) {
+                setStatus('success')
+                setMessage('Email confirmado e conta ativada com sucesso!')
+                return
+              } else {
+                console.error('❌ [ConfirmEmail] Erro na ativação:', result)
+              }
+            } else {
+              console.error('❌ [ConfirmEmail] Erro ao processar código no cliente:', error)
+            }
+          } catch (codeError) {
+            console.error('❌ [ConfirmEmail] Erro ao processar código:', codeError)
+          }
+        }
+        
+        // Se houver erro na URL, mostrar opções de correção manual
+        if (errorFromUrl) {
+          console.log('❌ [ConfirmEmail] Erro detectado:', errorFromUrl)
+          
+          if (errorFromUrl === 'trigger_error' || errorFromUrl === 'supabase_error') {
+            setStatus('error')
+            setMessage('Erro no sistema de confirmação de email. Use o botão abaixo para corrigir manualmente ou entre em contato com o suporte.')
+            
+            // Permitir correção manual via interface
+            return
+          }
+          
           setStatus('error')
           setMessage('Erro ao confirmar email. Tente novamente ou entre em contato com o suporte.')
           return
@@ -110,8 +167,18 @@ export default function ConfirmEmailPage() {
             setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.')
           }
         } else {
-          // Não há sessão - pode ser que o callback não funcionou
+          // Não há sessão - tentar correção manual com email
           console.log('❌ [ConfirmEmail] Sessão não encontrada')
+          
+          // Se há código, significa que veio do callback mas não conseguiu processar
+          if (code) {
+            console.log('🔧 [ConfirmEmail] Código presente mas sessão não criada, usando correção manual')
+            
+            // Mostrar interface para correção manual
+            setStatus('error')
+            setMessage('Problema na confirmação automática. Digite seu email abaixo para corrigir manualmente.')
+            return
+          }
           
           // Tentar obter o user_id da URL se disponível
           const userId = searchParams.get('user_id')
@@ -251,7 +318,62 @@ export default function ConfirmEmailPage() {
               </>
             )}
 
-            {(status === 'already_confirmed' || (status === 'error' && !userEmail)) && (
+            {(status === 'error' && (errorParam === 'trigger_error' || searchParams.get('code'))) && (
+              <>
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    placeholder="Digite seu email para correção"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                  <Button 
+                    onClick={async () => {
+                      if (!userEmail) {
+                        setMessage('Digite seu email primeiro')
+                        return
+                      }
+                      
+                      try {
+                        const response = await fetch('/api/fix-confirmation', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            action: 'manual_activate',
+                            email: userEmail
+                          })
+                        })
+                        
+                        const result = await response.json()
+                        
+                        if (response.ok && result.success) {
+                          setStatus('success')
+                          setMessage('Email confirmado e conta ativada com sucesso!')
+                        } else {
+                          setMessage(`Erro na correção: ${result.error}`)
+                        }
+                      } catch (err) {
+                        setMessage('Erro ao tentar correção')
+                      }
+                    }}
+                    className="w-full bg-orange-600 hover:bg-orange-700"
+                  >
+                    🔧 Corrigir Confirmação Manualmente
+                  </Button>
+                </div>
+                <Button 
+                  onClick={handleGoToLogin} 
+                  variant="outline"
+                  className="w-full"
+                >
+                  Ir para Login
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </>
+            )}
+
+            {(status === 'already_confirmed' || (status === 'error' && !userEmail && errorParam !== 'trigger_error')) && (
               <Button 
                 onClick={handleGoToLogin} 
                 className="w-full"

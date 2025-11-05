@@ -13,7 +13,7 @@ export const supabaseOptions = {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce' as const,
+    flowType: 'implicit' as const,
     // Configurar URLs de redirecionamento corretas
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback`,
   },

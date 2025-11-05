@@ -47,6 +47,35 @@ export default function TestEmailPage() {
     }
   }
 
+  const fixConfirmation = async (action: string) => {
+    setLoading(true)
+    setError('')
+    setResult(null)
+
+    try {
+      const response = await fetch('/api/fix-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          email
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Erro na correção')
+      } else {
+        setResult(data)
+      }
+    } catch (err) {
+      setError('Erro de conexão')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -116,6 +145,24 @@ export default function TestEmailPage() {
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 3. Verificar Status
+              </Button>
+              
+              <Button
+                onClick={() => fixConfirmation('force_confirm')}
+                disabled={loading}
+                variant="destructive"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                🔧 Forçar Confirmação
+              </Button>
+              
+              <Button
+                onClick={() => fixConfirmation('manual_activate')}
+                disabled={loading}
+                variant="destructive"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                🔧 Ativação Manual
               </Button>
             </div>
 

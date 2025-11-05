@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     if (action === 'confirm_test_user') {
       // Confirmar email manualmente para teste
       const { data: users } = await supabase.auth.admin.listUsers()
-      const user = users?.users?.find(u => u.email === email)
+      const user = users?.users?.find((u: any) => u.email === email)
 
       if (!user) {
         return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     if (action === 'check_user_status') {
       // Verificar status do usuário
       const { data: users } = await supabase.auth.admin.listUsers()
-      const authUser = users?.users?.find(u => u.email === email)
+      const authUser = users?.users?.find((u: any) => u.email === email)
 
       const { data: profile } = await supabase
         .from('profiles')

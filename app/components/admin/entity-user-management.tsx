@@ -31,6 +31,7 @@ import {
   Building2,
   Clock,
   Key,
+  Mail,
 } from "lucide-react"
 
 import {
@@ -683,12 +684,12 @@ export default function EntityUserManagement() {
       console.log('📧 [createUser] Enviando email automaticamente...')
 
       try {
-        // Criar usuário com email não confirmado automaticamente
         // Usar URL absoluta para produção
         const baseUrl = typeof window !== 'undefined' 
           ? (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || window.location.origin)
           : (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br')
         
+        // Tentar método padrão do Supabase primeiro
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: userData.email.trim().toLowerCase(),
           password: userData.password,
@@ -705,6 +706,58 @@ export default function EntityUserManagement() {
             }
           }
         })
+
+        // Se o método padrão falhar, tentar Edge Function como fallback
+        if (authError) {
+          console.log('⚠️ [createUser] Método padrão falhou, tentando Edge Function...')
+          
+          try {
+            const { data: fallbackData, error: fallbackError } = await supabase.functions.invoke('send-signup-email', {
+              body: {
+                email: userData.email.trim().toLowerCase(),
+                full_name: userData.full_name.trim(),
+                password: userData.password,
+                entity_name: availableEntities.find(e => e.id === userData.entity_id)?.name,
+                role: roleLabels[userData.entity_role],
+                app_url: baseUrl
+              }
+            })
+
+            if (fallbackError) {
+              throw new Error(`Edge Function falhou: ${fallbackError.message}`)
+            }
+
+            console.log('✅ [createUser] Email enviado via Edge Function!')
+            
+            // Criar usuário manualmente já que o signUp falhou
+            const { data: manualAuthData, error: manualAuthError } = await supabase.auth.admin.createUser({
+              email: userData.email.trim().toLowerCase(),
+              password: userData.password,
+              email_confirm: false, // Será confirmado via nosso sistema
+              user_metadata: {
+                full_name: userData.full_name.trim(),
+                entity_id: userData.entity_id,
+                entity_role: userData.entity_role,
+                phone: userData.phone?.trim(),
+                position: userData.position?.trim(),
+                created_by_admin: true,
+                registration_type: 'entity_user'
+              }
+            })
+
+            if (manualAuthError) {
+              throw new Error(`Criação manual falhou: ${manualAuthError.message}`)
+            }
+
+            // Usar dados da criação manual
+            const authData = manualAuthData
+            
+          } catch (edgeFunctionError) {
+            console.error('❌ [createUser] Edge Function também falhou:', edgeFunctionError)
+            setError(`Erro ao enviar email: ${edgeFunctionError.message}. Verifique as configurações de email do Supabase.`)
+            return
+          }
+        }
 
         if (authError) {
           console.error('❌ [createUser] Erro ao enviar email:', authError)
@@ -1202,6 +1255,36 @@ export default function EntityUserManagement() {
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             Corrigir Status
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                setError('')
+                const testEmail = prompt('Digite um email para teste:')
+                if (!testEmail) return
+                
+                const response = await fetch('/api/test-email', { 
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ email: testEmail })
+                })
+                const result = await response.json()
+                
+                if (result.success) {
+                  setSuccess(`Email de teste enviado via ${result.method}`)
+                } else {
+                  setError(`Falha no teste: ${result.message}`)
+                  console.log('Diagnósticos:', result.diagnostics)
+                  console.log('Recomendações:', result.recommendations)
+                }
+              } catch (err) {
+                setError('Erro ao testar email')
+              }
+            }}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Testar Email
           </Button>
         </div>
       </div>

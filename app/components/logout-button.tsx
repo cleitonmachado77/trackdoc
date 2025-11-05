@@ -40,8 +40,8 @@ export default function LogoutButton({
     localStorage.removeItem("userRole")
     localStorage.removeItem("rememberMe")
 
-    // Redirecionar para login
-    router.push("/login")
+    // Redirecionar para a página de login externa
+    window.location.href = "https://www.trackdoc.app.br/login/"
   }
 
   return (

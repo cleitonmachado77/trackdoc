@@ -132,6 +132,9 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const signOut = async () => {
     if (!supabase) return
     await supabase.auth.signOut()
+    
+    // Redirecionar para a página de login externa
+    window.location.href = "https://www.trackdoc.app.br/login/"
   }
 
   const resetPassword = async (email: string) => {

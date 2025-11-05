@@ -50,25 +50,20 @@ export default function ConfirmEmailPage() {
         if (session?.user) {
           setUserEmail(session.user.email || '')
           
-          // Verificar se o email já foi confirmado
-          if (session.user.email_confirmed_at) {
+          console.log('🔧 [ConfirmEmail] Usuário encontrado:', {
+            id: session.user.id,
+            email: session.user.email,
+            email_confirmed_at: session.user.email_confirmed_at,
+            confirmed_at: session.user.confirmed_at
+          })
+          
+          // Verificar se o email foi confirmado (qualquer um dos campos)
+          const isEmailConfirmed = !!(session.user.email_confirmed_at || session.user.confirmed_at)
+          
+          if (isEmailConfirmed) {
             console.log('✅ [ConfirmEmail] Email confirmado, ativando usuário automaticamente...')
             
-            // Verificar se o usuário já está ativo para evitar processamento duplicado
-            const { data: currentProfile } = await supabase
-              .from('profiles')
-              .select('status, entity_id')
-              .eq('id', session.user.id)
-              .single()
-
-            // Se já está ativo, apenas mostrar mensagem
-            if (currentProfile?.status === 'active') {
-              setStatus('already_confirmed')
-              setMessage('Seu email já foi confirmado e sua conta já está ativa. Você pode fazer login no sistema.')
-              return
-            }
-
-            // 🚀 Ativar usuário automaticamente após confirmação de email usando API
+            // 🚀 SEMPRE tentar ativar o usuário, independente do status atual
             console.log('🔧 [ConfirmEmail] Ativando usuário via API:', session.user.id)
             
             try {
@@ -91,27 +86,63 @@ export default function ConfirmEmailPage() {
                 return
               }
               
-              console.log('✅ [ConfirmEmail] Usuário ativado com sucesso via API!')
+              console.log('✅ [ConfirmEmail] Resultado da ativação:', result)
+              
+              // Verificar se foi ativado com sucesso ou se já estava ativo
+              if (result.success) {
+                setStatus('success')
+                setMessage(result.message || 'Email confirmado e conta ativada com sucesso! Você já pode fazer login no sistema.')
+              } else {
+                setStatus('error')
+                setMessage(`Erro na ativação: ${result.error}`)
+              }
+              
             } catch (activationError) {
               console.error('❌ [ConfirmEmail] Erro na ativação via API:', activationError)
               setStatus('error')
               setMessage('Email confirmado, mas houve erro ao ativar a conta. Entre em contato com o administrador.')
               return
             }
-
-            console.log('✅ [ConfirmEmail] Usuário ativado automaticamente!')
-            
-            setStatus('success')
-            setMessage('Email confirmado e conta ativada com sucesso! Você já pode fazer login no sistema.')
           } else {
             // Email ainda não confirmado
+            console.log('❌ [ConfirmEmail] Email não confirmado ainda')
             setStatus('error')
             setMessage('Email ainda não foi confirmado. Verifique sua caixa de entrada e clique no link de confirmação.')
           }
         } else {
-          // Não há sessão - usuário precisa clicar no link do email
+          // Não há sessão - pode ser que o callback não funcionou
+          console.log('❌ [ConfirmEmail] Sessão não encontrada')
+          
+          // Tentar obter o user_id da URL se disponível
+          const userId = searchParams.get('user_id')
+          if (userId && confirmed) {
+            console.log('🔧 [ConfirmEmail] Tentando ativar usuário via user_id da URL:', userId)
+            
+            try {
+              const response = await fetch('/api/activate-user', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  user_id: userId
+                })
+              })
+              
+              const result = await response.json()
+              
+              if (response.ok && result.success) {
+                setStatus('success')
+                setMessage('Email confirmado e conta ativada com sucesso! Você já pode fazer login no sistema.')
+                return
+              }
+            } catch (error) {
+              console.error('❌ [ConfirmEmail] Erro ao ativar via user_id:', error)
+            }
+          }
+          
           setStatus('error')
-          setMessage('Sessão não encontrada. Por favor, clique no link de confirmação enviado por email.')
+          setMessage('Sessão não encontrada. Por favor, clique no link de confirmação enviado por email ou tente fazer login.')
         }
       } catch (error) {
         console.error('❌ [ConfirmEmail] Erro ao processar confirmação:', error)

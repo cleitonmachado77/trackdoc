@@ -273,7 +273,10 @@ export default function EntitiesAdminPage() {
                 <Settings className="h-4 w-4 mr-2" />
                 Configurações
               </Button>
-              <Button variant="outline">
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/admin/users'}
+              >
                 <Users className="h-4 w-4 mr-2" />
                 Gerenciar Usuários
               </Button>

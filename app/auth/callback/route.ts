@@ -10,6 +10,10 @@ export async function GET(request: NextRequest) {
   const error_description = searchParams.get('error_description')
   
   const baseUrl = 'https://www.trackdoc.app.br'
+  
+  console.log('🔧 [Callback] URL recebida:', request.url)
+  console.log('🔧 [Callback] Parâmetros:', { code: !!code, type, error, baseUrl })
+  console.log('🔧 [Callback] Headers:', Object.fromEntries(request.headers.entries()))
 
   // Se há erro nos parâmetros da URL
   if (error) {
@@ -65,13 +69,17 @@ export async function GET(request: NextRequest) {
           
           if (activateResponse.ok) {
             // Sucesso total - redirecionar para confirmação
+            console.log('✅ [Callback] Usuário ativado, redirecionando para:', `${baseUrl}/confirm-email?confirmed=true&activated=true`)
             return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&activated=true`)
+          } else {
+            console.log('⚠️ [Callback] Falha na ativação, status:', activateResponse.status)
           }
         } catch (activateError) {
           console.error('Erro ao ativar usuário no callback:', activateError)
         }
         
         // Mesmo com erro na ativação, redirecionar para confirmação
+        console.log('✅ [Callback] Sessão criada, redirecionando para:', `${baseUrl}/confirm-email?confirmed=true`)
         return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true`)
       } else {
         console.error('Erro ao processar código no callback:', error)

@@ -17,7 +17,7 @@ export default function LandingRedirect() {
     const authPages = ['/login', '/register', '/verify-email', '/reset-password', '/confirm-email']
     
     if (!loading && !user && !authPages.includes(pathname)) {
-      window.location.href = 'https://www.trackdoc.com.br/'
+      window.location.href = 'https://www.trackdoc.app.br/'
     }
   }, [user, loading, router, pathname])
 

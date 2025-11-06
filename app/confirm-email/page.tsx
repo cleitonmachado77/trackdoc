@@ -100,7 +100,49 @@ export default function ConfirmEmailPage() {
                   return
                 }
               } else {
-                addLog('❌ Nenhuma sessão encontrada - erro real')
+                addLog('❌ Nenhuma sessão encontrada - tentando verificação direta no banco...')
+                
+                // MÉTODO ALTERNATIVO: Verificar confirmações recentes diretamente no banco
+                try {
+                  addLog('🔧 Verificando confirmações recentes no banco...')
+                  
+                  const response = await fetch('/api/check-recent-confirmation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ check: 'recent' })
+                  })
+                  
+                  const result = await response.json()
+                  addLog(`🔧 Resultado da verificação: ${JSON.stringify(result)}`)
+                  
+                  if (response.ok && result.confirmed) {
+                    if (result.activated > 0) {
+                      addLog(`✅ SUCESSO! ${result.activated} usuário(s) confirmado(s) e ativado(s)!`)
+                      setStatus('success')
+                      setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
+                      
+                      setTimeout(() => {
+                        addLog('🔄 Redirecionando para login...')
+                        router.push('/login')
+                      }, 3000)
+                      return
+                    } else {
+                      addLog('✅ Usuário já estava ativo - confirmação anterior bem-sucedida!')
+                      setStatus('success')
+                      setMessage('Sua conta já está ativa. Você pode fazer login.')
+                      
+                      setTimeout(() => {
+                        addLog('🔄 Redirecionando para login...')
+                        router.push('/login')
+                      }, 3000)
+                      return
+                    }
+                  } else {
+                    addLog(`❌ Nenhuma confirmação recente encontrada: ${result.message}`)
+                  }
+                } catch (verifyError) {
+                  addLog(`❌ Erro na verificação de confirmações: ${verifyError}`)
+                }
               }
             } catch (verifyError) {
               addLog(`❌ Erro na verificação: ${verifyError}`)

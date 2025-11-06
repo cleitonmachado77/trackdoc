@@ -34,6 +34,8 @@ export default function ConfirmEmailPage() {
         const confirmed = searchParams.get('confirmed')
         const errorFromUrl = searchParams.get('error')
         
+        console.log('🔧 [ConfirmEmail] Parâmetros:', { code: !!code, confirmed, errorFromUrl })
+        
         // Se há erro na URL, mostrar erro
         if (errorFromUrl) {
           setStatus('error')
@@ -43,9 +45,11 @@ export default function ConfirmEmailPage() {
 
         // Se há código, processar confirmação
         if (code) {
+          console.log('🔧 [ConfirmEmail] Processando código...')
           const { data, error } = await supabase.auth.exchangeCodeForSession(code)
           
           if (!error && data.session) {
+            console.log('✅ [ConfirmEmail] Sessão criada, ativando usuário...')
             // Ativar usuário
             const response = await fetch('/api/activate-user', {
               method: 'POST',
@@ -56,6 +60,7 @@ export default function ConfirmEmailPage() {
             const result = await response.json()
             
             if (response.ok && result.success) {
+              console.log('✅ [ConfirmEmail] Usuário ativado com sucesso!')
               setStatus('success')
               setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
               
@@ -64,15 +69,27 @@ export default function ConfirmEmailPage() {
                 router.push('/login')
               }, 3000)
               return
+            } else {
+              console.error('❌ [ConfirmEmail] Erro na ativação:', result)
+              setStatus('error')
+              setMessage('Erro ao ativar conta. Tente fazer login.')
+              return
             }
+          } else {
+            console.error('❌ [ConfirmEmail] Erro ao processar código:', error)
+            setStatus('error')
+            setMessage('Código de confirmação inválido. Tente fazer login.')
+            return
           }
         }
 
         // Se veio do callback com confirmação
-        if (confirmed) {
+        if (confirmed === 'true') {
+          console.log('🔧 [ConfirmEmail] Confirmação via callback, verificando sessão...')
           const { data: { session } } = await supabase.auth.getSession()
           
           if (session?.user) {
+            console.log('✅ [ConfirmEmail] Sessão encontrada, ativando usuário...')
             // Ativar usuário
             const response = await fetch('/api/activate-user', {
               method: 'POST',
@@ -83,6 +100,7 @@ export default function ConfirmEmailPage() {
             const result = await response.json()
             
             if (response.ok && result.success) {
+              console.log('✅ [ConfirmEmail] Usuário ativado via callback!')
               setStatus('success')
               setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
               
@@ -91,12 +109,23 @@ export default function ConfirmEmailPage() {
                 router.push('/login')
               }, 3000)
               return
+            } else {
+              console.error('❌ [ConfirmEmail] Erro na ativação via callback:', result)
+              setStatus('error')
+              setMessage('Erro ao ativar conta. Tente fazer login.')
+              return
             }
+          } else {
+            console.error('❌ [ConfirmEmail] Sessão não encontrada no callback')
+            setStatus('error')
+            setMessage('Sessão não encontrada. Tente fazer login.')
+            return
           }
         }
 
-        // Se chegou aqui sem parâmetros específicos, redirecionar para página de instruções
-        router.push('/email-sent')
+        // Se chegou aqui sem parâmetros específicos, mostrar erro
+        setStatus('error')
+        setMessage('Link de confirmação inválido ou expirado. Tente fazer login ou registre-se novamente.')
         
       } catch (error) {
         console.error('Erro ao processar confirmação:', error)

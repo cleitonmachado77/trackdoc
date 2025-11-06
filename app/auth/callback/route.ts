@@ -46,19 +46,42 @@ export async function GET(request: NextRequest) {
     )
 
     try {
-      // Processar código de confirmação
+      // Processar código de confirmação usando exchangeCodeForSession
       const { data, error } = await supabase.auth.exchangeCodeForSession(code)
       
       if (!error && data.session) {
-        // Sucesso - redirecionar para confirmação
+        // Sucesso - ativar usuário diretamente no servidor
+        try {
+          // Usar URL absoluta para a API
+          const apiUrl = process.env.NODE_ENV === 'production' 
+            ? `${baseUrl}/api/activate-user`
+            : 'http://localhost:3000/api/activate-user'
+            
+          const activateResponse = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: data.user.id })
+          })
+          
+          if (activateResponse.ok) {
+            // Sucesso total - redirecionar para confirmação
+            return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&activated=true`)
+          }
+        } catch (activateError) {
+          console.error('Erro ao ativar usuário no callback:', activateError)
+        }
+        
+        // Mesmo com erro na ativação, redirecionar para confirmação
         return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true`)
       } else {
-        // Erro ao processar código - redirecionar com código para processamento no cliente
-        return NextResponse.redirect(`${baseUrl}/confirm-email?code=${code}`)
+        console.error('Erro ao processar código no callback:', error)
+        // Erro ao processar código - redirecionar com erro
+        return NextResponse.redirect(`${baseUrl}/confirm-email?error=invalid_code`)
       }
     } catch (sessionError) {
-      // Erro na sessão - redirecionar com código para processamento no cliente
-      return NextResponse.redirect(`${baseUrl}/confirm-email?code=${code}`)
+      console.error('Erro na sessão do callback:', sessionError)
+      // Erro na sessão - redirecionar com erro
+      return NextResponse.redirect(`${baseUrl}/confirm-email?error=session_error`)
     }
   }
 

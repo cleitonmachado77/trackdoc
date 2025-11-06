@@ -1,11 +1,11 @@
 -- ========================================
--- CORREÇÃO DO TRIGGER - STATUS PENDENTE ATÉ CONFIRMAÇÃO
+-- CORREÇÃO FINAL - STATUS INATIVO ATÉ CONFIRMAÇÃO
 -- ========================================
 
--- O problema: trigger está criando perfis com status 'active' imediatamente
--- Solução: criar com status 'pending_email' e ativar apenas após confirmação
+-- PROBLEMA: Trigger criava perfis 'active' imediatamente
+-- SOLUÇÃO: Criar perfis 'inactive' até confirmação do email
 
--- 1. CORRIGIR FUNÇÃO PARA CRIAR PERFIS PENDENTES
+-- 1. CORRIGIR FUNÇÃO PARA CRIAR PERFIS INATIVOS
 CREATE OR REPLACE FUNCTION public.handle_new_user_robust()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -28,7 +28,7 @@ BEGIN
     IF NEW.email_confirmed_at IS NOT NULL THEN
         initial_status := 'active';
     ELSE
-        initial_status := 'inactive';  -- Usar 'inactive' até confirmação
+        initial_status := 'inactive';  -- Inativo até confirmação
     END IF;
     
     -- Inserir perfil com tratamento de erro
@@ -52,12 +52,12 @@ BEGIN
             initial_status,
             CASE 
                 WHEN initial_status = 'active' THEN '["read", "write"]'::jsonb
-                ELSE '[]'::jsonb
+                ELSE '[]'::jsonb  -- Sem permissões até confirmação
             END,
             user_registration_type,
             CASE 
                 WHEN initial_status = 'active' THEN true
-                ELSE false
+                ELSE false  -- Registro incompleto até confirmação
             END,
             NOW(),
             NOW()
@@ -152,8 +152,8 @@ GRANT EXECUTE ON FUNCTION public.handle_email_confirmation() TO authenticated, s
 
 -- 7. VERIFICAÇÃO FINAL
 SELECT 
-    'Correção aplicada!' as status,
-    COUNT(CASE WHEN p.status = 'inactive' AND u.email_confirmed_at IS NULL THEN 1 END) as usuarios_inativos_sem_confirmacao,
+    'Correção aplicada com sucesso!' as status,
+    COUNT(CASE WHEN p.status = 'inactive' AND u.email_confirmed_at IS NULL THEN 1 END) as usuarios_inativos_aguardando_confirmacao,
     COUNT(CASE WHEN p.status = 'active' AND u.email_confirmed_at IS NOT NULL THEN 1 END) as usuarios_ativos_confirmados,
     COUNT(CASE WHEN p.status = 'active' AND u.email_confirmed_at IS NULL THEN 1 END) as usuarios_ativos_sem_confirmacao_ERRO
 FROM public.profiles p

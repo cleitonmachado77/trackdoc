@@ -29,7 +29,7 @@ Registro → Trigger → Status 'active' → Email enviado → Confirmação (in
 
 ### **Fluxo Correto (IMPLEMENTADO):**
 ```
-Registro → Trigger → Status 'pending_email' → Confirmação → Status 'active'
+Registro → Trigger → Status 'inactive' → Confirmação → Status 'active'
 ```
 
 ## Solução Implementada
@@ -49,7 +49,7 @@ INSERT INTO public.profiles (
     permissions,
     registration_completed
 ) VALUES (
-    initial_status,                    -- ✅ Pendente até confirmação
+    initial_status,                    -- ✅ Inativo até confirmação
     CASE 
         WHEN initial_status = 'active' THEN '["read", "write"]'::jsonb
         ELSE '[]'::jsonb               -- ✅ Sem permissões até confirmação
@@ -79,7 +79,7 @@ SET
     status = 'active',
     registration_completed = true,
     permissions = '["read", "write"]'::jsonb
-WHERE id = NEW.id AND status = 'pending_email';
+WHERE id = NEW.id AND status = 'inactive';
 ```
 
 ### **3. Correção de Usuários Existentes**
@@ -87,22 +87,22 @@ WHERE id = NEW.id AND status = 'pending_email';
 **Desativar usuários ativos sem confirmação:**
 ```sql
 UPDATE public.profiles 
-SET status = 'pending_email'
+SET status = 'inactive'
 WHERE status = 'active' AND email_confirmed_at IS NULL;
 ```
 
-**Ativar usuários confirmados mas pendentes:**
+**Ativar usuários confirmados mas inativos:**
 ```sql
 UPDATE public.profiles 
 SET status = 'active'
-WHERE status = 'pending_email' AND email_confirmed_at IS NOT NULL;
+WHERE status = 'inactive' AND email_confirmed_at IS NOT NULL;
 ```
 
 ## Estados dos Usuários
 
 ### **Estado 1: Recém Registrado**
 - **auth.users**: `email_confirmed_at = NULL`
-- **profiles**: `status = 'pending_email'`
+- **profiles**: `status = 'inactive'`
 - **Pode fazer login**: ❌ NÃO
 - **Tem permissões**: ❌ NÃO
 
@@ -159,7 +159,7 @@ LIMIT 10;
 ```
 
 **Resultado esperado:**
-- **Email não confirmado**: `status = 'pending_email'`
+- **Email não confirmado**: `status = 'inactive'`
 - **Email confirmado**: `status = 'active'`
 
 ## Resultado

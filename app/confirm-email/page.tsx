@@ -46,20 +46,95 @@ export default function ConfirmEmailPage() {
         addLog(`🔧 Parâmetros recebidos: code=${!!code}, confirmed=${confirmed}, error=${errorFromUrl}`)
         addLog(`🔧 URL completa: ${window.location.href}`)
         
-        // Se há erro na URL, mostrar erro
+        // Se há erro na URL, mostrar erro específico
         if (errorFromUrl) {
           addLog(`❌ Erro na URL detectado: ${errorFromUrl}`)
+          const details = searchParams.get('details')
+          if (details) {
+            addLog(`🔧 Detalhes do erro: ${decodeURIComponent(details)}`)
+          }
+          
+          let errorMessage = 'Erro ao confirmar email.'
+          
+          switch (errorFromUrl) {
+            case 'invalid_code':
+              errorMessage = 'Código de confirmação inválido ou expirado. O link pode ter sido usado ou expirado.'
+              break
+            case 'processing_failed':
+              errorMessage = 'Falha no processamento da confirmação. Tente fazer login - sua conta pode já estar ativa.'
+              break
+            case 'session_error':
+              errorMessage = 'Erro na sessão de confirmação. Tente fazer login ou registre-se novamente.'
+              break
+            case 'callback_error':
+              errorMessage = 'Erro no callback de confirmação. Entre em contato com o suporte.'
+              break
+            default:
+              errorMessage = 'Erro desconhecido na confirmação. Tente fazer login.'
+          }
+          
           setStatus('error')
-          setMessage('Erro ao confirmar email. Tente fazer login ou entre em contato com o suporte.')
+          setMessage(errorMessage)
           return
         }
 
-        // Se há código, significa que o callback falhou - mostrar erro
+        // Se há código, tentar processar no cliente (fallback)
         if (code) {
-          addLog('❌ Código presente - callback falhou no servidor')
-          setStatus('error')
-          setMessage('Erro no processamento da confirmação. Tente fazer login ou registre-se novamente.')
-          return
+          const callbackFailed = searchParams.get('callback_failed')
+          
+          if (callbackFailed === 'true') {
+            addLog('⚠️ Callback falhou, tentando processar código no cliente...')
+            
+            try {
+              const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+              
+              if (!error && data.session) {
+                addLog(`✅ Código processado no cliente para: ${data.user?.email}`)
+                
+                // Ativar usuário
+                const response = await fetch('/api/activate-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: data.user.id })
+                })
+                
+                const result = await response.json()
+                addLog(`🔧 Resultado da ativação: ${JSON.stringify(result)}`)
+                
+                if (response.ok && result.success) {
+                  addLog('✅ Usuário ativado no cliente com sucesso!')
+                  setStatus('success')
+                  setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
+                  
+                  setTimeout(() => {
+                    addLog('🔄 Redirecionando para login...')
+                    router.push('/login')
+                  }, 5000)
+                  return
+                } else {
+                  addLog(`❌ Erro na ativação: ${result.error}`)
+                  setStatus('error')
+                  setMessage(`Email confirmado, mas erro na ativação: ${result.error}`)
+                  return
+                }
+              } else {
+                addLog(`❌ Erro ao processar código no cliente: ${error?.message}`)
+                setStatus('error')
+                setMessage('Código de confirmação inválido ou expirado.')
+                return
+              }
+            } catch (clientError) {
+              addLog(`❌ Erro geral no cliente: ${clientError}`)
+              setStatus('error')
+              setMessage('Erro ao processar confirmação no cliente.')
+              return
+            }
+          } else {
+            addLog('❌ Código presente sem fallback - callback falhou')
+            setStatus('error')
+            setMessage('Erro no processamento da confirmação. Tente fazer login ou registre-se novamente.')
+            return
+          }
         }
 
         // Se veio do callback com confirmação

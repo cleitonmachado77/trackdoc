@@ -93,11 +93,11 @@ export async function GET(request: NextRequest) {
       } else {
         console.error('❌ [Callback] Erro ao processar código:', error?.message || 'Erro desconhecido')
         
-        // Tentar método alternativo - verificar se o usuário já existe e está confirmado
+        // Tentar método alternativo - buscar usuário pelo código
         try {
-          console.log('🔧 [Callback] Tentando método alternativo...')
+          console.log('🔧 [Callback] Tentando método alternativo - buscar usuário...')
           
-          // Verificar sessão atual
+          // Verificar se há sessão atual (pode ter sido criada em tentativa anterior)
           const { data: sessionData } = await supabase.auth.getSession()
           
           if (sessionData.session?.user) {
@@ -105,9 +105,33 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true`)
           }
           
-          // Se não há sessão, redirecionar com código para processamento no cliente
-          console.log('🔧 [Callback] Redirecionando código para cliente processar')
-          return NextResponse.redirect(`${baseUrl}/confirm-email?code=${code}&callback_failed=true`)
+          // Se o código falhou, pode ser que o usuário já esteja confirmado
+          // Vamos tentar ativar usuários confirmados mas não ativados
+          console.log('🔧 [Callback] Tentando ativar usuários confirmados...')
+          
+          try {
+            const apiUrl = process.env.NODE_ENV === 'production' 
+              ? `${baseUrl}/api/activate-confirmed-users`
+              : 'http://localhost:3000/api/activate-confirmed-users'
+              
+            const activateResponse = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ trigger: 'callback_fallback' })
+            })
+            
+            if (activateResponse.ok) {
+              const result = await activateResponse.json()
+              console.log('✅ [Callback] Usuários confirmados ativados:', result)
+              return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&bulk_activated=true`)
+            }
+          } catch (bulkError) {
+            console.error('❌ [Callback] Erro na ativação em lote:', bulkError)
+          }
+          
+          // Último recurso - redirecionar com erro mas sugerir login
+          console.log('❌ [Callback] Todos os métodos falharam')
+          return NextResponse.redirect(`${baseUrl}/confirm-email?error=processing_failed&try_login=true&details=${encodeURIComponent(error?.message || 'Código inválido')}`)
           
         } catch (altError) {
           console.error('❌ [Callback] Método alternativo falhou:', altError)

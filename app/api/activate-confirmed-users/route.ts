@@ -4,38 +4,76 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies()
+    const body = await request.json()
+    const { trigger } = body
+    
+    // Usar service role para operações administrativas
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options })
-          },
-        },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
       }
     )
 
-    // Verificar se o usuário está autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    // Se for chamada do callback, permitir sem autenticação
+    if (trigger === 'callback_fallback') {
+      console.log('🔧 [activate-confirmed-users] Chamada do callback fallback')
+    } else {
+      // Para outras chamadas, verificar autenticação
+      const cookieStore = await cookies()
+      const userSupabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return cookieStore.get(name)?.value
+            },
+            set(name: string, value: string, options: any) {
+              cookieStore.set({ name, value, ...options })
+            },
+            remove(name: string, options: any) {
+              cookieStore.set({ name, value: '', ...options })
+            },
+          },
+        }
+      )
+
+      const { data: { user }, error: authError } = await userSupabase.auth.getUser()
+      
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      }
     }
 
-    // Buscar usuários com status pending_email que já confirmaram o email
+    // Buscar usuários confirmados no auth.users mas não ativados nos profiles
+    const { data: authUsers, error: authError } = await supabase
+      .from('auth.users')
+      .select('id, email, email_confirmed_at')
+      .not('email_confirmed_at', 'is', null)
+    
+    if (authError) {
+      console.error('Erro ao buscar usuários auth:', authError)
+      return NextResponse.json({ error: 'Erro ao buscar usuários auth' }, { status: 500 })
+    }
+
+    if (!authUsers || authUsers.length === 0) {
+      return NextResponse.json({ 
+        message: 'Nenhum usuário confirmado encontrado',
+        activated: 0 
+      })
+    }
+
+    // Buscar profiles correspondentes que não estão ativos
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, entity_id, full_name')
-      .eq('status', 'pending_email')
-      .not('email_confirmed_at', 'is', null)
+      .select('id, email, entity_id, full_name, status')
+      .in('id', authUsers.map(u => u.id))
+      .neq('status', 'active')
 
     if (profilesError) {
       console.error('Erro ao buscar perfis:', profilesError)

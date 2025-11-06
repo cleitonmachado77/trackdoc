@@ -112,7 +112,7 @@ export default function RegisterPageSimple() {
             registration_type: 'individual'
           },
           // Configurar URL de redirecionamento correta
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
+          emailRedirectTo: `https://www.trackdoc.app.br/auth/callback`
         }
       })
 

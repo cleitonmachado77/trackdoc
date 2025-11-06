@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     }
 
     if (action === 'manual_activate') {
-      // Ativação manual completa
-      const { data, error } = await supabase.rpc('manual_confirm_and_activate_user', {
+      // Ativação manual completa com função melhorada
+      const { data, error } = await supabase.rpc('manual_confirm_and_activate_user_v2', {
         p_email: email
       })
 

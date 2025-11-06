@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   console.log('🔧 [auth/callback] Hash da URL:', hash)
 
   // Usar a URL correta baseada no ambiente
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'
+  const baseUrl = 'https://www.trackdoc.app.br'
 
   console.log('🔧 [auth/callback] Parâmetros recebidos:', { 
     code: !!code, 

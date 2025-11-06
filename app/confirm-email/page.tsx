@@ -115,8 +115,8 @@ export default function ConfirmEmailPage() {
                   const result = await response.json()
                   addLog(`🔧 Resultado da verificação: ${JSON.stringify(result)}`)
                   
-                  if (response.ok && result.confirmed) {
-                    if (result.activated > 0) {
+                  if (response.ok) {
+                    if (result.confirmed && result.activated > 0) {
                       addLog(`✅ SUCESSO! ${result.activated} usuário(s) confirmado(s) e ativado(s)!`)
                       setStatus('success')
                       setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
@@ -126,19 +126,23 @@ export default function ConfirmEmailPage() {
                         router.push('/login')
                       }, 3000)
                       return
-                    } else {
-                      addLog('✅ Usuário já estava ativo - confirmação anterior bem-sucedida!')
+                    } else if (result.activated === 0) {
+                      // Nenhum usuário inativo encontrado = trigger funcionou corretamente!
+                      addLog('✅ SUCESSO! Nenhum usuário inativo encontrado - trigger funcionou corretamente!')
+                      addLog('✅ Sua conta foi ativada automaticamente pelo sistema!')
                       setStatus('success')
-                      setMessage('Sua conta já está ativa. Você pode fazer login.')
+                      setMessage('Sua conta foi confirmada e ativada automaticamente! Você já pode fazer login.')
                       
                       setTimeout(() => {
                         addLog('🔄 Redirecionando para login...')
                         router.push('/login')
                       }, 3000)
                       return
+                    } else {
+                      addLog(`❌ Resposta inesperada: ${JSON.stringify(result)}`)
                     }
                   } else {
-                    addLog(`❌ Nenhuma confirmação recente encontrada: ${result.message}`)
+                    addLog(`❌ Erro na API: ${result.message || 'Erro desconhecido'}`)
                   }
                 } catch (verifyError) {
                   addLog(`❌ Erro na verificação de confirmações: ${verifyError}`)

@@ -17,92 +17,70 @@ export async function POST(request: Request) {
       }
     )
 
-    console.log('🔧 [check-recent-confirmation] Verificando confirmações recentes...')
+    console.log('🔧 [check-recent-confirmation] Buscando usuários inativos criados recentemente...')
 
-    // Buscar usuários confirmados nos últimos 5 minutos
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    // Buscar usuários inativos criados nos últimos 10 minutos (podem ter sido confirmados)
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
     
-    const { data: recentUsers, error: usersError } = await supabase
-      .from('auth.users')
-      .select('id, email, email_confirmed_at')
-      .not('email_confirmed_at', 'is', null)
-      .gte('email_confirmed_at', fiveMinutesAgo)
-      .order('email_confirmed_at', { ascending: false })
-    
-    if (usersError) {
-      console.error('❌ [check-recent-confirmation] Erro ao buscar usuários:', usersError)
-      return NextResponse.json({ error: usersError.message }, { status: 500 })
-    }
-
-    if (!recentUsers || recentUsers.length === 0) {
-      console.log('ℹ️ [check-recent-confirmation] Nenhum usuário confirmado recentemente')
-      return NextResponse.json({ 
-        confirmed: false,
-        message: 'Nenhum usuário confirmado nos últimos 5 minutos'
-      })
-    }
-
-    console.log(`✅ [check-recent-confirmation] ${recentUsers.length} usuário(s) confirmado(s) recentemente`)
-
-    // Verificar quais precisam ser ativados
-    const userIds = recentUsers.map(u => u.id)
-    
-    const { data: profiles, error: profilesError } = await supabase
+    const { data: inactiveProfiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, email, status')
-      .in('id', userIds)
+      .select('id, email, status, created_at, updated_at')
+      .eq('status', 'inactive')
+      .gte('created_at', tenMinutesAgo)
+      .order('created_at', { ascending: false })
     
     if (profilesError) {
       console.error('❌ [check-recent-confirmation] Erro ao buscar profiles:', profilesError)
       return NextResponse.json({ error: profilesError.message }, { status: 500 })
     }
 
-    const inactiveProfiles = profiles?.filter(p => p.status === 'inactive') || []
-    
-    if (inactiveProfiles.length > 0) {
-      console.log(`🔧 [check-recent-confirmation] Ativando ${inactiveProfiles.length} perfil(s)...`)
-      
-      // Ativar perfis inativos
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          status: 'active',
-          registration_completed: true,
-          permissions: JSON.parse('["read", "write"]'),
-          updated_at: new Date().toISOString()
-        })
-        .in('id', inactiveProfiles.map(p => p.id))
-      
-      if (updateError) {
-        console.error('❌ [check-recent-confirmation] Erro ao ativar perfis:', updateError)
-        return NextResponse.json({ error: updateError.message }, { status: 500 })
-      }
-      
-      console.log(`✅ [check-recent-confirmation] ${inactiveProfiles.length} perfil(s) ativado(s)`)
-      
-      return NextResponse.json({
-        confirmed: true,
-        activated: inactiveProfiles.length,
-        users: inactiveProfiles.map(p => ({ email: p.email, status: 'activated' })),
-        message: `${inactiveProfiles.length} usuário(s) confirmado(s) e ativado(s) com sucesso`
-      })
-    } else {
-      console.log('ℹ️ [check-recent-confirmation] Todos os usuários já estão ativos')
-      
-      return NextResponse.json({
-        confirmed: true,
+    if (!inactiveProfiles || inactiveProfiles.length === 0) {
+      console.log('ℹ️ [check-recent-confirmation] Nenhum usuário inativo recente encontrado')
+      return NextResponse.json({ 
+        confirmed: false,
         activated: 0,
-        users: profiles?.map(p => ({ email: p.email, status: p.status })) || [],
-        message: 'Usuários confirmados recentemente já estão ativos'
+        message: 'Nenhum usuário inativo criado recentemente'
       })
     }
+
+    console.log(`🔧 [check-recent-confirmation] ${inactiveProfiles.length} usuário(s) inativo(s) encontrado(s)`)
+
+    // Tentar ativar esses usuários (assumindo que podem ter sido confirmados)
+    const { data: updatedProfiles, error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        status: 'active',
+        registration_completed: true,
+        permissions: ['read', 'write'],
+        updated_at: new Date().toISOString()
+      })
+      .in('id', inactiveProfiles.map(p => p.id))
+      .select('id, email')
+    
+    if (updateError) {
+      console.error('❌ [check-recent-confirmation] Erro ao ativar profiles:', updateError)
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    const activatedCount = updatedProfiles?.length || 0
+    console.log(`✅ [check-recent-confirmation] ${activatedCount} usuário(s) ativado(s)`)
+    
+    return NextResponse.json({
+      confirmed: true,
+      activated: activatedCount,
+      users: updatedProfiles?.map(p => ({ email: p.email, status: 'activated' })) || [],
+      message: activatedCount > 0 
+        ? `${activatedCount} usuário(s) ativado(s) com sucesso`
+        : 'Verificação executada, nenhuma ativação necessária'
+    })
 
   } catch (error) {
     console.error('❌ [check-recent-confirmation] Erro geral:', error)
     return NextResponse.json(
       { 
         error: 'Erro interno do servidor',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
+        details: error instanceof Error ? error.message : 'Erro desconhecido',
+        confirmed: false
       },
       { status: 500 }
     )

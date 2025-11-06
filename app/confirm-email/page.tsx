@@ -57,7 +57,7 @@ export default function ConfirmEmailPage() {
             
             if (response.ok && result.success) {
               setStatus('success')
-              setMessage('Email confirmado e conta ativada com sucesso!')
+              setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
               
               // Redirecionar para login após 3 segundos
               setTimeout(() => {
@@ -84,7 +84,7 @@ export default function ConfirmEmailPage() {
             
             if (response.ok && result.success) {
               setStatus('success')
-              setMessage('Email confirmado e conta ativada com sucesso!')
+              setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
               
               // Redirecionar para login após 3 segundos
               setTimeout(() => {
@@ -95,9 +95,8 @@ export default function ConfirmEmailPage() {
           }
         }
 
-        // Se chegou aqui sem parâmetros específicos, mostrar página de instruções
-        setStatus('success')
-        setMessage('Verifique seu email e clique no link de confirmação para ativar sua conta. Se você já confirmou, tente fazer login.')
+        // Se chegou aqui sem parâmetros específicos, redirecionar para página de instruções
+        router.push('/email-sent')
         
       } catch (error) {
         console.error('Erro ao processar confirmação:', error)
@@ -130,7 +129,7 @@ export default function ConfirmEmailPage() {
           </div>
           <CardTitle>
             {status === 'loading' && 'Verificando confirmação...'}
-            {status === 'success' && 'Email Confirmado!'}
+            {status === 'success' && 'Conta Confirmada!'}
             {status === 'error' && 'Erro na Confirmação'}
           </CardTitle>
         </CardHeader>

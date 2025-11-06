@@ -127,9 +127,9 @@ export default function RegisterPageSimple() {
 
       setSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.")
       
-      // Redirecionar para página de confirmação
+      // Redirecionar para página de email enviado
       setTimeout(() => {
-        router.push('/confirm-email')
+        router.push('/email-sent')
       }, 2000)
 
     } catch (err) {

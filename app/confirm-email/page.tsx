@@ -46,7 +46,7 @@ export default function ConfirmEmailPage() {
         addLog(`🔧 Parâmetros recebidos: code=${!!code}, confirmed=${confirmed}, error=${errorFromUrl}`)
         addLog(`🔧 URL completa: ${window.location.href}`)
         
-        // Se há erro na URL, mostrar erro específico
+        // Se há erro na URL, verificar se a confirmação foi bem-sucedida mesmo assim
         if (errorFromUrl) {
           addLog(`❌ Erro na URL detectado: ${errorFromUrl}`)
           const details = searchParams.get('details')
@@ -56,6 +56,56 @@ export default function ConfirmEmailPage() {
           
           const tryLogin = searchParams.get('try_login')
           const bulkActivated = searchParams.get('bulk_activated')
+          
+          const allowVerify = searchParams.get('allow_verify')
+          
+          // VERIFICAÇÃO INTELIGENTE: Mesmo com erro no callback, verificar se há sessão ativa
+          if (errorFromUrl === 'processing_failed' && (details?.includes('both auth code and code verifier') || allowVerify === 'true')) {
+            addLog('🔧 Erro PKCE detectado - verificando se confirmação foi bem-sucedida...')
+            
+            try {
+              const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+              
+              if (!sessionError && session?.user) {
+                addLog(`✅ SUCESSO! Sessão encontrada para: ${session.user.email}`)
+                addLog('✅ Confirmação foi bem-sucedida apesar do erro PKCE!')
+                
+                // Verificar se usuário está ativo
+                const response = await fetch('/api/activate-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: session.user.id })
+                })
+                
+                const result = await response.json()
+                addLog(`🔧 Status da ativação: ${JSON.stringify(result)}`)
+                
+                if (response.ok && result.success) {
+                  setStatus('success')
+                  setMessage('Sua conta foi confirmada e ativada com sucesso! Você já pode fazer login.')
+                  
+                  setTimeout(() => {
+                    addLog('🔄 Redirecionando para login...')
+                    router.push('/login')
+                  }, 3000)
+                  return
+                } else if (result.message?.includes('já está ativo')) {
+                  setStatus('success')
+                  setMessage('Sua conta foi confirmada com sucesso! Você já pode fazer login.')
+                  
+                  setTimeout(() => {
+                    addLog('🔄 Redirecionando para login...')
+                    router.push('/login')
+                  }, 3000)
+                  return
+                }
+              } else {
+                addLog('❌ Nenhuma sessão encontrada - erro real')
+              }
+            } catch (verifyError) {
+              addLog(`❌ Erro na verificação: ${verifyError}`)
+            }
+          }
           
           let errorMessage = 'Erro ao confirmar email.'
           

@@ -37,8 +37,52 @@ export async function POST(request: Request) {
     
     if (fetchError) {
       console.error('❌ [activate-user] Erro ao buscar perfil:', fetchError)
+      
+      // Se usuário não foi encontrado, tentar criar perfil básico
+      if (fetchError.code === 'PGRST116') {
+        console.log('🔧 [activate-user] Usuário não encontrado, tentando criar perfil...')
+        
+        try {
+          // Buscar dados do usuário no auth.users via service role
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id)
+          
+          if (!authError && authUser.user) {
+            // Criar perfil básico
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user_id,
+                full_name: authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Usuário',
+                email: authUser.user.email,
+                role: 'user',
+                status: 'active',
+                permissions: JSON.stringify(["read", "write"]),
+                registration_type: 'individual',
+                registration_completed: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select()
+              .single()
+            
+            if (!createError && newProfile) {
+              console.log('✅ [activate-user] Perfil criado e ativado com sucesso!')
+              return NextResponse.json({
+                success: true,
+                message: 'Perfil criado e usuário ativado com sucesso!',
+                user: newProfile
+              })
+            } else {
+              console.error('❌ [activate-user] Erro ao criar perfil:', createError)
+            }
+          }
+        } catch (createProfileError) {
+          console.error('❌ [activate-user] Erro ao tentar criar perfil:', createProfileError)
+        }
+      }
+      
       return NextResponse.json(
-        { error: 'Usuário não encontrado' },
+        { error: 'Usuário não encontrado e não foi possível criar perfil' },
         { status: 404 }
       )
     }

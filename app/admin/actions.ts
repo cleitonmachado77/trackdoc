@@ -30,7 +30,7 @@ interface DocumentType {
   color: string
   requiredFields: string[]
   approvalRequired: boolean
-  retentionPeriod: number
+  retentionPeriod: number | null | undefined // Permite null para "sem retenção"
   status: "active" | "inactive"
   template: string | null
   documentsCount: number
@@ -548,6 +548,9 @@ export async function deleteDepartment(id: string) {
 export async function getDocumentTypes(): Promise<DocumentType[]> {
   const supabase = createSupabaseServerClient()
 
+  console.log("🔍 [getDocumentTypes] ==================== INÍCIO ====================")
+  console.log("🔍 [getDocumentTypes] Função chamada em:", new Date().toISOString())
+
   try {
     // Obter usuário atual e sua entidade
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -593,21 +596,37 @@ export async function getDocumentTypes(): Promise<DocumentType[]> {
       return []
     }
 
+    console.log("🔍 [getDocumentTypes] ========== SERVER ACTION ==========")
     console.log("🔍 [getDocumentTypes] Tipos encontrados:", data?.length || 0)
+    console.log("🔍 [getDocumentTypes] Data bruta do banco:", JSON.stringify(data, null, 2))
 
     // Mapear os dados para o formato esperado
-    const mappedData = data?.map(item => ({
-      id: item.id,
-      name: item.name,
-      prefix: item.prefix || 'DOC',
-      color: item.color || '#10B981',
-      requiredFields: item.required_fields || ['title', 'author'],
-      approvalRequired: item.approval_required || false,
-      retentionPeriod: item.retention_period || 24,
-      status: item.status || 'active',
-      template: item.template || null,
-      documentsCount: 0
-    })) || []
+    const mappedData = data?.map(item => {
+      console.log(`🔍 [getDocumentTypes] Tipo "${item.name}":`)
+      console.log(`   - retention_period do banco:`, item.retention_period)
+      console.log(`   - tipo:`, typeof item.retention_period)
+      console.log(`   - é null?:`, item.retention_period === null)
+      console.log(`   - é undefined?:`, item.retention_period === undefined)
+      
+      const mapped = {
+        id: item.id,
+        name: item.name,
+        prefix: item.prefix || 'DOC',
+        color: item.color || '#10B981',
+        requiredFields: item.required_fields || ['title', 'author'],
+        approvalRequired: item.approval_required || false,
+        retentionPeriod: item.retention_period, // NÃO usar fallback - preservar null
+        status: item.status || 'active',
+        template: item.template || null,
+        documentsCount: 0
+      }
+      
+      console.log(`   - mapeado retentionPeriod:`, mapped.retentionPeriod)
+      return mapped
+    }) || []
+
+    console.log("🔍 [getDocumentTypes] Dados finais mapeados:", JSON.stringify(mappedData.map(t => ({ name: t.name, retentionPeriod: t.retentionPeriod })), null, 2))
+    console.log("🔍 [getDocumentTypes] ==========================================")
 
     return mappedData
   } catch (error) {
@@ -728,13 +747,13 @@ export async function createDocumentType(documentTypeData: Omit<DocumentType, "i
     color: data.color || '#10B981',
     requiredFields: data.required_fields || ['title', 'author'],
     approvalRequired: data.approval_required || false,
-    retentionPeriod: data.retention_period || 24,
+    retentionPeriod: data.retention_period, // NÃO usar fallback - preservar null
     status: data.status || 'active',
     template: data.template,
     documentsCount: 0 // Será calculado posteriormente se necessário
   }
 
-  // Removido revalidatePath para evitar quebra de layout
+  revalidatePath("/admin/document-types")
   return { success: true, data: mappedData }
 }
 
@@ -811,6 +830,9 @@ export async function updateDocumentType(id: string, documentTypeData: Partial<D
     return { success: false, error: error.message }
   }
 
+  console.log("✅ [updateDocumentType] Dados salvos no banco:", data)
+  console.log("✅ [updateDocumentType] retention_period do banco:", data.retention_period)
+
   // Mapear os dados retornados para o formato esperado pelo componente
   const mappedData = {
     id: data.id,
@@ -819,13 +841,15 @@ export async function updateDocumentType(id: string, documentTypeData: Partial<D
     color: data.color || '#10B981',
     requiredFields: data.required_fields || ['title', 'author'],
     approvalRequired: data.approval_required || false,
-    retentionPeriod: data.retention_period || 24,
+    retentionPeriod: data.retention_period, // NÃO usar fallback - preservar null
     status: data.status || 'active',
     template: data.template,
     documentsCount: 0 // Será calculado posteriormente se necessário
   }
 
-  // Removido revalidatePath para evitar quebra de layout
+  console.log("✅ [updateDocumentType] Dados mapeados:", mappedData)
+
+  revalidatePath("/admin/document-types")
   return { success: true, data: mappedData }
 }
 
@@ -890,6 +914,6 @@ export async function deleteDocumentType(id: string) {
     return { success: false, error: error.message }
   }
 
-  // Removido revalidatePath para evitar quebra de layout
+  revalidatePath("/admin/document-types")
   return { success: true }
 }

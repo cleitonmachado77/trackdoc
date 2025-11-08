@@ -20,11 +20,18 @@ export function useDocumentTypes() {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+
+  // Função para forçar recarregamento
+  const refetch = () => {
+    console.log("🔄 [useDocumentTypes] Forçando recarregamento...")
+    setRefreshTrigger(prev => prev + 1)
+  }
 
   useEffect(() => {
     async function fetchDocumentTypes() {
@@ -33,6 +40,8 @@ export function useDocumentTypes() {
         setLoading(false)
         return
       }
+
+      console.log("🔄 [useDocumentTypes] Carregando tipos de documento... (trigger:", refreshTrigger, ")")
 
       try {
         setLoading(true)
@@ -82,19 +91,27 @@ export function useDocumentTypes() {
           throw error
         }
 
+        console.log("🔍 [useDocumentTypes] Dados do banco:", data)
+        
         // Mapear os campos do banco para o formato esperado
-        const mappedData = data?.map(item => ({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          prefix: item.prefix || 'DOC',
-          color: item.color || '#10B981',
-          requiredFields: item.required_fields || ['title', 'author'],
-          approvalRequired: item.approval_required || false,
-          retentionPeriod: item.retention_period || 24,
-          status: item.status || 'active',
-          template: item.template,
-        })) || []
+        const mappedData = data?.map(item => {
+          console.log(`🔍 [useDocumentTypes] Tipo "${item.name}" - retention_period:`, item.retention_period, typeof item.retention_period)
+          
+          return {
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            prefix: item.prefix || 'DOC',
+            color: item.color || '#10B981',
+            requiredFields: item.required_fields || ['title', 'author'],
+            approvalRequired: item.approval_required || false,
+            retentionPeriod: item.retention_period, // ✅ NÃO usar fallback - preservar null
+            status: item.status || 'active',
+            template: item.template,
+          }
+        }) || []
+        
+        console.log("🔍 [useDocumentTypes] Dados mapeados:", mappedData.map(t => ({ name: t.name, retentionPeriod: t.retentionPeriod })))
         setDocumentTypes(mappedData)
       } catch (err) {
         console.error("Erro ao buscar tipos de documento:", err)
@@ -105,7 +122,7 @@ export function useDocumentTypes() {
     }
 
     fetchDocumentTypes()
-  }, [user?.id]) // Dependência do usuário para recarregar quando mudar
+  }, [user?.id, refreshTrigger]) // Recarrega quando user ou refreshTrigger mudar
 
   const validateFile = (file: File, documentType: DocumentType): string[] => {
     const errors: string[] = []
@@ -152,5 +169,5 @@ export function useDocumentTypes() {
     return errors
   }
 
-  return { documentTypes, loading, error, validateFile }
+  return { documentTypes, loading, error, validateFile, refetch }
 }

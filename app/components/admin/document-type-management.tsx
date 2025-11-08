@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-// import { useRouter } from "next/navigation" // Temporariamente removido
 import { createDocumentType, updateDocumentType, deleteDocumentType } from "@/app/admin/actions"
 import DocumentTypeForm from "./document-type-form"
 import {
@@ -31,7 +30,9 @@ import {
   Trash2,
   LayoutGrid,
   List,
+  Loader2,
 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 /* ---------- TIPOS ---------- */
 type Status = "active" | "inactive"
@@ -43,7 +44,7 @@ interface DocumentType {
   color: string
   requiredFields: string[]
   approvalRequired: boolean
-  retentionPeriod: number
+  retentionPeriod: number | null | undefined // Permite null ou undefined para "sem retenção"
   status: Status
   template: string | null
   documentsCount: number // Assumindo que este campo virá do banco ou será calculado
@@ -77,7 +78,11 @@ interface DocumentTypeManagementProps {
 }
 
 /* ---------- COMPONENTE PRINCIPAL ---------- */
-export default function DocumentTypeManagement({ initialDocumentTypes = [], totalDocuments = 0 }: DocumentTypeManagementProps) {
+export default function DocumentTypeManagement({ 
+  initialDocumentTypes = [], 
+  totalDocuments = 0
+}: DocumentTypeManagementProps) {
+  const { toast } = useToast()
   const router = useRouter()
   
   const [searchTerm, setSearchTerm] = useState("")
@@ -86,30 +91,11 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [typeToDelete, setTypeToDelete] = useState<DocumentType | null>(null)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [isUpdating, setIsUpdating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  // Usar estado local para gerenciar os tipos de documento
-  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
-  
-  // Atualizar o estado local quando as props mudarem
-  useEffect(() => {
-    setDocumentTypes(initialDocumentTypes)
-  }, [initialDocumentTypes])
-
-  // Log quando a lista de tipos muda
-  useEffect(() => {
-    console.log("📊 [STATE] Lista de tipos atualizada:", documentTypes.length, "tipos")
-  }, [documentTypes])
-
-  // Limpeza de event listeners ao desmontar componente
-  useEffect(() => {
-    return () => {
-      // Limpar qualquer listener que possa estar causando problemas
-      console.log("🧹 [CLEANUP] Limpando componente")
-    }
-  }, [])
-
-  // Removido sistema de prevenção de navegação para debug
+  // USAR PROPS DIRETAMENTE - SEM ESTADO LOCAL
+  const documentTypes = initialDocumentTypes
 
   /* --------- DERIVADOS --------- */
   const filteredTypes = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -130,105 +116,87 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
       return
     }
 
+    setIsSaving(true)
+    
     try {
-      setIsUpdating(true)
+      const isEditing = !!typeData.id
       
-      let result
-      if (typeData.id) {
-        result = await updateDocumentType(typeData.id, typeData)
-      } else {
-        result = await createDocumentType(typeData as Omit<DocumentType, "id">)
-      }
+      console.log("💾 [SAVE] Dados sendo enviados:", typeData)
+      console.log("💾 [SAVE] retentionPeriod:", typeData.retentionPeriod)
+      
+      // Executar operação no servidor
+      const result = isEditing 
+        ? await updateDocumentType(typeData.id!, typeData)
+        : await createDocumentType(typeData as Omit<DocumentType, "id">)
 
       if (result.success) {
-        console.log("✅ Tipo de documento salvo com sucesso!")
-        
-        // Fechar modal imediatamente
+        // Fechar modal
         setShowTypeModal(false)
         setSelectedType(null)
         
-        // Atualizar estado local imediatamente para feedback visual
-        if (result.data) {
-          if (!typeData.id) {
-            // Criação - adicionar à lista
-            const newType: DocumentType = {
-              id: result.data.id,
-              name: result.data.name,
-              prefix: result.data.prefix,
-              color: result.data.color,
-              requiredFields: result.data.requiredFields,
-              approvalRequired: result.data.approvalRequired,
-              retentionPeriod: result.data.retentionPeriod,
-              status: result.data.status,
-              template: result.data.template,
-              documentsCount: 0
-            }
-            setDocumentTypes(prevTypes => [...prevTypes, newType])
-          } else {
-            // Edição - atualizar na lista
-            setDocumentTypes(prevTypes => 
-              prevTypes.map(type => 
-                type.id === typeData.id ? { ...type, ...typeData } : type
-              )
-            )
-          }
-        }
+        toast({
+          title: isEditing ? "Tipo atualizado" : "Tipo criado",
+          description: `O tipo foi ${isEditing ? 'atualizado' : 'criado'} com sucesso.`,
+        })
         
-        // Estado local já foi atualizado
-        console.log("✅ [CREATE] Estado local atualizado com sucesso")
-        
+        // Recarregar dados automaticamente
+        router.refresh()
       } else {
-        console.error("Falha ao salvar tipo de documento:", result.error)
-        alert(`Erro ao salvar: ${result.error || "Erro desconhecido"}`)
+        toast({
+          title: "Erro",
+          description: result.error || "Erro ao salvar tipo de documento",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      console.error("Erro inesperado ao salvar tipo de documento:", error)
-      alert(`Erro inesperado: ${error instanceof Error ? error.message : "Erro desconhecido"}`)
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro inesperado",
+        variant: "destructive",
+      })
     } finally {
-      setIsUpdating(false)
+      setIsSaving(false)
     }
   }
 
   const handleDeleteDocumentType = async () => {
     if (!typeToDelete) return
 
-    console.log("🗑️ [DELETE] Iniciando exclusão do tipo:", typeToDelete.name)
-    
-    // Salvar referência do tipo antes de limpar
     const typeToDeleteRef = typeToDelete
     
+    setIsDeleting(true)
+    
     try {
-      // Executar exclusão primeiro
+      // Executar exclusão no servidor
       const result = await deleteDocumentType(typeToDeleteRef.id)
-      console.log("🗑️ [DELETE] Resultado da exclusão:", result)
       
-      if (result.success) {
-        console.log("✅ Tipo de documento excluído com sucesso!")
-        
-        // Atualizar estado local imediatamente
-        setDocumentTypes(prevTypes => prevTypes.filter(type => type.id !== typeToDeleteRef.id))
-        
-        // Fechar modal após sucesso
-        setShowDeleteConfirm(false)
-        setTypeToDelete(null)
-        
-        console.log("✅ [DELETE] Estado local atualizado com sucesso")
-        
-      } else {
-        console.error("❌ [DELETE] Falha ao deletar tipo de documento:", result.error)
-        // Fechar modal mesmo em caso de erro
-        setShowDeleteConfirm(false)
-        setTypeToDelete(null)
-        // Mostrar erro via alert simples
-        alert(`Erro ao excluir: ${result.error || "Erro desconhecido"}`)
-      }
-    } catch (error) {
-      console.error("💥 [DELETE] Erro inesperado:", error)
-      // Fechar modal mesmo em caso de erro
+      // Fechar modal
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
-      // Mostrar erro via alert simples
-      alert(`Erro inesperado: ${error instanceof Error ? error.message : "Erro desconhecido"}`)
+      
+      if (result.success) {
+        toast({
+          title: "Tipo excluído",
+          description: `O tipo "${typeToDeleteRef.name}" foi excluído com sucesso.`,
+        })
+        
+        // Recarregar dados automaticamente
+        router.refresh()
+      } else {
+        toast({
+          title: "Erro ao excluir",
+          description: result.error || "Erro ao excluir tipo de documento",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro inesperado",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -294,20 +262,28 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
               </div>
               <Dialog open={showTypeModal} onOpenChange={setShowTypeModal}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => setSelectedType(null)}>
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button onClick={() => setSelectedType(null)} disabled={isSaving || isDeleting}>
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
                     Novo Tipo
                   </Button>
                 </DialogTrigger>
-                                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                   <DialogHeader>
-                     <DialogTitle>{selectedType ? "Editar Tipo de Documento" : "Novo Tipo de Documento"}</DialogTitle>
-                     <DialogDescription>
-                       {selectedType ? "Edite as informações do tipo de documento." : "Crie um novo tipo de documento para organizar seus documentos."}
-                     </DialogDescription>
-                   </DialogHeader>
-                   <DocumentTypeForm documentType={selectedType} onSave={handleSaveDocumentType} />
-                 </DialogContent>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{selectedType ? "Editar Tipo de Documento" : "Novo Tipo de Documento"}</DialogTitle>
+                    <DialogDescription>
+                      {selectedType ? "Edite as informações do tipo de documento." : "Crie um novo tipo de documento para organizar seus documentos."}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DocumentTypeForm 
+                    documentType={selectedType} 
+                    onSave={handleSaveDocumentType}
+                    isLoading={isSaving}
+                  />
+                </DialogContent>
               </Dialog>
             </div>
           </div>
@@ -384,7 +360,11 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
                     </div>
                     <div>
                       <p className="font-medium">Retenção:</p>
-                      <p className="text-gray-600">{type.retentionPeriod} meses</p>
+                      <p className="text-gray-600">
+                        {type.retentionPeriod === 0 || type.retentionPeriod === null || type.retentionPeriod === undefined
+                          ? "Sem retenção"
+                          : `${type.retentionPeriod} meses`}
+                      </p>
                     </div>
                   </div>
 
@@ -423,7 +403,11 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
                                                  <div className="flex items-center space-x-6 text-sm text-gray-500 mt-1">
                            <span>Prefixo: {type.prefix}</span>
                            <span>{type.documentsCount} documentos</span>
-                           <span>Retenção: {type.retentionPeriod} meses</span>
+                           <span>
+                             Retenção: {type.retentionPeriod === 0 || type.retentionPeriod === null || type.retentionPeriod === undefined
+                               ? "Sem retenção"
+                               : `${type.retentionPeriod} meses`}
+                           </span>
                            <span className={type.approvalRequired ? "text-green-600" : "text-gray-500"}>
                              {type.approvalRequired ? "Aprovação obrigatória" : "Sem aprovação"}
                            </span>
@@ -466,13 +450,7 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
         </Card>
       )}
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => {
-        console.log("🔄 [MODAL] Modal de exclusão:", open ? "aberto" : "fechado")
-        setShowDeleteConfirm(open)
-        if (!open) {
-          setTypeToDelete(null)
-        }
-      }}>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza que deseja excluir este tipo de documento?</AlertDialogTitle>
@@ -482,21 +460,22 @@ export default function DocumentTypeManagement({ initialDocumentTypes = [], tota
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              console.log("❌ [MODAL] Cancelando exclusão")
-              setShowDeleteConfirm(false)
-              setTypeToDelete(null)
-            }}>
+            <AlertDialogCancel disabled={isDeleting}>
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => {
-                console.log("✅ [MODAL] Confirmando exclusão")
-                handleDeleteDocumentType()
-              }}
+              onClick={handleDeleteDocumentType}
+              disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              Excluir
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

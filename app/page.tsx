@@ -167,7 +167,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   const { myApprovals, sentApprovals, loading: approvalsLoading } = useApprovals()
   const { departments } = useDepartments()
   const { categories } = useCategories()
-  const { documentTypes } = useDocumentTypes()
+  const { documentTypes, refetch: refetchDocumentTypes } = useDocumentTypes()
   const { stats: entityStats, loading: entityStatsLoading, refreshStats: refreshEntityStats } = useEntityStats()
   const { stats: notificationStats } = useNotifications()
   const { signatures, documents: signatureDocuments, loading: signatureLoading } = useElectronicSignatures()
@@ -1864,11 +1864,13 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {/* Conteúdo específico de cada seção */}
               {adminView === "document-types" && (
                 <DocumentTypeManagement
+                  key="document-types-management" // Key estável para evitar remontagem
                   initialDocumentTypes={documentTypes.map(dt => ({
                     ...dt,
                     documentsCount: documents.filter(doc => doc.document_type_id === dt.id).length
                   }))}
                   totalDocuments={documents.length}
+                  onDataChange={refetchDocumentTypes}
                 />
               )}
               {adminView === "departments" && <DepartmentManagement />}

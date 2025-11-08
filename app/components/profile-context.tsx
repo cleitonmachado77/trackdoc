@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/hooks/use-auth-final'
 
 interface ProfileContextType {
@@ -17,11 +17,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasLoadedProfile = useRef(false)
 
   const loadProfile = async () => {
     if (!user) {
       setProfile(null)
       setLoading(false)
+      hasLoadedProfile.current = false
+      return
+    }
+
+    // Evitar recarregamento se já foi carregado
+    if (hasLoadedProfile.current && profile) {
+      console.log('⏭️ [ProfileContext] Perfil já carregado, pulando...')
       return
     }
 
@@ -49,6 +57,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
       setProfile(result.profile)
       setError(null)
+      hasLoadedProfile.current = true
       console.log('✅ [ProfileContext] Perfil carregado')
     } catch (err) {
       console.error('❌ [ProfileContext] Erro:', err)
@@ -65,8 +74,14 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return
     }
     
-    loadProfile()
-  }, [user, authLoading])
+    // Só carregar perfil se não tiver sido carregado ainda
+    if (user && !profile && !loading) {
+      loadProfile()
+    } else if (!user) {
+      setProfile(null)
+      setLoading(false)
+    }
+  }, [user?.id, authLoading])
 
   const refreshProfile = async () => {
     await loadProfile()

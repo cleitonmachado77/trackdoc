@@ -164,7 +164,15 @@ const nextConfig = {
   },
   
   // ✅ Configurações de performance
-  reactStrictMode: false,
+  reactStrictMode: true,
+  
+  // ✅ Prevenir recarregamentos desnecessários
+  onDemandEntries: {
+    // Período em ms que uma página deve ser mantida sem ser descartada
+    maxInactiveAge: 60 * 1000,
+    // Número de páginas que devem ser mantidas simultaneamente
+    pagesBufferLength: 5,
+  },
 }
 
 export default nextConfig

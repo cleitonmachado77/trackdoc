@@ -33,6 +33,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const [subscription] = useState(null)
   const [entity] = useState(null)
   const [usage] = useState([])
+  const [isInitialized, setIsInitialized] = useState(false)
   const supabase = getSupabaseSingleton()
 
   useEffect(() => {
@@ -46,6 +47,12 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
     // Verificar sessão atual com tratamento de erro otimizado
     const initializeAuth = async () => {
+      // Evitar reinicialização se já foi inicializado
+      if (isInitialized) {
+        console.log('⏭️ [Auth] Já inicializado, pulando...')
+        return
+      }
+
       try {
         console.log('🔐 [Auth] Iniciando verificação de sessão...')
         const { data: { session }, error } = await supabase.auth.getSession()
@@ -61,6 +68,8 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           setUser(session?.user ?? null)
           console.log('✅ [Auth] Sessão carregada:', session?.user?.id ? 'Autenticado' : 'Não autenticado')
         }
+        
+        setIsInitialized(true)
       } catch (error) {
         if (!isMounted) return
         console.warn('❌ [Auth] Erro ao verificar sessão:', error)
@@ -83,12 +92,14 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         
         console.log('🔄 [Auth] Estado mudou:', event)
         
-        // Otimizar eventos para reduzir re-renderizações
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          console.warn('⚠️ [Auth] Token refresh falhou, limpando sessão')
-          setSession(null)
-          setUser(null)
-        } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        // Ignorar TOKEN_REFRESHED para evitar recarregamentos desnecessários
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('🔄 [Auth] Token atualizado silenciosamente')
+          return
+        }
+        
+        // Apenas reagir a mudanças significativas de autenticação
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
           setSession(session)
           setUser(session?.user ?? null)
         }

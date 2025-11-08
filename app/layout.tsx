@@ -6,6 +6,7 @@ import { AuthWrapper } from "./components/auth-wrapper"
 import { ErrorBoundary } from "./components/error-boundary"
 import { ErrorHandlerSetup } from "./components/error-handler-setup"
 import { ThemeProvider } from "@/components/theme-provider"
+import { PreloadGuard } from "./components/preload-guard"
 
 
 export const metadata: Metadata = {
@@ -35,9 +36,11 @@ export default function RootLayout({
           <ErrorHandlerSetup />
           <ErrorBoundary>
             <SimpleAuthProvider>
-              <AuthWrapper>
-                {children}
-              </AuthWrapper>
+              <PreloadGuard>
+                <AuthWrapper>
+                  {children}
+                </AuthWrapper>
+              </PreloadGuard>
             </SimpleAuthProvider>
           </ErrorBoundary>
         </ThemeProvider>

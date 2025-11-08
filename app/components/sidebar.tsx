@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from '@/lib/hooks/use-auth-final'
-import { useUserProfile } from "@/hooks/use-database-data"
+import { useProfile } from "./profile-context"
 import { useNotificationCounterSimple } from "@/hooks/use-notification-counter-simple"
 import { useNotificationsCounter } from "@/hooks/use-notifications-counter"
 import FixedQuickSearchModal from "./fixed-quick-search-modal"
@@ -47,7 +47,7 @@ const supabase = createBrowserClient(
 
 const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprovalsCount }: SidebarProps) {
   const { user, signOut } = useAuth()
-  const { profile } = useUserProfile(user?.id)
+  const { profile, loading: profileLoading } = useProfile()
   const { unreadCount: unreadNotificationsCount, refreshCounter: refreshNotificationsCounter } = useNotificationsCounter()
   const { refreshCounter } = useNotificationCounterSimple()
   const [isExpanded, setIsExpanded] = useState(true)

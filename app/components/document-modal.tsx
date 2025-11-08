@@ -29,6 +29,9 @@ import {
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useDocumentTypes } from "@/hooks/use-document-types"
+import { InlineCreateSelect } from "./inline-create-select"
+import { useToast } from "@/hooks/use-toast"
+import { useProfile } from "./profile-context"
 
 interface DocumentModalProps {
   open: boolean
@@ -96,6 +99,8 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
+  const { toast } = useToast()
+  const { profile } = useProfile()
 
   const [formData, setFormData] = useState({
     number: "",
@@ -121,7 +126,8 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileWasRemoved, setFileWasRemoved] = useState(false)
   const [availableSectors, setAvailableSectors] = useState<{ name: string; shortName: string }[]>([])
-  const { documentTypes: availableDocumentTypes, loading: documentTypesLoading } = useDocumentTypes()
+  const { documentTypes: initialDocumentTypes, loading: documentTypesLoading } = useDocumentTypes()
+  const [availableDocumentTypes, setAvailableDocumentTypes] = useState(initialDocumentTypes)
   const [availableCategories, setAvailableCategories] = useState<
     { id: number; name: string; description: string; color: string; status: string }[]
   >([])
@@ -129,6 +135,11 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
   const [isNewVersion, setIsNewVersion] = useState(false)
   const [isCreate, setIsCreate] = useState(false)
   const [isReadOnly, setIsReadOnly] = useState(false)
+  
+  // Atualizar lista de tipos de documento quando mudar
+  useEffect(() => {
+    setAvailableDocumentTypes(initialDocumentTypes)
+  }, [initialDocumentTypes])
 
   useEffect(() => {
     if (open) {
@@ -387,76 +398,158 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                   {(isEdit || mode === "view") && "Autor original do documento"}
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="sector">Setor *</Label>
-                <Select
-                  value={formData.sector}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, sector: value }))}
-                  required
-                  disabled={isReadOnly || (isEdit && formData.status !== "draft")}
-                >
-                  <SelectTrigger className={isReadOnly ? "bg-gray-50" : ""}>
-                    <SelectValue placeholder="Selecione o setor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableSectors.map((sector) => (
-                      <SelectItem key={sector.shortName} value={sector.shortName}>
-                        {sector.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <InlineCreateSelect
+                value={formData.sector}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, sector: value }))}
+                options={availableSectors.map(s => ({ id: s.shortName, name: s.name }))}
+                placeholder="Selecione o setor"
+                label="Setor *"
+                disabled={isReadOnly || (isEdit && formData.status !== "draft")}
+                className={isReadOnly ? "bg-gray-50" : ""}
+                onCreate={async (data) => {
+                  const { data: newDept, error } = await supabase
+                    .from('departments')
+                    .insert({
+                      name: data.name,
+                      description: data.description || '',
+                      status: 'active',
+                      entity_id: profile?.entity_id || null
+                    })
+                    .select()
+                    .single()
+                  
+                  if (error) throw error
+                  
+                  // Atualizar lista - usar id ao invés de short_name
+                  setAvailableSectors([...availableSectors, { name: newDept.name, shortName: newDept.id }])
+                  
+                  toast({
+                    title: "Departamento criado!",
+                    description: `${newDept.name} foi criado com sucesso.`,
+                  })
+                  
+                  return { id: newDept.id, name: newDept.name }
+                }}
+                createFields={[
+                  { name: 'name', label: 'Nome do Departamento', type: 'text', required: true, placeholder: 'Ex: Tecnologia da Informação' },
+                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' }
+                ]}
+                createTitle="Criar Novo Departamento"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="type">Tipo de Documento *</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
-                  disabled={isReadOnly || (isEdit && formData.status !== "draft")}
-                  required
-                >
-                  <SelectTrigger className={isReadOnly || isEdit ? "bg-gray-50" : ""}>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDocumentTypes.map((docType) => (
-                      <SelectItem key={docType.id} value={docType.name}>
-                        {docType.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {(isEdit || mode === "view") && (
-                  <p className="text-xs text-gray-500">Tipo não pode ser alterado após criação</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.metadata.category}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      metadata: { ...prev.metadata, category: value },
-                    }))
+              <InlineCreateSelect
+                value={formData.type}
+                onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
+                options={availableDocumentTypes.map(dt => ({ id: dt.name, name: dt.name }))}
+                placeholder="Selecione o tipo"
+                label="Tipo de Documento *"
+                disabled={isReadOnly || (isEdit && formData.status !== "draft")}
+                className={isReadOnly || isEdit ? "bg-gray-50" : ""}
+                onCreate={async (data) => {
+                  const { data: newType, error } = await supabase
+                    .from('document_types')
+                    .insert({
+                      name: data.name,
+                      description: data.description,
+                      prefix: data.prefix,
+                      color: data.color || '#3B82F6',
+                      status: 'active',
+                      entity_id: profile?.entity_id || null
+                    })
+                    .select()
+                    .single()
+                  
+                  if (error) throw error
+                  
+                  // Atualizar lista
+                  setAvailableDocumentTypes([...availableDocumentTypes, newType])
+                  
+                  toast({
+                    title: "Tipo de documento criado!",
+                    description: `${newType.name} foi criado com sucesso.`,
+                  })
+                  
+                  return { id: newType.name, name: newType.name }
+                }}
+                createFields={[
+                  { name: 'name', label: 'Nome do Tipo', type: 'text', required: true, placeholder: 'Ex: Política de Segurança' },
+                  { name: 'prefix', label: 'Prefixo', type: 'text', required: true, placeholder: 'Ex: POL' },
+                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do tipo de documento' },
+                  { 
+                    name: 'color', 
+                    label: 'Cor', 
+                    type: 'select', 
+                    options: [
+                      { value: '#3B82F6', label: 'Azul' },
+                      { value: '#10B981', label: 'Verde' },
+                      { value: '#F59E0B', label: 'Amarelo' },
+                      { value: '#EF4444', label: 'Vermelho' },
+                      { value: '#8B5CF6', label: 'Roxo' },
+                      { value: '#EC4899', label: 'Rosa' }
+                    ]
                   }
-                  disabled={isReadOnly || (isEdit && formData.status !== "draft")}
-                >
-                  <SelectTrigger className={isReadOnly ? "bg-gray-50" : ""}>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCategories.map((category) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                ]}
+                createTitle="Criar Novo Tipo de Documento"
+              />
+              <InlineCreateSelect
+                value={formData.metadata.category}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    metadata: { ...prev.metadata, category: value },
+                  }))
+                }
+                options={availableCategories.map(c => ({ id: c.name, name: c.name }))}
+                placeholder="Selecione a categoria"
+                label="Categoria"
+                disabled={isReadOnly || (isEdit && formData.status !== "draft")}
+                className={isReadOnly ? "bg-gray-50" : ""}
+                onCreate={async (data) => {
+                  const { data: newCat, error } = await supabase
+                    .from('categories')
+                    .insert({
+                      name: data.name,
+                      description: data.description,
+                      color: data.color || '#3B82F6',
+                      status: 'active',
+                      entity_id: profile?.entity_id || null
+                    })
+                    .select()
+                    .single()
+                  
+                  if (error) throw error
+                  
+                  // Atualizar lista
+                  setAvailableCategories([...availableCategories, newCat])
+                  
+                  toast({
+                    title: "Categoria criada!",
+                    description: `${newCat.name} foi criada com sucesso.`,
+                  })
+                  
+                  return { id: newCat.name, name: newCat.name }
+                }}
+                createFields={[
+                  { name: 'name', label: 'Nome da Categoria', type: 'text', required: true, placeholder: 'Ex: Documentos Internos' },
+                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição da categoria' },
+                  { 
+                    name: 'color', 
+                    label: 'Cor', 
+                    type: 'select', 
+                    options: [
+                      { value: '#3B82F6', label: 'Azul' },
+                      { value: '#10B981', label: 'Verde' },
+                      { value: '#F59E0B', label: 'Amarelo' },
+                      { value: '#EF4444', label: 'Vermelho' },
+                      { value: '#8B5CF6', label: 'Roxo' },
+                      { value: '#EC4899', label: 'Rosa' }
+                    ]
+                  }
+                ]}
+                createTitle="Criar Nova Categoria"
+              />
             </div>
 
             <div className="space-y-2">

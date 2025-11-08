@@ -118,6 +118,10 @@ export function usePlans() {
   return { plans, loading, error }
 }
 
+// Cache global para perfil do usuário
+let profileCache: { profile: UserProfile | null; timestamp: number } | null = null
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutos
+
 export function useUserProfile(userId: string | undefined) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
@@ -134,6 +138,17 @@ export function useUserProfile(userId: string | undefined) {
 
     async function fetchProfile() {
       try {
+        // Verificar cache primeiro
+        const now = Date.now()
+        if (profileCache && (now - profileCache.timestamp) < CACHE_DURATION) {
+          console.log('✅ [useUserProfile] Usando perfil do cache')
+          if (isMounted) {
+            setProfile(profileCache.profile)
+            setLoading(false)
+          }
+          return
+        }
+
         console.log('🔍 [useUserProfile] Buscando perfil para usuário:', user.id)
         
         // Usar API personalizada para buscar perfil
@@ -169,9 +184,15 @@ export function useUserProfile(userId: string | undefined) {
           throw new Error(result.error || 'Erro na resposta da API')
         }
 
+        // Atualizar cache
+        profileCache = {
+          profile: result.profile,
+          timestamp: Date.now()
+        }
+
         if (isMounted) {
           setProfile(result.profile)
-          console.log('✅ [useUserProfile] Perfil carregado via API:', result.profile)
+          console.log('✅ [useUserProfile] Perfil carregado via API e armazenado em cache')
         }
       } catch (err) {
         console.error('❌ [useUserProfile] Erro geral:', err)
@@ -193,6 +214,11 @@ export function useUserProfile(userId: string | undefined) {
   }, [user])
 
   return { profile, loading, error }
+}
+
+// Função para limpar o cache do perfil (útil após atualizações)
+export function clearProfileCache() {
+  profileCache = null
 }
 
 export function useUserUsage() {

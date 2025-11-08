@@ -47,26 +47,29 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     // Verificar sessão atual com tratamento de erro otimizado
     const initializeAuth = async () => {
       try {
+        console.log('🔐 [Auth] Iniciando verificação de sessão...')
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (!isMounted) return
         
         if (error) {
-          console.warn('Erro ao obter sessão:', error.message)
+          console.warn('⚠️ [Auth] Erro ao obter sessão:', error.message)
           setSession(null)
           setUser(null)
         } else {
           setSession(session)
           setUser(session?.user ?? null)
+          console.log('✅ [Auth] Sessão carregada:', session?.user?.id ? 'Autenticado' : 'Não autenticado')
         }
       } catch (error) {
         if (!isMounted) return
-        console.warn('Erro ao verificar sessão:', error)
+        console.warn('❌ [Auth] Erro ao verificar sessão:', error)
         setSession(null)
         setUser(null)
       } finally {
         if (isMounted) {
           setLoading(false)
+          console.log('✅ [Auth] Carregamento finalizado')
         }
       }
     }
@@ -78,11 +81,11 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       (event, session) => {
         if (!isMounted) return
         
-        console.log('Auth state changed:', event)
+        console.log('🔄 [Auth] Estado mudou:', event)
         
         // Otimizar eventos para reduzir re-renderizações
         if (event === 'TOKEN_REFRESHED' && !session) {
-          console.warn('Token refresh falhou, limpando sessão')
+          console.warn('⚠️ [Auth] Token refresh falhou, limpando sessão')
           setSession(null)
           setUser(null)
         } else if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {

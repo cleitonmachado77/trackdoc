@@ -575,14 +575,52 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       return ((current - previous) / previous * 100)
     }
 
-    // Simular dados do período anterior (em um cenário real, isso viria do backend)
-    const previousPeriodDocuments = Math.max(0, totalDocuments - Math.floor(Math.random() * 10))
-    const previousPeriodApprovals = Math.max(0, totalApprovals - Math.floor(Math.random() * 5))
-    const previousPeriodSignatures = Math.max(0, totalSignatures - Math.floor(Math.random() * 3))
+    // Calcular dados do período anterior baseado em datas reais
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now)
+    thirtyDaysAgo.setDate(now.getDate() - 30)
+    const sixtyDaysAgo = new Date(now)
+    sixtyDaysAgo.setDate(now.getDate() - 60)
 
-    const documentsTrend = calculateTrend(totalDocuments, previousPeriodDocuments)
-    const approvalsTrend = calculateTrend(totalApprovals, previousPeriodApprovals)
-    const signaturesTrend = calculateTrend(totalSignatures, previousPeriodSignatures)
+    // Documentos criados nos últimos 30 dias
+    const recentDocuments = documents.filter(doc => {
+      const docDate = new Date(doc.created_at)
+      return docDate >= thirtyDaysAgo
+    }).length
+
+    // Documentos criados entre 30-60 dias atrás
+    const previousPeriodDocuments = documents.filter(doc => {
+      const docDate = new Date(doc.created_at)
+      return docDate >= sixtyDaysAgo && docDate < thirtyDaysAgo
+    }).length
+
+    // Aprovações dos últimos 30 dias
+    const recentApprovals = myApprovals?.filter(approval => {
+      const approvalDate = new Date(approval.created_at)
+      return approvalDate >= thirtyDaysAgo
+    }).length || 0
+
+    // Aprovações entre 30-60 dias atrás
+    const previousPeriodApprovals = myApprovals?.filter(approval => {
+      const approvalDate = new Date(approval.created_at)
+      return approvalDate >= sixtyDaysAgo && approvalDate < thirtyDaysAgo
+    }).length || 0
+
+    // Assinaturas dos últimos 30 dias
+    const recentSignatures = signatures.filter(sig => {
+      const sigDate = new Date(sig.created_at)
+      return sigDate >= thirtyDaysAgo
+    }).length
+
+    // Assinaturas entre 30-60 dias atrás
+    const previousPeriodSignatures = signatures.filter(sig => {
+      const sigDate = new Date(sig.created_at)
+      return sigDate >= sixtyDaysAgo && sigDate < thirtyDaysAgo
+    }).length
+
+    const documentsTrend = calculateTrend(recentDocuments, previousPeriodDocuments)
+    const approvalsTrend = calculateTrend(recentApprovals, previousPeriodApprovals)
+    const signaturesTrend = calculateTrend(recentSignatures, previousPeriodSignatures)
 
     return (
       <div className="space-y-6">

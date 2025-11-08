@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@supabase/ssr"
 import DocumentVisibilityManager, { DocumentVisibilitySettings } from "./document-visibility-manager"
 import { useDocumentPermissions } from "@/hooks/use-document-permissions"
+import { InlineCreateSelect } from "./inline-create-select"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -451,53 +452,139 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
           <h3 className="text-sm font-medium">Configurações do Documento</h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor="category" className="text-xs">Categoria</Label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <InlineCreateSelect
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+              options={categories}
+              placeholder="Selecione uma categoria"
+              label="Categoria"
+              className="h-8 text-sm"
+              onCreate={async (data) => {
+                const { data: newCat, error } = await supabase
+                  .from('categories')
+                  .insert({
+                    name: data.name,
+                    description: data.description,
+                    color: data.color || '#3B82F6',
+                    status: 'active'
+                  })
+                  .select()
+                  .single()
+                
+                if (error) throw error
+                
+                toast({
+                  title: "Categoria criada!",
+                  description: `${newCat.name} foi criada com sucesso.`,
+                })
+                
+                return newCat
+              }}
+              createFields={[
+                { name: 'name', label: 'Nome da Categoria', type: 'text', required: true, placeholder: 'Ex: Documentos Internos' },
+                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição da categoria' },
+                { 
+                  name: 'color', 
+                  label: 'Cor', 
+                  type: 'select', 
+                  options: [
+                    { value: '#3B82F6', label: 'Azul' },
+                    { value: '#10B981', label: 'Verde' },
+                    { value: '#F59E0B', label: 'Amarelo' },
+                    { value: '#EF4444', label: 'Vermelho' },
+                    { value: '#8B5CF6', label: 'Roxo' },
+                    { value: '#EC4899', label: 'Rosa' }
+                  ]
+                }
+              ]}
+              createTitle="Criar Nova Categoria"
+            />
 
-            <div>
-              <Label htmlFor="department" className="text-xs">Departamento</Label>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Selecione um departamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departments.map((department) => (
-                    <SelectItem key={department.id} value={department.id}>
-                      {department.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <InlineCreateSelect
+              value={selectedDepartment}
+              onValueChange={setSelectedDepartment}
+              options={departments}
+              placeholder="Selecione um departamento"
+              label="Departamento"
+              className="h-8 text-sm"
+              onCreate={async (data) => {
+                const { data: newDept, error } = await supabase
+                  .from('departments')
+                  .insert({
+                    name: data.name,
+                    short_name: data.short_name,
+                    description: data.description,
+                    status: 'active'
+                  })
+                  .select()
+                  .single()
+                
+                if (error) throw error
+                
+                toast({
+                  title: "Departamento criado!",
+                  description: `${newDept.name} foi criado com sucesso.`,
+                })
+                
+                return newDept
+              }}
+              createFields={[
+                { name: 'name', label: 'Nome do Departamento', type: 'text', required: true, placeholder: 'Ex: Tecnologia da Informação' },
+                { name: 'short_name', label: 'Nome Curto', type: 'text', required: true, placeholder: 'Ex: TI' },
+                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' }
+              ]}
+              createTitle="Criar Novo Departamento"
+            />
 
-            <div>
-              <Label htmlFor="documentType" className="text-xs">Tipo de Documento</Label>
-              <Select value={selectedDocumentType} onValueChange={setSelectedDocumentType}>
-                <SelectTrigger className="h-8 text-sm">
-                  <SelectValue placeholder="Selecione um tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {documentTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <InlineCreateSelect
+              value={selectedDocumentType}
+              onValueChange={setSelectedDocumentType}
+              options={documentTypes}
+              placeholder="Selecione um tipo"
+              label="Tipo de Documento"
+              className="h-8 text-sm"
+              onCreate={async (data) => {
+                const { data: newType, error } = await supabase
+                  .from('document_types')
+                  .insert({
+                    name: data.name,
+                    description: data.description,
+                    prefix: data.prefix,
+                    color: data.color || '#3B82F6',
+                    status: 'active'
+                  })
+                  .select()
+                  .single()
+                
+                if (error) throw error
+                
+                toast({
+                  title: "Tipo de documento criado!",
+                  description: `${newType.name} foi criado com sucesso.`,
+                })
+                
+                return newType
+              }}
+              createFields={[
+                { name: 'name', label: 'Nome do Tipo', type: 'text', required: true, placeholder: 'Ex: Política de Segurança' },
+                { name: 'prefix', label: 'Prefixo', type: 'text', required: true, placeholder: 'Ex: POL' },
+                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do tipo de documento' },
+                { 
+                  name: 'color', 
+                  label: 'Cor', 
+                  type: 'select', 
+                  options: [
+                    { value: '#3B82F6', label: 'Azul' },
+                    { value: '#10B981', label: 'Verde' },
+                    { value: '#F59E0B', label: 'Amarelo' },
+                    { value: '#EF4444', label: 'Vermelho' },
+                    { value: '#8B5CF6', label: 'Roxo' },
+                    { value: '#EC4899', label: 'Rosa' }
+                  ]
+                }
+              ]}
+              createTitle="Criar Novo Tipo de Documento"
+            />
 
             </div>
 

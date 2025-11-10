@@ -34,9 +34,21 @@ import {
   EyeOff,
   Copy,
   Upload,
-  Search
+  Search,
+  FolderOpen,
+  Layers
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { LibraryCategoryManager } from "@/app/components/library-category-manager"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,6 +68,7 @@ interface PublicLibraryItem {
   is_active: boolean
   display_order: number
   category: string | null
+  category_id: string | null
   public_slug: string
   created_at: string
 }
@@ -68,11 +81,20 @@ interface Document {
   file_type: string | null
 }
 
+interface Category {
+  id: string
+  name: string
+  description: string | null
+  color: string | null
+}
+
 export default function BibliotecaPage() {
   const [items, setItems] = useState<PublicLibraryItem[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
   const [entityId, setEntityId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
@@ -83,9 +105,13 @@ export default function BibliotecaPage() {
     documentId: "",
     title: "",
     description: "",
-    category: "",
+    categoryId: "",
     isActive: true,
   })
+  
+  // Bulk add state
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
+  const [bulkCategoryId, setBulkCategoryId] = useState("")
   
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -98,6 +124,7 @@ export default function BibliotecaPage() {
     if (entityId) {
       loadLibraryItems()
       loadDocuments()
+      loadCategories()
     }
   }, [entityId])
 
@@ -163,6 +190,24 @@ export default function BibliotecaPage() {
     }
   }
 
+  const loadCategories = async () => {
+    if (!entityId) return
+
+    try {
+      const { data, error } = await supabase
+        .from("library_categories")
+        .select("id, name, description, color")
+        .eq("entity_id", entityId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+
+      if (error) throw error
+      setCategories(data || [])
+    } catch (error) {
+      console.error("Erro ao carregar categorias:", error)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!entityId) return
@@ -175,7 +220,7 @@ export default function BibliotecaPage() {
         entity_id: entityId,
         title: formData.title,
         description: formData.description,
-        category: formData.category || null,
+        category_id: formData.categoryId || null,
         is_active: formData.isActive,
         created_by: user?.id,
       }
@@ -310,13 +355,70 @@ export default function BibliotecaPage() {
     })
   }
 
+  const handleBulkAdd = async () => {
+    if (!entityId || selectedDocuments.length === 0) return
+
+    try {
+      setUploading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Buscar dados dos documentos selecionados
+      const { data: docs, error: docsError } = await supabase
+        .from("documents")
+        .select("*")
+        .in("id", selectedDocuments)
+
+      if (docsError) throw docsError
+
+      // Preparar dados para inserção
+      const insertData = docs.map(doc => ({
+        entity_id: entityId,
+        document_id: doc.id,
+        title: doc.title,
+        description: doc.description,
+        file_path: doc.file_path,
+        file_name: doc.file_name,
+        file_size: doc.file_size,
+        file_type: doc.file_type,
+        category_id: bulkCategoryId || null,
+        is_active: true,
+        created_by: user?.id,
+      }))
+
+      const { error } = await supabase
+        .from("public_library")
+        .insert(insertData)
+
+      if (error) throw error
+
+      toast({
+        title: "Sucesso",
+        description: `${selectedDocuments.length} documento(s) adicionado(s) à biblioteca`,
+      })
+
+      setIsBulkDialogOpen(false)
+      setSelectedDocuments([])
+      setBulkCategoryId("")
+      loadLibraryItems()
+    } catch (error: any) {
+      console.error("Erro ao adicionar documentos:", error)
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível adicionar os documentos",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const resetForm = () => {
     setFormData({
       source: "existing",
       documentId: "",
       title: "",
       description: "",
-      category: "",
+      categoryId: "",
       isActive: true,
     })
     setUploadedFile(null)
@@ -341,13 +443,30 @@ export default function BibliotecaPage() {
             <LinkIcon className="h-4 w-4 mr-2" />
             Copiar Link Público
           </Button>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Documento
-              </Button>
-            </DialogTrigger>
+        </div>
+      </div>
+
+      <Tabs defaultValue="documents" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="documents">
+            <FileText className="h-4 w-4 mr-2" />
+            Documentos
+          </TabsTrigger>
+          <TabsTrigger value="categories">
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Categorias
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="documents" className="space-y-4">
+          <div className="flex gap-2">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Documento
+                </Button>
+              </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Adicionar à Biblioteca Pública</DialogTitle>
@@ -498,12 +617,28 @@ export default function BibliotecaPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="category">Categoria</Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="Ex: Políticas, Manuais, Formulários"
-                />
+                <Select
+                  value={formData.categoryId}
+                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem categoria</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: cat.color || "#3b82f6" }}
+                          />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -533,8 +668,131 @@ export default function BibliotecaPage() {
             </form>
           </DialogContent>
           </Dialog>
+
+          <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Layers className="h-4 w-4 mr-2" />
+                Adicionar Múltiplos
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Adicionar Múltiplos Documentos</DialogTitle>
+                <DialogDescription>
+                  Selecione vários documentos para adicionar à biblioteca de uma vez
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Categoria (opcional)</Label>
+                  <Select value={bulkCategoryId} onValueChange={setBulkCategoryId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sem categoria</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: cat.color || "#3b82f6" }}
+                            />
+                            {cat.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Buscar documentos</Label>
+                  <Input
+                    placeholder="Buscar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                <div className="border rounded-lg max-h-96 overflow-y-auto">
+                  {filteredDocuments.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      Nenhum documento encontrado
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {filteredDocuments.map((doc) => {
+                        const isInLibrary = items.some(item => item.document_id === doc.id)
+                        const isSelected = selectedDocuments.includes(doc.id)
+                        
+                        return (
+                          <div
+                            key={doc.id}
+                            className={`p-3 flex items-center gap-3 hover:bg-accent ${
+                              isInLibrary ? "opacity-50" : ""
+                            }`}
+                          >
+                            <Checkbox
+                              checked={isSelected}
+                              disabled={isInLibrary}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDocuments([...selectedDocuments, doc.id])
+                                } else {
+                                  setSelectedDocuments(selectedDocuments.filter(id => id !== doc.id))
+                                }
+                              }}
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium">{doc.title}</div>
+                              {doc.description && (
+                                <div className="text-sm text-muted-foreground">
+                                  {doc.description}
+                                </div>
+                              )}
+                              {isInLibrary && (
+                                <Badge variant="secondary" className="mt-1">
+                                  Já na biblioteca
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">
+                    {selectedDocuments.length} documento(s) selecionado(s)
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setIsBulkDialogOpen(false)
+                        setSelectedDocuments([])
+                        setBulkCategoryId("")
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleBulkAdd}
+                      disabled={uploading || selectedDocuments.length === 0}
+                    >
+                      {uploading ? "Adicionando..." : `Adicionar ${selectedDocuments.length}`}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-      </div>
 
       <Card>
         <CardHeader>
@@ -574,8 +832,16 @@ export default function BibliotecaPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {item.category && (
-                        <Badge variant="outline">{item.category}</Badge>
+                      {item.category_id && categories.find(c => c.id === item.category_id) ? (
+                        <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: categories.find(c => c.id === item.category_id)?.color || "#3b82f6" }}
+                          />
+                          {categories.find(c => c.id === item.category_id)?.name}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Sem categoria</span>
                       )}
                     </TableCell>
                     <TableCell>
@@ -614,6 +880,27 @@ export default function BibliotecaPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader>
+              <CardTitle>Gerenciar Categorias</CardTitle>
+              <CardDescription>
+                Organize seus documentos em categorias personalizadas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {entityId && (
+                <LibraryCategoryManager
+                  entityId={entityId}
+                  onCategoryChange={loadCategories}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

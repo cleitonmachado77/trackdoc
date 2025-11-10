@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { createBrowserClient } from "@supabase/ssr"
-import { FileText, Download, ExternalLink, Building2 } from "lucide-react"
+import { FileText, Download, ExternalLink, Building2, FolderOpen } from "lucide-react"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,8 +20,16 @@ interface LibraryItem {
   file_path: string | null
   file_name: string | null
   file_type: string | null
-  category: string | null
+  category_id: string | null
   created_at: string
+}
+
+interface Category {
+  id: string
+  name: string
+  description: string | null
+  color: string | null
+  icon: string | null
 }
 
 interface Entity {
@@ -34,6 +42,7 @@ export default function BibliotecaPublicaPage() {
   const slug = params.slug as string
   
   const [items, setItems] = useState<LibraryItem[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [entity, setEntity] = useState<Entity | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,6 +105,16 @@ export default function BibliotecaPublicaPage() {
         return
       }
 
+      // Buscar categorias da entidade
+      const { data: categoriesData } = await supabase
+        .from("library_categories")
+        .select("*")
+        .eq("entity_id", entityId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true })
+
+      setCategories(categoriesData || [])
+
       // Buscar todos os documentos ativos da entidade
       const { data: libraryData, error: libraryError } = await supabase
         .from("public_library")
@@ -153,12 +172,23 @@ export default function BibliotecaPublicaPage() {
     }
   }
 
+  const getFileIcon = (fileType: string | null) => {
+    if (!fileType) return <FileText className="h-8 w-8 text-primary" />
+    
+    if (fileType.includes("pdf")) return <FileText className="h-8 w-8 text-red-500" />
+    if (fileType.includes("word") || fileType.includes("doc")) return <FileText className="h-8 w-8 text-blue-500" />
+    if (fileType.includes("excel") || fileType.includes("sheet")) return <FileText className="h-8 w-8 text-green-500" />
+    if (fileType.includes("powerpoint") || fileType.includes("presentation")) return <FileText className="h-8 w-8 text-orange-500" />
+    
+    return <FileText className="h-8 w-8 text-primary" />
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Carregando biblioteca...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto"></div>
+          <p className="mt-6 text-lg text-muted-foreground font-medium">Carregando biblioteca...</p>
         </div>
       </div>
     )
@@ -166,11 +196,11 @@ export default function BibliotecaPublicaPage() {
 
   if (error || !entity) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <Card className="max-w-md shadow-xl">
           <CardHeader>
-            <CardTitle>Biblioteca não encontrada</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl">Biblioteca não encontrada</CardTitle>
+            <CardDescription className="text-base">
               {error || "A biblioteca pública que você está procurando não existe ou não está mais disponível."}
             </CardDescription>
           </CardHeader>
@@ -180,72 +210,133 @@ export default function BibliotecaPublicaPage() {
   }
 
   // Agrupar por categoria
-  const groupedItems = items.reduce((acc, item) => {
-    const category = item.category || "Sem Categoria"
-    if (!acc[category]) {
-      acc[category] = []
+  const groupedItems: Record<string, { category: Category | null; items: LibraryItem[] }> = {}
+  
+  items.forEach((item) => {
+    const category = categories.find(c => c.id === item.category_id) || null
+    const key = category?.id || "uncategorized"
+    
+    if (!groupedItems[key]) {
+      groupedItems[key] = { category, items: [] }
     }
-    acc[category].push(item)
-    return acc
-  }, {} as Record<string, LibraryItem[]>)
+    groupedItems[key].items.push(item)
+  })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="border-b bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            {entity.logo_url ? (
-              <img
-                src={entity.logo_url}
-                alt={entity.name}
-                className="h-16 w-16 object-contain rounded-lg"
-              />
-            ) : (
-              <div className="h-16 w-16 bg-primary/10 rounded-lg flex items-center justify-center">
-                <Building2 className="h-8 w-8 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {entity.logo_url ? (
+                <div className="h-16 w-16 rounded-xl overflow-hidden shadow-md ring-2 ring-primary/10 flex items-center justify-center bg-white p-2">
+                  <img
+                    src={entity.logo_url}
+                    alt={entity.name}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="h-16 w-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center shadow-md">
+                  <Building2 className="h-8 w-8 text-primary" />
+                </div>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                  {entity.name}
+                </h1>
+                <p className="text-muted-foreground mt-1">Biblioteca Pública de Documentos</p>
               </div>
-            )}
-            <div>
-              <h1 className="text-3xl font-bold">{entity.name}</h1>
-              <p className="text-muted-foreground">Biblioteca Pública de Documentos</p>
+            </div>
+            
+            {/* Logo Trackdo */}
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs text-muted-foreground">Powered by</p>
+              </div>
+              <div className="h-10 flex items-center">
+                <img
+                  src="/logo-horizontal-preto.png"
+                  alt="TrackDoc"
+                  className="h-10 w-auto object-contain dark:invert"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-12">
         {items.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <Card className="shadow-xl border-0">
+            <CardContent className="py-16 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
+                <FileText className="h-10 w-10 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Nenhum documento disponível</h3>
               <p className="text-muted-foreground">
-                Nenhum documento disponível no momento
+                Esta biblioteca ainda não possui documentos públicos
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {Object.entries(groupedItems).map(([category, categoryItems]) => (
-              <div key={category}>
-                <h2 className="text-2xl font-semibold mb-4">{category}</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-12">
+            {Object.entries(groupedItems).map(([key, { category, items: categoryItems }]) => (
+              <div key={key} className="space-y-6">
+                <div className="flex items-center gap-3">
+                  {category ? (
+                    <>
+                      <div
+                        className="w-1 h-8 rounded-full"
+                        style={{ backgroundColor: category.color || "#3b82f6" }}
+                      />
+                      <div>
+                        <h2 className="text-2xl font-bold">{category.name}</h2>
+                        {category.description && (
+                          <p className="text-muted-foreground">{category.description}</p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <FolderOpen className="h-8 w-8 text-muted-foreground" />
+                      <h2 className="text-2xl font-bold text-muted-foreground">Sem Categoria</h2>
+                    </>
+                  )}
+                </div>
+                
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {categoryItems.map((item) => (
-                    <Card key={item.id} className="hover:shadow-lg transition-shadow">
-                      <CardHeader>
+                    <Card 
+                      key={item.id} 
+                      className="group hover:shadow-2xl transition-all duration-300 border-0 shadow-lg hover:-translate-y-1 bg-white/80 backdrop-blur"
+                    >
+                      <CardHeader className="space-y-4">
                         <div className="flex items-start justify-between">
-                          <FileText className="h-8 w-8 text-primary" />
+                          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-purple-100 group-hover:from-primary/20 group-hover:to-purple-200 transition-colors">
+                            {getFileIcon(item.file_type)}
+                          </div>
                           {item.file_type && (
-                            <Badge variant="outline">
-                              {item.file_type.toUpperCase()}
+                            <Badge 
+                              variant="secondary" 
+                              className="font-mono text-xs bg-gradient-to-r from-primary/10 to-purple-100"
+                            >
+                              {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
                             </Badge>
                           )}
                         </div>
-                        <CardTitle className="mt-4">{item.title}</CardTitle>
-                        {item.description && (
-                          <CardDescription>{item.description}</CardDescription>
-                        )}
+                        <div>
+                          <CardTitle className="text-xl leading-tight group-hover:text-primary transition-colors">
+                            {item.title}
+                          </CardTitle>
+                          {item.description && (
+                            <CardDescription className="mt-2 line-clamp-2">
+                              {item.description}
+                            </CardDescription>
+                          )}
+                        </div>
                       </CardHeader>
                       <CardContent>
                         <div className="flex gap-2">
@@ -254,16 +345,15 @@ export default function BibliotecaPublicaPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1"
+                                className="flex-1 group-hover:border-primary transition-colors"
                                 onClick={() => viewFile(item.file_path!)}
                               >
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Visualizar
                               </Button>
                               <Button
-                                variant="default"
                                 size="sm"
-                                className="flex-1"
+                                className="flex-1 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700"
                                 onClick={() => downloadFile(item.file_path!, item.file_name || "documento")}
                               >
                                 <Download className="h-4 w-4 mr-2" />
@@ -283,9 +373,23 @@ export default function BibliotecaPublicaPage() {
       </div>
 
       {/* Footer */}
-      <div className="border-t mt-12">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>Powered by TrackDoc - Sistema de Gestão de Documentos</p>
+      <div className="border-t bg-white/80 backdrop-blur-lg mt-16">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/logo-horizontal-preto.png"
+                alt="TrackDoc"
+                className="h-10 w-auto object-contain dark:invert"
+              />
+            </div>
+            <div className="text-center md:text-right">
+              <p className="text-xs text-muted-foreground">Sistema de Gestão de Documentos</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                © {new Date().getFullYear()} Todos os direitos reservados
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

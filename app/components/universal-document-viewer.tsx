@@ -21,7 +21,7 @@ interface UniversalDocumentViewerProps {
   onLoadError?: () => void
 }
 
-type ViewerMode = 'native' | 'google' | 'office' | 'image'
+type ViewerMode = 'native' | 'google' | 'office' | 'image' | 'microsoft'
 
 export default function UniversalDocumentViewer({ 
   url, 
@@ -47,7 +47,7 @@ export default function UniversalDocumentViewer({
       return 'image'
     }
 
-    // Excel
+    // Excel - usar Microsoft Office Online Viewer
     if (
       lowerType.includes('spreadsheet') ||
       lowerType.includes('excel') ||
@@ -55,7 +55,7 @@ export default function UniversalDocumentViewer({
       lowerName.endsWith('.xls') ||
       lowerName.endsWith('.csv')
     ) {
-      return 'google' // Google Docs Viewer suporta Excel
+      return 'microsoft' // Microsoft Office Online Viewer funciona melhor com Excel
     }
 
     // Word
@@ -139,7 +139,17 @@ export default function UniversalDocumentViewer({
   }
 
   const toggleViewerMode = () => {
-    if (viewerMode === 'native') {
+    const lowerName = fileName.toLowerCase()
+    const isExcel = lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')
+    
+    if (isExcel) {
+      // Para Excel, alternar entre Microsoft e Google
+      if (viewerMode === 'microsoft') {
+        setViewerMode('google')
+      } else {
+        setViewerMode('microsoft')
+      }
+    } else if (viewerMode === 'native') {
       setViewerMode('google')
     } else if (viewerMode === 'google') {
       setViewerMode('native')
@@ -210,7 +220,28 @@ export default function UniversalDocumentViewer({
       )
     }
 
-    // Google Docs Viewer (Excel, Word, PowerPoint, etc)
+    // Microsoft Office Online Viewer (melhor para Excel)
+    if (viewerMode === 'microsoft') {
+      return (
+        <iframe
+          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(signedUrl)}`}
+          className="w-full h-[800px]"
+          title="Microsoft Office Viewer"
+          onLoad={() => {
+            console.log('UniversalDocumentViewer - Microsoft Office Viewer carregado')
+            setIsLoading(false)
+          }}
+          onError={(e) => {
+            console.error('UniversalDocumentViewer - Erro ao carregar Microsoft Office Viewer:', e)
+            // Tentar Google Viewer como fallback
+            console.log('UniversalDocumentViewer - Tentando Google Viewer como fallback')
+            setViewerMode('google')
+          }}
+        />
+      )
+    }
+
+    // Google Docs Viewer (Word, PowerPoint, etc)
     if (viewerMode === 'google') {
       return (
         <iframe
@@ -283,10 +314,18 @@ export default function UniversalDocumentViewer({
             </div>
             
             <p className="text-sm text-blue-800 mb-3">
+              {viewerMode === 'microsoft' && 'Visualizando com Microsoft Office Online'}
               {viewerMode === 'google' && 'Visualizando com Google Docs Viewer'}
               {viewerMode === 'native' && 'Visualizando com visualizador nativo'}
               {viewerMode === 'image' && 'Visualizando imagem'}
             </p>
+            
+            {/* Mensagem de ajuda para Excel */}
+            {getFileTypeLabel() === 'Excel' && (
+              <p className="text-xs text-blue-700 mb-3 max-w-2xl mx-auto">
+                💡 Se o arquivo não carregar, tente alternar o visualizador ou faça o download para abrir no Excel.
+              </p>
+            )}
             
             <div className="flex gap-3 justify-center flex-wrap">
               <Button onClick={handleDownload} variant="outline" size="sm">
@@ -298,18 +337,40 @@ export default function UniversalDocumentViewer({
                 Abrir em Nova Aba
               </Button>
               
-              {/* Botão para alternar visualizador (apenas para PDFs) */}
-              {(viewerMode === 'native' || viewerMode === 'google') && 
-               fileType === 'application/pdf' && (
-                <Button 
-                  onClick={toggleViewerMode} 
-                  variant="secondary" 
-                  size="sm"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {viewerMode === 'google' ? 'Visualizador Nativo' : 'Google Viewer'}
-                </Button>
-              )}
+              {/* Botão para alternar visualizador */}
+              {(() => {
+                const lowerName = fileName.toLowerCase()
+                const isExcel = lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')
+                const isPdf = fileType === 'application/pdf'
+                
+                if (isExcel && (viewerMode === 'microsoft' || viewerMode === 'google')) {
+                  return (
+                    <Button 
+                      onClick={toggleViewerMode} 
+                      variant="secondary" 
+                      size="sm"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      {viewerMode === 'microsoft' ? 'Tentar Google Viewer' : 'Tentar Microsoft Viewer'}
+                    </Button>
+                  )
+                }
+                
+                if (isPdf && (viewerMode === 'native' || viewerMode === 'google')) {
+                  return (
+                    <Button 
+                      onClick={toggleViewerMode} 
+                      variant="secondary" 
+                      size="sm"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      {viewerMode === 'google' ? 'Visualizador Nativo' : 'Google Viewer'}
+                    </Button>
+                  )
+                }
+                
+                return null
+              })()}
             </div>
           </div>
         </div>

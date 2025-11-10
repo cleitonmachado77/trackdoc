@@ -23,14 +23,12 @@ import {
 } from "lucide-react"
 import { Document as DocumentType } from "@/hooks/use-documents"
 import { getFileIcon } from "@/lib/utils/file-icons"
+import UniversalDocumentViewer from './universal-document-viewer'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-// Importação direta para teste
-import PDFViewer from './pdf-viewer'
 
 interface DocumentViewerProps {
   document: DocumentType
@@ -50,6 +48,21 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   const isPDF = (doc.file_type || '') === "application/pdf"
   const isImage = (doc.file_type || '').startsWith("image/")
   const isText = (doc.file_type || '').startsWith("text/")
+  const isOfficeDoc = (doc.file_type || '').includes('word') || 
+                      (doc.file_type || '').includes('document') ||
+                      (doc.file_name || '').toLowerCase().endsWith('.docx') ||
+                      (doc.file_name || '').toLowerCase().endsWith('.doc')
+  const isExcel = (doc.file_type || '').includes('spreadsheet') || 
+                  (doc.file_type || '').includes('excel') ||
+                  (doc.file_name || '').toLowerCase().endsWith('.xlsx') ||
+                  (doc.file_name || '').toLowerCase().endsWith('.xls')
+  const isPowerPoint = (doc.file_type || '').includes('presentation') || 
+                       (doc.file_type || '').includes('powerpoint') ||
+                       (doc.file_name || '').toLowerCase().endsWith('.pptx') ||
+                       (doc.file_name || '').toLowerCase().endsWith('.ppt')
+  
+  // Usar visualizador universal para Office, Excel, PowerPoint e imagens
+  const useUniversalViewer = isOfficeDoc || isExcel || isPowerPoint || isImage
 
   // Função para gerar URL de download dinamicamente
   const generateDownloadUrl = async (filePath: string): Promise<string> => {
@@ -175,7 +188,7 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   }
 
   const getFileIconComponent = () => {
-    return getFileIcon(document.file_type || '', document.file_name || '', "h-6 w-6 sm:h-8 sm:w-8")
+    return getFileIcon(doc.file_type || '', doc.file_name || '', "h-6 w-6 sm:h-8 sm:w-8")
   }
 
   const formatFileSize = (bytes: number) => {
@@ -340,6 +353,28 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
   )
 
   const renderPreview = () => {
+    // Usar visualizador universal para Office, Excel, PowerPoint e imagens
+    if (useUniversalViewer && doc.file_path) {
+      console.log('DocumentViewer - renderPreview: Usando UniversalDocumentViewer para', doc.file_type)
+      return (
+        <UniversalDocumentViewer
+          url={doc.file_path}
+          fileType={doc.file_type || ''}
+          fileName={doc.file_name || ''}
+          scale={scale}
+          rotation={rotation}
+          onLoadSuccess={() => {
+            setLoading(false)
+            setIframeLoaded(true)
+          }}
+          onLoadError={() => {
+            setLoading(false)
+            setError("Erro ao carregar documento")
+          }}
+        />
+      )
+    }
+    
     // Primeiro verificar se é PDF e tem file_path
     if (isPDF && doc.file_path) {
       console.log('DocumentViewer - renderPreview: PDF detectado, chamando renderPDFViewer')
@@ -400,10 +435,6 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
           </div>
         </div>
       )
-    }
-
-    if (isImage) {
-      return renderImageViewer()
     }
 
     return renderTextPreview()
@@ -582,19 +613,6 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Descrição</label>
                   <p className="text-sm mt-1">{doc.description}</p>
-                </div>
-              )}
-              
-              {doc.tags && doc.tags.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tags</label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {doc.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>

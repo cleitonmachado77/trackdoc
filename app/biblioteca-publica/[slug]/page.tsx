@@ -6,7 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { createBrowserClient } from "@supabase/ssr"
-import { FileText, Download, ExternalLink, Building2, FolderOpen } from "lucide-react"
+import { FileText, Download, ExternalLink, Building2, FolderOpen, Eye, X } from "lucide-react"
+import UniversalDocumentViewer from "@/app/components/universal-document-viewer"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { ZoomIn, ZoomOut, RotateCw } from "lucide-react"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,6 +54,10 @@ export default function BibliotecaPublicaPage() {
   const [entity, setEntity] = useState<Entity | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<LibraryItem | null>(null)
+  const [scale, setScale] = useState(1)
+  const [rotation, setRotation] = useState(0)
 
   useEffect(() => {
     if (slug) {
@@ -157,20 +169,16 @@ export default function BibliotecaPublicaPage() {
     }
   }
 
-  const viewFile = async (filePath: string) => {
-    try {
-      const { data } = await supabase.storage
-        .from("documents")
-        .getPublicUrl(filePath)
-
-      if (data?.publicUrl) {
-        window.open(data.publicUrl, "_blank")
-      }
-    } catch (error) {
-      console.error("Erro ao visualizar arquivo:", error)
-      alert("Erro ao visualizar arquivo")
-    }
+  const viewFile = (item: LibraryItem) => {
+    setSelectedItem(item)
+    setViewerOpen(true)
+    setScale(1)
+    setRotation(0)
   }
+
+  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3))
+  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.25))
+  const handleRotate = () => setRotation(prev => (prev + 90) % 360)
 
   const getFileIcon = (fileType: string | null) => {
     if (!fileType) return <FileText className="h-8 w-8 text-primary" />
@@ -338,15 +346,16 @@ export default function BibliotecaPublicaPage() {
                           {item.file_path && (
                             <>
                               <Button
-                                variant="outline"
+                                variant="default"
                                 size="sm"
                                 className="flex-1"
-                                onClick={() => viewFile(item.file_path!)}
+                                onClick={() => viewFile(item)}
                               >
-                                <ExternalLink className="h-4 w-4 mr-2" />
+                                <Eye className="h-4 w-4 mr-2" />
                                 Visualizar
                               </Button>
                               <Button
+                                variant="outline"
                                 size="sm"
                                 className="flex-1"
                                 onClick={() => downloadFile(item.file_path!, item.file_name || "documento")}
@@ -387,6 +396,77 @@ export default function BibliotecaPublicaPage() {
           </div>
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+        <DialogContent className="max-w-7xl h-[90vh] p-0">
+          <DialogHeader className="px-6 py-4 border-b">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-xl truncate">
+                  {selectedItem?.title}
+                </DialogTitle>
+                {selectedItem?.description && (
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    {selectedItem.description}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleZoomOut}
+                  disabled={scale <= 0.25}
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Badge variant="outline" className="text-xs px-2">
+                  {Math.round(scale * 100)}%
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleZoomIn}
+                  disabled={scale >= 3}
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRotate}
+                >
+                  <RotateCw className="h-4 w-4" />
+                </Button>
+                {selectedItem?.file_path && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadFile(selectedItem.file_path!, selectedItem.file_name || "documento")}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {selectedItem && selectedItem.file_path && (
+              <UniversalDocumentViewer
+                url={selectedItem.file_path}
+                fileType={selectedItem.file_type || ''}
+                fileName={selectedItem.file_name || ''}
+                scale={scale}
+                rotation={rotation}
+                onLoadSuccess={() => {}}
+                onLoadError={() => {}}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

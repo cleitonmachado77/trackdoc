@@ -86,6 +86,9 @@ export default function BibliotecaPage() {
     category: "",
     isActive: true,
   })
+  
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     loadUserEntity()
@@ -165,6 +168,7 @@ export default function BibliotecaPage() {
     if (!entityId) return
 
     try {
+      setUploading(true)
       const { data: { user } } = await supabase.auth.getUser()
       
       let insertData: any = {
@@ -196,6 +200,25 @@ export default function BibliotecaPage() {
             file_type: doc.file_type,
           }
         }
+      } else if (formData.source === "new" && uploadedFile) {
+        // Upload do novo arquivo
+        const fileExt = uploadedFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `${entityId}/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, uploadedFile)
+
+        if (uploadError) throw uploadError
+
+        insertData = {
+          ...insertData,
+          file_path: filePath,
+          file_name: uploadedFile.name,
+          file_size: uploadedFile.size,
+          file_type: uploadedFile.type,
+        }
       }
 
       const { error } = await supabase
@@ -219,6 +242,8 @@ export default function BibliotecaPage() {
         description: error.message || "Não foi possível adicionar o item",
         variant: "destructive",
       })
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -294,6 +319,8 @@ export default function BibliotecaPage() {
       category: "",
       isActive: true,
     })
+    setUploadedFile(null)
+    setSearchTerm("")
   }
 
   const filteredDocuments = documents.filter(doc =>
@@ -387,6 +414,68 @@ export default function BibliotecaPage() {
                 </div>
               )}
 
+              {formData.source === "new" && (
+                <div className="space-y-2">
+                  <Label htmlFor="file">Upload de Arquivo</Label>
+                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    <input
+                      id="file"
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setUploadedFile(file)
+                          if (!formData.title) {
+                            setFormData({
+                              ...formData,
+                              title: file.name.replace(/\.[^/.]+$/, "")
+                            })
+                          }
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="file"
+                      className="cursor-pointer flex flex-col items-center gap-2"
+                    >
+                      <Upload className="h-10 w-10 text-muted-foreground" />
+                      {uploadedFile ? (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-primary">
+                            {uploadedFile.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setUploadedFile(null)
+                            }}
+                          >
+                            Remover arquivo
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            Clique para selecionar um arquivo
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            PDF, DOC, XLS, PPT, TXT, JPG, PNG (máx. 50MB)
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="title">Título</Label>
                 <Input
@@ -430,7 +519,16 @@ export default function BibliotecaPage() {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit">Adicionar</Button>
+                <Button type="submit" disabled={uploading || (formData.source === "new" && !uploadedFile)}>
+                  {uploading ? (
+                    <>
+                      <Upload className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    "Adicionar"
+                  )}
+                </Button>
               </div>
             </form>
           </DialogContent>

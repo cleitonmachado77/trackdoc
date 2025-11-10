@@ -111,10 +111,19 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           return
         }
         
+        // Ignorar SIGNED_OUT se já estamos sem usuário (evita loop)
+        if (event === 'SIGNED_OUT' && !user) {
+          console.log('⏭️ [Auth] SIGNED_OUT ignorado - já sem usuário')
+          return
+        }
+        
         // Apenas reagir a mudanças significativas de autenticação
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_IN') {
           setSession(session)
           setUser(session?.user ?? null)
+        } else if (event === 'SIGNED_OUT') {
+          // Não atualizar estado aqui, deixar o signOut fazer isso
+          console.log('🚪 [Auth] SIGNED_OUT detectado')
         }
         
         if (loading) {
@@ -158,10 +167,42 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
   const signOut = async () => {
     if (!supabase) return
-    await supabase.auth.signOut()
     
-    // Redirecionar para a página de login externa
-    window.location.href = "https://www.trackdoc.app.br/login/"
+    try {
+      // Limpar estado local primeiro
+      setSession(null)
+      setUser(null)
+      setAuthError(null)
+      
+      // Limpar localStorage/sessionStorage
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('supabase') || key.includes('sb-')) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        Object.keys(sessionStorage).forEach(key => {
+          if (key.includes('supabase') || key.includes('sb-')) {
+            sessionStorage.removeItem(key)
+          }
+        })
+      }
+      
+      // Fazer logout no Supabase
+      await supabase.auth.signOut()
+      
+      // Redirecionar para a página de login externa usando replace para evitar voltar
+      if (typeof window !== 'undefined') {
+        window.location.replace("https://www.trackdoc.app.br/login/")
+      }
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error)
+      // Mesmo com erro, redirecionar
+      if (typeof window !== 'undefined') {
+        window.location.replace("https://www.trackdoc.app.br/login/")
+      }
+    }
   }
 
   const resetPassword = async (email: string) => {

@@ -169,38 +169,75 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     if (!supabase) return
     
     try {
-      // Limpar estado local primeiro
+      console.log('🚪 [Auth] Iniciando logout...')
+      
+      // Fazer logout no Supabase PRIMEIRO
+      const { error } = await supabase.auth.signOut({ scope: 'global' })
+      
+      if (error) {
+        console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
+      } else {
+        console.log('✅ [Auth] Logout no Supabase concluído')
+      }
+      
+      // Limpar TODOS os dados do localStorage/sessionStorage ANTES de limpar estado
+      if (typeof window !== 'undefined') {
+        console.log('🧹 [Auth] Limpando storage...')
+        
+        // Limpar todos os itens do Supabase
+        const keysToRemove: string[] = []
+        
+        // localStorage
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && (key.includes('supabase') || key.includes('sb-'))) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => {
+          console.log(`🗑️ [Auth] Removendo localStorage: ${key}`)
+          localStorage.removeItem(key)
+        })
+        
+        // sessionStorage
+        const sessionKeysToRemove: string[] = []
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key && (key.includes('supabase') || key.includes('sb-'))) {
+            sessionKeysToRemove.push(key)
+          }
+        }
+        sessionKeysToRemove.forEach(key => {
+          console.log(`🗑️ [Auth] Removendo sessionStorage: ${key}`)
+          sessionStorage.removeItem(key)
+        })
+        
+        console.log('✅ [Auth] Storage limpo')
+      }
+      
+      // Limpar estado local DEPOIS
       setSession(null)
       setUser(null)
       setAuthError(null)
+      setIsInitialized(false)
       
-      // Limpar localStorage/sessionStorage
+      // Aguardar para garantir que tudo foi processado
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // Redirecionar para login interno com reload forçado
       if (typeof window !== 'undefined') {
-        Object.keys(localStorage).forEach(key => {
-          if (key.includes('supabase') || key.includes('sb-')) {
-            localStorage.removeItem(key)
-          }
-        })
-        
-        Object.keys(sessionStorage).forEach(key => {
-          if (key.includes('supabase') || key.includes('sb-')) {
-            sessionStorage.removeItem(key)
-          }
-        })
-      }
-      
-      // Fazer logout no Supabase
-      await supabase.auth.signOut()
-      
-      // Redirecionar para a página de login externa usando replace para evitar voltar
-      if (typeof window !== 'undefined') {
-        window.location.replace("https://www.trackdoc.app.br/login/")
+        console.log('🔄 [Auth] Redirecionando para /login')
+        // Usar replace e adicionar timestamp para forçar reload
+        window.location.replace('/login?t=' + Date.now())
       }
     } catch (error) {
-      console.error('Erro ao fazer logout:', error)
-      // Mesmo com erro, redirecionar
+      console.error('❌ [Auth] Erro ao fazer logout:', error)
+      // Mesmo com erro, limpar e redirecionar
+      setSession(null)
+      setUser(null)
+      setAuthError(null)
       if (typeof window !== 'undefined') {
-        window.location.replace("https://www.trackdoc.app.br/login/")
+        window.location.href = '/login'
       }
     }
   }

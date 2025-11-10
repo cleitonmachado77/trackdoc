@@ -54,6 +54,23 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
 
+  // ✅ Perfil com fallback imediato - não espera carregamento
+  const displayProfile = useMemo(() => {
+    if (profile) return profile
+    
+    // Fallback imediato com dados do user
+    if (user) {
+      return {
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+        email: user.email,
+        avatar_url: user.user_metadata?.avatar_url || null,
+        role: 'user'
+      }
+    }
+    
+    return null
+  }, [profile, user])
+
   const toggleSidebar = useCallback(() => {
     setIsExpanded(!isExpanded)
   }, [isExpanded])
@@ -111,20 +128,17 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         icon: MessageSquare,
         badge: null,
       },
-    ]
-
-    // Adicionar administração apenas se o perfil estiver carregado
-    if (profile) {
-      baseItems.push({
+      // ✅ Administração sempre visível - não espera perfil carregar
+      {
         id: "admin",
         label: "Administração",
         icon: Settings,
         badge: null,
-      })
-    }
+      },
+    ]
 
     return baseItems
-  }, [pendingApprovalsCount, unreadNotificationsCount, profile, onViewChange])
+  }, [pendingApprovalsCount, unreadNotificationsCount, onViewChange])
 
   return (
     <>
@@ -201,7 +215,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
           {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
 
-        {/* User Profile */}
+        {/* User Profile - ✅ Usa displayProfile com fallback imediato */}
         <div className={cn("border-b border-border", isExpanded ? "p-4" : "p-2")}>
           <div 
             className={cn(
@@ -209,22 +223,22 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               isExpanded ? "space-x-3" : "justify-center"
             )}
             onClick={() => onViewChange("minha-conta")}
-            title={!isExpanded ? `${profile?.full_name || "Usuário"} - Clique para acessar Minha Conta` : "Clique para acessar Minha Conta"}
+            title={!isExpanded ? `${displayProfile?.full_name || "Usuário"} - Clique para acessar Minha Conta` : "Clique para acessar Minha Conta"}
           >
             <Avatar
               className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent transition-all"
             >
-              <AvatarImage src={profile?.avatar_url} />
+              <AvatarImage src={displayProfile?.avatar_url} />
               <AvatarFallback>
-                {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                {displayProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
             {isExpanded && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {profile?.full_name || "Usuário"}
+                  {displayProfile?.full_name || "Usuário"}
                 </p>
-                <p className="text-xs text-sidebar-foreground/70 truncate">{profile?.email || user?.email}</p>
+                <p className="text-xs text-sidebar-foreground/70 truncate">{displayProfile?.email || user?.email}</p>
               </div>
             )}
           </div>

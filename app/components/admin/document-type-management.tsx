@@ -75,12 +75,14 @@ const statusColors: Record<Status, string> = {
 interface DocumentTypeManagementProps {
   initialDocumentTypes: DocumentType[]
   totalDocuments: number
+  onDataChange?: () => void
 }
 
 /* ---------- COMPONENTE PRINCIPAL ---------- */
 export default function DocumentTypeManagement({ 
   initialDocumentTypes = [], 
-  totalDocuments = 0
+  totalDocuments = 0,
+  onDataChange
 }: DocumentTypeManagementProps) {
   const { toast } = useToast()
   const router = useRouter()

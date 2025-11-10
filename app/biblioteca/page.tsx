@@ -356,7 +356,14 @@ export default function BibliotecaPage() {
   }
 
   const handleBulkAdd = async () => {
-    if (!entityId || selectedDocuments.length === 0) return
+    if (!entityId || selectedDocuments.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Selecione pelo menos um documento",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       setUploading(true)
@@ -368,7 +375,14 @@ export default function BibliotecaPage() {
         .select("*")
         .in("id", selectedDocuments)
 
-      if (docsError) throw docsError
+      if (docsError) {
+        console.error("Erro ao buscar documentos:", docsError)
+        throw docsError
+      }
+
+      if (!docs || docs.length === 0) {
+        throw new Error("Nenhum documento encontrado")
+      }
 
       // Preparar dados para inserção
       const insertData = docs.map(doc => ({
@@ -385,11 +399,16 @@ export default function BibliotecaPage() {
         created_by: user?.id,
       }))
 
+      console.log("Inserindo documentos:", insertData)
+
       const { error } = await supabase
         .from("public_library")
         .insert(insertData)
 
-      if (error) throw error
+      if (error) {
+        console.error("Erro ao inserir na biblioteca:", error)
+        throw error
+      }
 
       toast({
         title: "Sucesso",
@@ -618,14 +637,14 @@ export default function BibliotecaPage() {
               <div className="space-y-2">
                 <Label htmlFor="category">Categoria</Label>
                 <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                  value={formData.categoryId || "none"}
+                  onValueChange={(value) => setFormData({ ...formData, categoryId: value === "none" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma categoria (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sem categoria</SelectItem>
+                    <SelectItem value="none">Sem categoria</SelectItem>
                     {categories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>
                         <div className="flex items-center gap-2">
@@ -686,12 +705,15 @@ export default function BibliotecaPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Categoria (opcional)</Label>
-                  <Select value={bulkCategoryId} onValueChange={setBulkCategoryId}>
+                  <Select 
+                    value={bulkCategoryId || "none"} 
+                    onValueChange={(value) => setBulkCategoryId(value === "none" ? "" : value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem categoria</SelectItem>
+                      <SelectItem value="none">Sem categoria</SelectItem>
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           <div className="flex items-center gap-2">

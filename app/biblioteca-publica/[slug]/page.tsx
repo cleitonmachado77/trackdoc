@@ -185,7 +185,7 @@ export default function BibliotecaPublicaPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto"></div>
           <p className="mt-6 text-lg text-muted-foreground font-medium">Carregando biblioteca...</p>
@@ -196,8 +196,8 @@ export default function BibliotecaPublicaPage() {
 
   if (error || !entity) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
-        <Card className="max-w-md shadow-xl">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="max-w-md shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl">Biblioteca não encontrada</CardTitle>
             <CardDescription className="text-base">
@@ -223,14 +223,14 @@ export default function BibliotecaPublicaPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="border-b bg-white/80 backdrop-blur-lg shadow-sm sticky top-0 z-10">
+      <div className="border-b bg-white shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {entity.logo_url ? (
-                <div className="h-16 w-16 rounded-xl overflow-hidden shadow-md ring-2 ring-primary/10 flex items-center justify-center bg-white p-2">
+                <div className="h-16 w-16 rounded-lg overflow-hidden border flex items-center justify-center bg-white p-2">
                   <img
                     src={entity.logo_url}
                     alt={entity.name}
@@ -238,30 +238,25 @@ export default function BibliotecaPublicaPage() {
                   />
                 </div>
               ) : (
-                <div className="h-16 w-16 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl flex items-center justify-center shadow-md">
-                  <Building2 className="h-8 w-8 text-primary" />
+                <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center border">
+                  <Building2 className="h-8 w-8 text-gray-600" />
                 </div>
               )}
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold text-gray-900">
                   {entity.name}
                 </h1>
-                <p className="text-muted-foreground mt-1">Biblioteca Pública de Documentos</p>
+                <p className="text-gray-600 mt-1">Biblioteca Pública de Documentos</p>
               </div>
             </div>
             
-            {/* Logo Trackdo */}
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs text-muted-foreground">Powered by</p>
-              </div>
-              <div className="h-10 flex items-center">
-                <img
-                  src="/logo-horizontal-preto.png"
-                  alt="TrackDoc"
-                  className="h-10 w-auto object-contain dark:invert"
-                />
-              </div>
+            {/* Logo Tracdock */}
+            <div className="h-10 flex items-center">
+              <img
+                src="/logo-horizontal-preto.png"
+                alt="Tracdock"
+                className="h-10 w-auto object-contain"
+              />
             </div>
           </div>
         </div>
@@ -270,10 +265,10 @@ export default function BibliotecaPublicaPage() {
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
         {items.length === 0 ? (
-          <Card className="shadow-xl border-0">
+          <Card className="shadow-sm">
             <CardContent className="py-16 text-center">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-                <FileText className="h-10 w-10 text-primary" />
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
+                <FileText className="h-10 w-10 text-gray-600" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Nenhum documento disponível</h3>
               <p className="text-muted-foreground">
@@ -293,16 +288,16 @@ export default function BibliotecaPublicaPage() {
                         style={{ backgroundColor: category.color || "#3b82f6" }}
                       />
                       <div>
-                        <h2 className="text-2xl font-bold">{category.name}</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
                         {category.description && (
-                          <p className="text-muted-foreground">{category.description}</p>
+                          <p className="text-gray-600">{category.description}</p>
                         )}
                       </div>
                     </>
                   ) : (
                     <>
-                      <FolderOpen className="h-8 w-8 text-muted-foreground" />
-                      <h2 className="text-2xl font-bold text-muted-foreground">Sem Categoria</h2>
+                      <FolderOpen className="h-8 w-8 text-gray-400" />
+                      <h2 className="text-2xl font-bold text-gray-600">Sem Categoria</h2>
                     </>
                   )}
                 </div>
@@ -311,17 +306,17 @@ export default function BibliotecaPublicaPage() {
                   {categoryItems.map((item) => (
                     <Card 
                       key={item.id} 
-                      className="group hover:shadow-2xl transition-all duration-300 border-0 shadow-lg hover:-translate-y-1 bg-white/80 backdrop-blur"
+                      className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 bg-white"
                     >
                       <CardHeader className="space-y-4">
                         <div className="flex items-start justify-between">
-                          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-purple-100 group-hover:from-primary/20 group-hover:to-purple-200 transition-colors">
+                          <div className="p-3 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors">
                             {getFileIcon(item.file_type)}
                           </div>
                           {item.file_type && (
                             <Badge 
                               variant="secondary" 
-                              className="font-mono text-xs bg-gradient-to-r from-primary/10 to-purple-100"
+                              className="font-mono text-xs"
                             >
                               {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
                             </Badge>
@@ -345,7 +340,7 @@ export default function BibliotecaPublicaPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="flex-1 group-hover:border-primary transition-colors"
+                                className="flex-1"
                                 onClick={() => viewFile(item.file_path!)}
                               >
                                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -353,7 +348,7 @@ export default function BibliotecaPublicaPage() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="flex-1 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700"
+                                className="flex-1"
                                 onClick={() => downloadFile(item.file_path!, item.file_name || "documento")}
                               >
                                 <Download className="h-4 w-4 mr-2" />
@@ -373,19 +368,19 @@ export default function BibliotecaPublicaPage() {
       </div>
 
       {/* Footer */}
-      <div className="border-t bg-white/80 backdrop-blur-lg mt-16">
+      <div className="border-t bg-white mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img
                 src="/logo-horizontal-preto.png"
-                alt="TrackDoc"
-                className="h-10 w-auto object-contain dark:invert"
+                alt="Tracdock"
+                className="h-10 w-auto object-contain"
               />
             </div>
             <div className="text-center md:text-right">
-              <p className="text-xs text-muted-foreground">Sistema de Gestão de Documentos</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-gray-600">Sistema de Gestão de Documentos</p>
+              <p className="text-xs text-gray-500 mt-1">
                 © {new Date().getFullYear()} Todos os direitos reservados
               </p>
             </div>

@@ -12,7 +12,7 @@ export interface DocumentPermission {
   document_id: string
   department_id?: string
   user_id?: string
-  permission_type: 'read' | 'edit' | 'upload' | 'sign' | 'download' | 'approve' | 'reject'
+  permission_type: 'read' | 'delete'
   granted_by: string
   granted_at: string
   expires_at?: string

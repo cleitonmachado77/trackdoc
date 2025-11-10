@@ -78,9 +78,7 @@ export default function DocumentPermissionsModal({
 
   const permissionTypes = [
     { value: 'read', label: 'Visualizar', icon: Eye, description: 'Pode ver o conteúdo do documento' },
-    { value: 'download', label: 'Baixar', icon: Download, description: 'Pode fazer download do documento' },
-    { value: 'edit', label: 'Editar', icon: Edit, description: 'Pode modificar o documento' },
-    { value: 'sign', label: 'Assinar', icon: PenTool, description: 'Pode assinar digitalmente o documento' }
+    { value: 'delete', label: 'Excluir', icon: Trash2, description: 'Pode excluir o documento' }
   ]
 
   useEffect(() => {

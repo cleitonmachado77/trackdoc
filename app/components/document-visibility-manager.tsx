@@ -29,7 +29,7 @@ export interface DocumentVisibilitySettings {
   visibility_type: 'public' | 'private' | 'restricted'
   allowed_departments: string[]
   allowed_users: string[]
-  permission_types: ('read' | 'edit' | 'download' | 'sign')[]
+  permission_types: ('read' | 'delete')[]
 }
 
 interface DocumentVisibilityManagerProps {
@@ -61,7 +61,7 @@ export default function DocumentVisibilityManager({
       visibility_type,
       allowed_departments: visibility_type === 'restricted' ? selectedDepartments : [],
       allowed_users: visibility_type === 'restricted' ? value.allowed_users : [],
-      permission_types: selectedPermissions as ('read' | 'edit' | 'download' | 'sign')[]
+      permission_types: selectedPermissions as ('read' | 'delete')[]
     }
     onChange(newSettings)
   }
@@ -76,7 +76,7 @@ export default function DocumentVisibilityManager({
     const newSettings: DocumentVisibilitySettings = {
       ...value,
       allowed_departments: newDepartments,
-      permission_types: selectedPermissions as ('read' | 'edit' | 'download' | 'sign')[]
+      permission_types: selectedPermissions as ('read' | 'delete')[]
     }
     onChange(newSettings)
   }
@@ -102,7 +102,7 @@ export default function DocumentVisibilityManager({
     
     const newSettings: DocumentVisibilitySettings = {
       ...value,
-      permission_types: newPermissions as ('read' | 'edit' | 'download' | 'sign')[]
+      permission_types: newPermissions as ('read' | 'delete')[]
     }
     onChange(newSettings)
   }
@@ -139,19 +139,9 @@ export default function DocumentVisibilityManager({
       required: true
     },
     {
-      value: 'download',
-      label: 'Baixar',
-      description: 'Pode fazer download do documento'
-    },
-    {
-      value: 'edit',
-      label: 'Editar',
-      description: 'Pode modificar o documento'
-    },
-    {
-      value: 'sign',
-      label: 'Assinar',
-      description: 'Pode assinar digitalmente o documento'
+      value: 'delete',
+      label: 'Excluir',
+      description: 'Pode excluir o documento'
     }
   ]
 

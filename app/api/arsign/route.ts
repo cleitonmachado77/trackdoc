@@ -7,6 +7,14 @@ import { digitalSignatureService, SignatureData } from '@/lib/digital-signature'
 
 export const dynamic = 'force-dynamic'
 
+// Função helper para obter timestamp no horário de Brasília
+function getBrasiliaTimestamp(): string {
+  const now = new Date()
+  // Converter para horário de Brasília (UTC-3)
+  const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  return brasiliaTime.toISOString()
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🚀 Iniciando requisição POST para /api/arsign (Sistema Simplificado)')
@@ -766,12 +774,12 @@ export async function POST(request: NextRequest) {
               .from('documents')
               .update({
                 file_path: signedFileName,
-                updated_at: new Date().toISOString(),
+                updated_at: getBrasiliaTimestamp(),
                 metadata: JSON.stringify({
                   ...JSON.parse((originalDocument as any)?.metadata || '{}'),
                   signed_version: true,
                   original_file_path: (originalDocument as any)?.file_path,
-                  signed_at: new Date().toISOString(),
+                  signed_at: getBrasiliaTimestamp(),
                   signed_by: user.id,
                 })
               })
@@ -896,12 +904,12 @@ export async function POST(request: NextRequest) {
               .from('documents')
               .update({
                 file_path: docSignedFileName,
-                updated_at: new Date().toISOString(),
+                updated_at: getBrasiliaTimestamp(),
                 metadata: JSON.stringify({
                   ...JSON.parse(doc.metadata || '{}'),
                   signed_version: true,
                   original_file_path: doc.file_path,
-                  signed_at: new Date().toISOString(),
+                  signed_at: getBrasiliaTimestamp(),
                   signed_by: user.id,
                 })
               })

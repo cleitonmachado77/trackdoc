@@ -1,6 +1,14 @@
 import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts } from 'pdf-lib'
 import * as CryptoJS from 'crypto-js'
 
+// Função helper para obter timestamp no horário de Brasília
+function getBrasiliaDate(): Date {
+  const now = new Date()
+  // Converter para horário de Brasília (UTC-3)
+  const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  return brasiliaTime
+}
+
 export interface SignatureData {
   id: string
   userId: string
@@ -97,7 +105,7 @@ export class DigitalSignatureService {
       documentId,
       userName,
       userEmail,
-      timestamp: new Date(),
+      timestamp: getBrasiliaDate(),
       hash: signatureHash,
       digitalTimestamp,
       verificationCode,
@@ -159,7 +167,7 @@ export class DigitalSignatureService {
         documentId,
         userName: user.full_name,
         userEmail: user.email,
-        timestamp: new Date(),
+        timestamp: getBrasiliaDate(),
         hash: signatureHash,
         digitalTimestamp,
         verificationCode,

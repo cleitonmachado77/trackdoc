@@ -2,15 +2,71 @@
 
 ## Problema Identificado
 
-O horário exibido quando um documento era assinado estava diferente do horário real. Isso ocorria porque as datas estavam sendo interpretadas como UTC sem conversão para o timezone local do Brasil.
+O horário exibido quando um documento era assinado estava diferente do horário real. Isso ocorria porque:
+1. As datas estavam sendo salvas em UTC (`new Date().toISOString()`)
+2. As datas estavam sendo exibidas sem conversão para o timezone local do Brasil
 
 ## Solução Implementada
 
+### 1. Correção no Salvamento (Backend)
+Criadas funções helper para salvar timestamps no horário de Brasília:
+- `getBrasiliaTimestamp()` em `app/api/arsign/route.ts`
+- `getBrasiliaDate()` em `lib/digital-signature.ts`
+
+### 2. Correção na Exibição (Frontend)
 Adicionado o parâmetro `timeZone: 'America/Sao_Paulo'` em todas as formatações de data/hora relacionadas a assinaturas eletrônicas.
 
 ## Arquivos Modificados
 
-### 1. `app/components/electronic-signature.tsx`
+### Backend (Salvamento)
+
+#### 1. `app/api/arsign/route.ts`
+
+Adicionada função helper:
+```typescript
+// Função helper para obter timestamp no horário de Brasília
+function getBrasiliaTimestamp(): string {
+  const now = new Date()
+  // Converter para horário de Brasília (UTC-3)
+  const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  return brasiliaTime.toISOString()
+}
+```
+
+Atualizado salvamento:
+```typescript
+// ANTES
+signed_at: new Date().toISOString()
+
+// DEPOIS
+signed_at: getBrasiliaTimestamp()
+```
+
+#### 2. `lib/digital-signature.ts`
+
+Adicionada função helper:
+```typescript
+// Função helper para obter timestamp no horário de Brasília
+function getBrasiliaDate(): Date {
+  const now = new Date()
+  // Converter para horário de Brasília (UTC-3)
+  const brasiliaTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+  return brasiliaTime
+}
+```
+
+Atualizado timestamp:
+```typescript
+// ANTES
+timestamp: new Date()
+
+// DEPOIS
+timestamp: getBrasiliaDate()
+```
+
+### Frontend (Exibição)
+
+#### 3. `app/components/electronic-signature.tsx`
 
 #### Função `formatDate`
 ```typescript
@@ -50,7 +106,7 @@ const formatDate = (dateString: string) => {
 <div><strong>Hora:</strong> {new Date(timestamp).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</div>
 ```
 
-### 2. `app/components/multi-signature-progress.tsx`
+#### 4. `app/components/multi-signature-progress.tsx`
 
 ```typescript
 // ANTES
@@ -67,7 +123,7 @@ const formatDate = (dateString: string) => {
 }) : 'Assinado'}
 ```
 
-### 3. `app/components/document-selector-modal.tsx`
+#### 5. `app/components/document-selector-modal.tsx`
 
 ```typescript
 // ANTES

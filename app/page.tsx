@@ -1582,50 +1582,52 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return (
           <AdminGuard>
             <div className="space-y-6">
-              {/* Header */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Administração</h1>
-                    <p className="text-gray-600">
-                      Gerencie usuários, configurações e relatórios do sistema
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAdminViewMode(adminViewMode === 'list' ? 'cards' : 'list')}
-                    >
-                      {adminViewMode === 'list' ? (
-                        <>
-                          <LayoutGrid className="h-4 w-4 mr-2" />
-                          Cards
-                        </>
-                      ) : (
-                        <>
-                          <List className="h-4 w-4 mr-2" />
-                          Lista
-                        </>
-                      )}
-                    </Button>
+              {/* Header - Apenas na tela principal */}
+              {adminView === "overview" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h1 className="text-2xl font-bold text-gray-900">Administração</h1>
+                      <p className="text-gray-600">
+                        Gerencie usuários, configurações e relatórios do sistema
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAdminViewMode(adminViewMode === 'list' ? 'cards' : 'list')}
+                      >
+                        {adminViewMode === 'list' ? (
+                          <>
+                            <LayoutGrid className="h-4 w-4 mr-2" />
+                            Cards
+                          </>
+                        ) : (
+                          <>
+                            <List className="h-4 w-4 mr-2" />
+                            Lista
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                {/* Botão Voltar - Abaixo do título */}
-                {adminView !== "overview" && (
-                  <div className="flex items-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setAdminView("overview")}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-2" />
-                      Voltar ao Início
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Botão Voltar - Apenas em subpáginas */}
+              {adminView !== "overview" && (
+                <div className="flex items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAdminView("overview")}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Voltar ao Início
+                  </Button>
+                </div>
+              )}
 
               {/* Ações Rápidas de Admin */}
               {adminView === "overview" && (

@@ -718,14 +718,16 @@ export default function ElectronicSignature() {
     }
   }, [user?.id])
 
-  // Função para formatar data
+  // Função para formatar data com timezone local
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('pt-BR', {
+    const date = new Date(dateString)
+    return date.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo' // Força timezone do Brasil
     })
   }
 
@@ -1370,8 +1372,8 @@ export default function ElectronicSignature() {
                       <div className="grid grid-cols-1 gap-1 text-xs">
                         <div><strong>Usuário:</strong> {verificationResult.signature.userName || 'Não informado'}</div>
                         <div><strong>Email:</strong> {verificationResult.signature.userEmail || 'Não informado'}</div>
-                        <div><strong>Data:</strong> {verificationResult.signature.timestamp ? new Date(verificationResult.signature.timestamp).toLocaleDateString('pt-BR') : 'Não informado'}</div>
-                        <div><strong>Hora:</strong> {verificationResult.signature.timestamp ? new Date(verificationResult.signature.timestamp).toLocaleTimeString('pt-BR') : 'Não informado'}</div>
+                        <div><strong>Data:</strong> {verificationResult.signature.timestamp ? new Date(verificationResult.signature.timestamp).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Não informado'}</div>
+                        <div><strong>Hora:</strong> {verificationResult.signature.timestamp ? new Date(verificationResult.signature.timestamp).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : 'Não informado'}</div>
                         <div><strong>Documento:</strong> {verificationResult.signature.documentTitle || verificationResult.signature.documentName || 'Não informado'}</div>
                         <div><strong>Status:</strong> {verificationResult.signature.status || 'Não informado'}</div>
                         <div><strong>Hash:</strong> {verificationResult.signature.hash ? `${verificationResult.signature.hash.substring(0, 16)}...` : 'Não informado'}</div>

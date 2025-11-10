@@ -177,7 +177,14 @@ export default function MultiSignatureProgressComponent({
                     <>
                       <CheckCircle className="h-3 w-3 text-green-500" />
                       <span className="text-green-600 text-xs">
-                        {user.signed_at ? new Date(user.signed_at).toLocaleDateString() : 'Assinado'}
+                        {user.signed_at ? new Date(user.signed_at).toLocaleString('pt-BR', { 
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZone: 'America/Sao_Paulo'
+                        }) : 'Assinado'}
                       </span>
                     </>
                   ) : (

@@ -261,7 +261,14 @@ export default function DocumentSelectorModal({
                           <div className="text-sm text-gray-600">
                             <p>Criado em: {new Date(document.created_at).toLocaleDateString('pt-BR')}</p>
                             {document.metadata?.signed_at && (
-                              <p>Assinado em: {new Date(document.metadata.signed_at).toLocaleDateString('pt-BR')}</p>
+                              <p>Assinado em: {new Date(document.metadata.signed_at).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                timeZone: 'America/Sao_Paulo'
+                              })}</p>
                             )}
                           </div>
                         </div>

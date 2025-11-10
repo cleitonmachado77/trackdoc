@@ -1637,7 +1637,16 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Button
+                        variant="outline"
+                        className="h-20 flex flex-col items-center justify-center space-y-2"
+                        onClick={() => setActiveView("minha-conta")}
+                      >
+                        <User className="h-6 w-6" />
+                        <span className="text-sm">Minha Conta</span>
+                      </Button>
+
                       <Button
                         variant="outline"
                         className="h-20 flex flex-col items-center justify-center space-y-2"

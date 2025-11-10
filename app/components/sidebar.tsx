@@ -105,12 +105,6 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         icon: MessageSquare,
         badge: null,
       },
-      {
-        id: "minha-conta",
-        label: "Minha Conta",
-        icon: User,
-        badge: null,
-      },
     ]
 
     // Adicionar administração apenas se o perfil estiver carregado

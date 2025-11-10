@@ -327,19 +327,19 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
             <div className="mb-4 space-y-2">
               <Button
                 variant="ghost"
-                className="w-full justify-center text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                className="w-full justify-center text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent min-h-[44px] px-2"
                 onClick={() => setShowQuickSearch(true)}
                 title="Busca Rápida"
               >
                 <Search className="h-5 w-5" />
               </Button>
-              <div className="flex justify-center">
+              <div className="flex justify-center min-h-[44px] items-center">
                 <BellNotificationsV2 />
               </div>
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px]",
+                  "w-full justify-center transition-all duration-200 border-l-4 border-transparent min-h-[44px] px-2",
                   "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none",
                   activeView === "help"
                     ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary focus-visible:!bg-primary focus-visible:!text-primary-foreground"

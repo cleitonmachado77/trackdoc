@@ -37,31 +37,56 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       console.log('📥 [ProfileContext] Carregando perfil...')
       
-      const response = await fetch('/api/profile')
-      const result = await response.json()
+      // Timeout de 5 segundos para evitar travamento
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout ao carregar perfil')), 5000)
+      )
+      
+      const fetchPromise = fetch('/api/profile').then(async (response) => {
+        const result = await response.json()
 
-      if (!response.ok) {
-        if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
-          console.log('❌ [ProfileContext] Perfil não encontrado')
-          localStorage.clear()
-          sessionStorage.clear()
-          window.location.replace('/login')
-          return
+        if (!response.ok) {
+          if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
+            console.log('❌ [ProfileContext] Perfil não encontrado')
+            localStorage.clear()
+            sessionStorage.clear()
+            window.location.replace('/login')
+            return null
+          }
+          throw new Error(result.error || 'Erro ao carregar perfil')
         }
-        throw new Error(result.error || 'Erro ao carregar perfil')
-      }
 
-      if (!result.success) {
-        throw new Error(result.error || 'Erro na resposta da API')
-      }
+        if (!result.success) {
+          throw new Error(result.error || 'Erro na resposta da API')
+        }
 
-      setProfile(result.profile)
-      setError(null)
-      hasLoadedProfile.current = true
-      console.log('✅ [ProfileContext] Perfil carregado')
+        return result.profile
+      })
+
+      const profileData = await Promise.race([fetchPromise, timeoutPromise])
+      
+      if (profileData) {
+        setProfile(profileData)
+        setError(null)
+        hasLoadedProfile.current = true
+        console.log('✅ [ProfileContext] Perfil carregado')
+      }
     } catch (err) {
       console.error('❌ [ProfileContext] Erro:', err)
-      setError(err instanceof Error ? err.message : 'Erro ao carregar perfil')
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar perfil'
+      setError(errorMessage)
+      
+      // Se for timeout, continuar com perfil básico do user
+      if (errorMessage.includes('Timeout')) {
+        console.warn('⚠️ [ProfileContext] Usando perfil básico devido a timeout')
+        setProfile({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+          role: 'user',
+          status: 'active'
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -87,36 +112,9 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     await loadProfile()
   }
 
-  // Mostrar loading enquanto autentica ou carrega perfil
-  if (authLoading || (loading && user)) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {authLoading ? 'Verificando autenticação...' : 'Carregando perfil...'}
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  // Se houve erro, mostrar mensagem
-  if (error && user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      </div>
-    )
-  }
+  // ✅ NÃO BLOQUEAR A RENDERIZAÇÃO
+  // Componentes individuais devem verificar loading e mostrar skeleton local
+  // Isso evita que toda a aplicação fique travada esperando o perfil
 
   return (
     <ProfileContext.Provider value={{ profile, loading, error, refreshProfile }}>

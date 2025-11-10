@@ -65,6 +65,15 @@ const nextConfig = {
         ],
       },
       {
+        source: '/api/profile',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=30, stale-while-revalidate=60',
+          },
+        ],
+      },
+      {
         source: '/api/:path*',
         headers: [
           {

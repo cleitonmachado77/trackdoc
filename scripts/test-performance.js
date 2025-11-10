@@ -1,109 +1,156 @@
 #!/usr/bin/env node
 
 /**
- * Script para testar performance do sistema
- * Executa testes básicos de carregamento e responsividade
+ * Script para testar performance da aplicação
+ * Mede tempo de carregamento e verifica cache
  */
 
-const { performance } = require('perf_hooks');
+const https = require('https');
+const http = require('http');
 
-console.log('🚀 Iniciando testes de performance...\n');
+const colors = {
+  reset: '\x1b[0m',
+  green: '\x1b[32m',
+  red: '\x1b[31m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+};
 
-// Simular teste de carregamento
-function testLoadingTime() {
-  console.log('📊 Testando tempo de carregamento...');
-  
-  const start = performance.now();
-  
-  // Simular operações de carregamento
-  setTimeout(() => {
-    const end = performance.now();
-    const loadTime = end - start;
-    
-    console.log(`⏱️  Tempo de carregamento simulado: ${loadTime.toFixed(2)}ms`);
-    
-    if (loadTime < 1000) {
-      console.log('✅ Performance EXCELENTE (< 1s)');
-    } else if (loadTime < 2000) {
-      console.log('✅ Performance BOA (< 2s)');
-    } else if (loadTime < 3000) {
-      console.log('⚠️  Performance ACEITÁVEL (< 3s)');
-    } else {
-      console.log('❌ Performance RUIM (> 3s)');
-    }
-    
-    console.log('');
-  }, Math.random() * 500 + 200); // Simular 200-700ms
+function log(message, color = 'reset') {
+  console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
-// Simular teste de queries
-function testQueryPerformance() {
-  console.log('🔍 Testando performance de queries...');
-  
-  const queries = [
-    'documents',
-    'approvals', 
-    'entity_stats',
-    'notifications',
-    'user_profile'
-  ];
-  
-  queries.forEach((query, index) => {
-    setTimeout(() => {
-      const queryTime = Math.random() * 300 + 50; // 50-350ms
-      console.log(`📋 Query ${query}: ${queryTime.toFixed(2)}ms`);
+async function testEndpoint(url, description) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const protocol = url.startsWith('https') ? https : http;
+    
+    log(`\n🔍 Testando: ${description}`, 'blue');
+    log(`   URL: ${url}`, 'blue');
+    
+    const req = protocol.get(url, (res) => {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
       
-      if (index === queries.length - 1) {
-        console.log('✅ Todas as queries testadas\n');
-        testMemoryUsage();
-      }
-    }, index * 100);
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
+      res.on('end', () => {
+        const cacheControl = res.headers['cache-control'] || 'none';
+        
+        log(`   Status: ${res.statusCode}`, res.statusCode === 200 ? 'green' : 'red');
+        log(`   Tempo: ${duration}ms`, duration < 1000 ? 'green' : duration < 3000 ? 'yellow' : 'red');
+        log(`   Cache: ${cacheControl}`, cacheControl.includes('max-age') ? 'green' : 'yellow');
+        
+        resolve({
+          url,
+          description,
+          status: res.statusCode,
+          duration,
+          cacheControl,
+          success: res.statusCode === 200 && duration < 5000
+        });
+      });
+    });
+    
+    req.on('error', (error) => {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      log(`   ❌ Erro: ${error.message}`, 'red');
+      log(`   Tempo: ${duration}ms`, 'red');
+      
+      resolve({
+        url,
+        description,
+        status: 0,
+        duration,
+        error: error.message,
+        success: false
+      });
+    });
+    
+    req.setTimeout(10000, () => {
+      req.destroy();
+      log(`   ⏱️ Timeout (>10s)`, 'red');
+      resolve({
+        url,
+        description,
+        status: 0,
+        duration: 10000,
+        error: 'Timeout',
+        success: false
+      });
+    });
   });
 }
 
-// Simular teste de memória
-function testMemoryUsage() {
-  console.log('💾 Testando uso de memória...');
+async function runTests() {
+  log('\n🚀 Iniciando testes de performance...', 'blue');
+  log('=' .repeat(60), 'blue');
   
-  if (typeof process !== 'undefined' && process.memoryUsage) {
-    const memory = process.memoryUsage();
-    
-    console.log(`📊 Uso de memória:`);
-    console.log(`   RSS: ${(memory.rss / 1024 / 1024).toFixed(2)} MB`);
-    console.log(`   Heap Used: ${(memory.heapUsed / 1024 / 1024).toFixed(2)} MB`);
-    console.log(`   Heap Total: ${(memory.heapTotal / 1024 / 1024).toFixed(2)} MB`);
-    
-    if (memory.heapUsed < 50 * 1024 * 1024) {
-      console.log('✅ Uso de memória BAIXO (< 50MB)');
-    } else if (memory.heapUsed < 100 * 1024 * 1024) {
-      console.log('✅ Uso de memória NORMAL (< 100MB)');
-    } else {
-      console.log('⚠️  Uso de memória ALTO (> 100MB)');
-    }
-  } else {
-    console.log('ℹ️  Informações de memória não disponíveis neste ambiente');
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  
+  const tests = [
+    { url: `${baseUrl}/`, description: 'Página inicial' },
+    { url: `${baseUrl}/api/health`, description: 'Health check' },
+    { url: `${baseUrl}/login`, description: 'Página de login' },
+  ];
+  
+  const results = [];
+  
+  for (const test of tests) {
+    const result = await testEndpoint(test.url, test.description);
+    results.push(result);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Delay entre testes
   }
   
-  console.log('');
-  showRecommendations();
-}
-
-// Mostrar recomendações
-function showRecommendations() {
-  console.log('💡 Recomendações de Performance:');
-  console.log('');
-  console.log('1. 🔄 Monitore o tempo de carregamento inicial');
-  console.log('2. 📊 Acompanhe o número de queries por página');
-  console.log('3. 💾 Verifique o uso de memória regularmente');
-  console.log('4. 🚀 Use cache para dados que não mudam frequentemente');
-  console.log('5. ⚡ Implemente lazy loading para componentes pesados');
-  console.log('6. 🎯 Otimize queries do banco de dados');
-  console.log('7. 📱 Teste em dispositivos móveis');
-  console.log('8. 🌐 Monitore performance em produção');
-  console.log('');
-  console.log('✨ Testes de performance concluídos!');
+  // Resumo
+  log('\n' + '='.repeat(60), 'blue');
+  log('📊 RESUMO DOS TESTES', 'blue');
+  log('='.repeat(60), 'blue');
+  
+  const successful = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
+  const avgDuration = Math.round(results.reduce((sum, r) => sum + r.duration, 0) / results.length);
+  
+  log(`\n✅ Sucessos: ${successful}/${results.length}`, successful === results.length ? 'green' : 'yellow');
+  log(`❌ Falhas: ${failed}/${results.length}`, failed === 0 ? 'green' : 'red');
+  log(`⏱️  Tempo médio: ${avgDuration}ms`, avgDuration < 1000 ? 'green' : avgDuration < 3000 ? 'yellow' : 'red');
+  
+  // Recomendações
+  log('\n💡 RECOMENDAÇÕES:', 'blue');
+  
+  if (avgDuration > 3000) {
+    log('   ⚠️  Tempo de resposta alto. Considere:', 'yellow');
+    log('      - Verificar conexão com Supabase', 'yellow');
+    log('      - Otimizar queries do banco', 'yellow');
+    log('      - Implementar mais cache', 'yellow');
+  } else if (avgDuration > 1000) {
+    log('   ✅ Performance aceitável, mas pode melhorar:', 'yellow');
+    log('      - Implementar service worker', 'yellow');
+    log('      - Lazy loading de componentes', 'yellow');
+  } else {
+    log('   ✅ Performance excelente!', 'green');
+  }
+  
+  const withoutCache = results.filter(r => !r.cacheControl || r.cacheControl === 'none' || r.cacheControl.includes('no-store'));
+  if (withoutCache.length > 0) {
+    log('\n   ⚠️  Endpoints sem cache adequado:', 'yellow');
+    withoutCache.forEach(r => {
+      log(`      - ${r.description}: ${r.cacheControl}`, 'yellow');
+    });
+  }
+  
+  log('\n' + '='.repeat(60), 'blue');
+  
+  process.exit(failed > 0 ? 1 : 0);
 }
 
 // Executar testes
-testLoadingTime();
-setTimeout(testQueryPerformance, 1000);
+runTests().catch(error => {
+  log(`\n❌ Erro ao executar testes: ${error.message}`, 'red');
+  process.exit(1);
+});

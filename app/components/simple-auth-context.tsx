@@ -55,7 +55,18 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
       try {
         console.log('🔐 [Auth] Iniciando verificação de sessão...')
-        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        // ✅ Timeout de 3 segundos para evitar travamento
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        )
+        
+        const sessionPromise = supabase.auth.getSession()
+        
+        const { data: { session }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any
         
         if (!isMounted) return
         
@@ -73,8 +84,10 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       } catch (error) {
         if (!isMounted) return
         console.warn('❌ [Auth] Erro ao verificar sessão:', error)
+        // Em caso de timeout, continuar sem sessão
         setSession(null)
         setUser(null)
+        setIsInitialized(true)
       } finally {
         if (isMounted) {
           setLoading(false)

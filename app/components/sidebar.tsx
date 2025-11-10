@@ -197,10 +197,16 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
 
         {/* User Profile */}
         <div className={cn("border-b border-border", isExpanded ? "p-4" : "p-2")}>
-          <div className={cn("flex items-center", isExpanded ? "space-x-3" : "justify-center")}>
+          <div 
+            className={cn(
+              "flex items-center cursor-pointer hover:bg-sidebar-accent rounded-lg p-2 -m-2 transition-colors",
+              isExpanded ? "space-x-3" : "justify-center"
+            )}
+            onClick={() => onViewChange("minha-conta")}
+            title={!isExpanded ? `${profile?.full_name || "Usuário"} - Clique para acessar Minha Conta` : "Clique para acessar Minha Conta"}
+          >
             <Avatar
               className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent transition-all"
-              title={!isExpanded ? `${profile?.full_name || "Usuário"} - ${profile?.email || user?.email}` : undefined}
             >
               <AvatarImage src={profile?.avatar_url} />
               <AvatarFallback>

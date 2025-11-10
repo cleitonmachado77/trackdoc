@@ -95,7 +95,8 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   // Verificar se aprovação é obrigatória baseada no tipo de documento
   const selectedDocType = documentTypes.find(dt => dt.id === selectedDocumentType)
   const isApprovalRequired = selectedDocType?.approvalRequired || false
-  const retentionPeriod = selectedDocType?.retentionPeriod || 24
+  // Usar 0 se não houver retention_period definido (não usar 24 como padrão)
+  const retentionPeriod = selectedDocType?.retentionPeriod ?? 0
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({

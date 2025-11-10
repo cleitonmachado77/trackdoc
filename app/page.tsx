@@ -90,6 +90,7 @@ import PerformanceMonitor from "./components/performance-monitor"
 
 import ChatPage from "./chat/page"
 import MinhaContaPage from "./minha-conta/page"
+import BibliotecaPage from "./biblioteca/page"
 import { useDocuments } from "@/hooks/use-documents"
 import { useApprovals } from "@/hooks/use-approvals"
 
@@ -1574,6 +1575,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return <ElectronicSignature />
       case "notifications":
         return <UnifiedNotificationsPage />
+      case "biblioteca":
+        return <BibliotecaPage />
       case "chat":
         return <ChatPage />
       case "debug-approvals":

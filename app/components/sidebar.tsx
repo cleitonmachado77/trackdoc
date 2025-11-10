@@ -90,6 +90,12 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         badge: pendingApprovalsCount > 0 ? pendingApprovalsCount.toString() : null,
       },
       {
+        id: "biblioteca",
+        label: "Biblioteca",
+        icon: Workflow,
+        badge: null,
+      },
+      {
         id: "notifications",
         label: "Notificações",
         icon: Bell,

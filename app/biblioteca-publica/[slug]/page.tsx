@@ -49,40 +49,65 @@ export default function BibliotecaPublicaPage() {
       setLoading(true)
       setError(null)
 
-      // Buscar primeiro item para pegar o entity_id
-      const { data: firstItem, error: firstError } = await supabase
-        .from("public_library")
-        .select("entity_id")
-        .eq("public_slug", slug)
-        .eq("is_active", true)
+      // Primeiro, tentar buscar a entidade diretamente pelo slug
+      const { data: entityBySlug, error: entitySlugError } = await supabase
+        .from("entities")
+        .select("id, name, logo_url")
+        .eq("id", slug)
         .single()
 
-      if (firstError) {
+      let entityId: string | null = null
+      let entityInfo: Entity | null = null
+
+      if (!entitySlugError && entityBySlug) {
+        // Slug é o ID da entidade
+        entityId = entityBySlug.id
+        entityInfo = { name: entityBySlug.name, logo_url: entityBySlug.logo_url }
+      } else {
+        // Tentar buscar pelo public_slug de algum documento
+        const { data: firstItem, error: firstError } = await supabase
+          .from("public_library")
+          .select("entity_id")
+          .eq("public_slug", slug)
+          .eq("is_active", true)
+          .limit(1)
+          .single()
+
+        if (firstError || !firstItem) {
+          setError("Biblioteca não encontrada")
+          return
+        }
+
+        entityId = firstItem.entity_id
+
+        // Buscar informações da entidade
+        const { data: entityData, error: entityError } = await supabase
+          .from("entities")
+          .select("name, logo_url")
+          .eq("id", entityId)
+          .single()
+
+        if (entityError) throw entityError
+        entityInfo = entityData
+      }
+
+      if (!entityId || !entityInfo) {
         setError("Biblioteca não encontrada")
         return
       }
 
-      // Buscar todos os itens da entidade
+      // Buscar todos os documentos ativos da entidade
       const { data: libraryData, error: libraryError } = await supabase
         .from("public_library")
         .select("*")
-        .eq("entity_id", firstItem.entity_id)
+        .eq("entity_id", entityId)
         .eq("is_active", true)
         .order("display_order", { ascending: true })
 
       if (libraryError) throw libraryError
 
-      // Buscar informações da entidade
-      const { data: entityData, error: entityError } = await supabase
-        .from("entities")
-        .select("name, logo_url")
-        .eq("id", firstItem.entity_id)
-        .single()
-
-      if (entityError) throw entityError
-
       setItems(libraryData || [])
-      setEntity(entityData)
+      setEntity(entityInfo)
     } catch (error: any) {
       console.error("Erro ao carregar biblioteca:", error)
       setError("Erro ao carregar biblioteca pública")

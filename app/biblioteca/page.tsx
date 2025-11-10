@@ -274,12 +274,14 @@ export default function BibliotecaPage() {
     }
   }
 
-  const copyPublicLink = (slug: string) => {
-    const link = `${window.location.origin}/biblioteca-publica/${slug}`
+  const copyPublicLink = () => {
+    if (!entityId) return
+    
+    const link = `${window.location.origin}/biblioteca-publica/${entityId}`
     navigator.clipboard.writeText(link)
     toast({
       title: "Link copiado!",
-      description: "O link público foi copiado para a área de transferência",
+      description: "O link público foi copiado para a área de transferência. Todos os documentos ativos serão exibidos.",
     })
   }
 
@@ -307,13 +309,18 @@ export default function BibliotecaPage() {
             Gerencie documentos públicos acessíveis por link externo
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Adicionar Documento
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={copyPublicLink}>
+            <LinkIcon className="h-4 w-4 mr-2" />
+            Copiar Link Público
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Documento
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Adicionar à Biblioteca Pública</DialogTitle>
@@ -427,8 +434,22 @@ export default function BibliotecaPage() {
               </div>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
+
+      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <LinkIcon className="h-5 w-5" />
+            Como Funciona
+          </CardTitle>
+          <CardDescription>
+            Todos os documentos marcados como "Ativo" serão exibidos em uma única página pública. 
+            Use o botão "Copiar Link Público" acima para compartilhar o link que exibe todos os documentos ativos da sua entidade.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -451,7 +472,6 @@ export default function BibliotecaPage() {
                   <TableHead>Título</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Link Público</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -478,22 +498,13 @@ export default function BibliotecaPage() {
                         {item.is_active ? "Ativo" : "Inativo"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyPublicLink(item.public_slug)}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copiar Link
-                      </Button>
-                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleActive(item.id, item.is_active)}
+                          title={item.is_active ? "Desativar" : "Ativar"}
                         >
                           {item.is_active ? (
                             <EyeOff className="h-4 w-4" />
@@ -505,6 +516,7 @@ export default function BibliotecaPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteItem(item.id)}
+                          title="Remover"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

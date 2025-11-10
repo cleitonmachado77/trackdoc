@@ -370,6 +370,16 @@ export function useDocuments(filters: DocumentFilters = {}) {
 
       if (error) {
         console.error('❌ [CREATE_DOCUMENT] Erro ao criar documento:', error)
+        console.error('❌ [CREATE_DOCUMENT] Código do erro:', error.code)
+        console.error('❌ [CREATE_DOCUMENT] Mensagem:', error.message)
+        console.error('❌ [CREATE_DOCUMENT] Detalhes:', error.details)
+        console.error('❌ [CREATE_DOCUMENT] Hint:', error.hint)
+        
+        // Se for erro 409 (conflict), pode ser problema com document_number
+        if (error.code === '23505') { // Unique violation
+          throw new Error('Já existe um documento com este número. Por favor, tente novamente.')
+        }
+        
         throw error
       }
 

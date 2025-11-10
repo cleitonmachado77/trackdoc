@@ -333,18 +333,30 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
         return document
 
-      } catch (error) {
+      } catch (error: any) {
         console.error(`\n!!! ERRO NO UPLOAD DE ${uploadFile.file.name} !!!`)
         console.error('Erro completo:', error)
         console.error('Tipo do erro:', typeof error)
         console.error('Mensagem do erro:', error instanceof Error ? error.message : 'Erro desconhecido')
+        console.error('Código do erro:', error?.code)
         console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A')
+
+        // Mensagem de erro mais amigável
+        let errorMessage = 'Erro no upload'
+        
+        if (error?.message?.includes('número')) {
+          errorMessage = 'Erro ao gerar número do documento. Por favor, tente novamente.'
+        } else if (error?.code === '23505') {
+          errorMessage = 'Conflito de numeração. Por favor, tente novamente.'
+        } else if (error instanceof Error) {
+          errorMessage = error.message
+        }
 
         setUploadFiles(prev => prev.map(f =>
           f.id === uploadFile.id ? {
             ...f,
             status: 'error',
-            error: error instanceof Error ? error.message : 'Erro no upload'
+            error: errorMessage
           } : f
         ))
 

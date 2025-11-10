@@ -18,6 +18,10 @@ import {
   AlertCircle,
   Building2,
   Loader2,
+  Upload,
+  X,
+  Image as ImageIcon,
+  Edit,
 } from "lucide-react"
 
 import { useAuth } from '@/lib/hooks/use-auth-final'
@@ -90,7 +94,13 @@ export default function EntityUserManagement() {
     id: string
     name: string
     current_users: number
+    logo_url: string | null
   } | null>(null)
+  
+  const [showLogoModal, setShowLogoModal] = useState(false)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   const fetchEntityUsers = async () => {
     if (!user?.id) return
@@ -114,7 +124,7 @@ export default function EntityUserManagement() {
       // Buscar informações da entidade
       const { data: entityData } = await supabase
         .from('entities')
-        .select('id, name, current_users')
+        .select('id, name, current_users, logo_url')
         .eq('id', profileData.entity_id)
         .single()
 
@@ -138,6 +148,82 @@ export default function EntityUserManagement() {
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError('Por favor, selecione uma imagem válida')
+        return
+      }
+      
+      if (file.size > 2 * 1024 * 1024) {
+        setError('A imagem deve ter no máximo 2MB')
+        return
+      }
+      
+      setLogoFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeLogo = () => {
+    setLogoFile(null)
+    setLogoPreview(null)
+  }
+
+  const uploadLogo = async () => {
+    if (!logoFile || !entityInfo?.id) return
+    
+    try {
+      setUploadingLogo(true)
+      setError('')
+      
+      const fileExt = logoFile.name.split('.').pop()
+      const fileName = `${entityInfo.id}/logo-${Date.now()}.${fileExt}`
+      
+      const { data, error: uploadError } = await supabase.storage
+        .from('entity-logos')
+        .upload(fileName, logoFile, {
+          cacheControl: '3600',
+          upsert: true
+        })
+      
+      if (uploadError) throw uploadError
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('entity-logos')
+        .getPublicUrl(fileName)
+      
+      const logoUrl = publicUrlData.publicUrl
+      
+      // Atualizar entidade com URL do logo
+      const { error: updateError } = await supabase
+        .from('entities')
+        .update({ logo_url: logoUrl })
+        .eq('id', entityInfo.id)
+      
+      if (updateError) throw updateError
+      
+      setSuccess('Logo atualizado com sucesso!')
+      setShowLogoModal(false)
+      setLogoFile(null)
+      setLogoPreview(null)
+      
+      // Atualizar entityInfo
+      setEntityInfo(prev => prev ? { ...prev, logo_url: logoUrl } : null)
+      
+    } catch (err) {
+      console.error('Erro ao fazer upload do logo:', err)
+      setError('Erro ao fazer upload do logo')
+    } finally {
+      setUploadingLogo(false)
     }
   }
 
@@ -271,9 +357,36 @@ export default function EntityUserManagement() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Usuários da Entidade</h1>
-          <p className="text-gray-600">{entityInfo.name}</p>
+        <div className="flex items-center gap-4">
+          {/* Logo da Entidade */}
+          <div className="relative group">
+            {entityInfo.logo_url ? (
+              <div className="h-16 w-16 rounded-lg overflow-hidden border-2 border-gray-200 bg-white flex items-center justify-center">
+                <img
+                  src={entityInfo.logo_url}
+                  alt={entityInfo.name}
+                  className="h-full w-full object-contain p-1"
+                />
+              </div>
+            ) : (
+              <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                <Building2 className="h-8 w-8 text-gray-400" />
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="secondary"
+              className="absolute -bottom-2 -right-2 h-7 w-7 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => setShowLogoModal(true)}
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Usuários da Entidade</h1>
+            <p className="text-gray-600">{entityInfo.name}</p>
+          </div>
         </div>
         <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -393,6 +506,130 @@ export default function EntityUserManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Upload de Logo */}
+      <Dialog open={showLogoModal} onOpenChange={setShowLogoModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atualizar Logo da Entidade</DialogTitle>
+            <DialogDescription>
+              Faça upload de uma imagem para representar sua entidade na biblioteca pública
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {!logoPreview && !entityInfo?.logo_url ? (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors">
+                <input
+                  type="file"
+                  id="logo-upload-modal"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  disabled={uploadingLogo}
+                />
+                <label
+                  htmlFor="logo-upload-modal"
+                  className="cursor-pointer flex flex-col items-center gap-3"
+                >
+                  <div className="p-4 bg-gray-100 rounded-full">
+                    <ImageIcon className="h-8 w-8 text-gray-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">
+                      Clique para fazer upload do logo
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG ou GIF (máx. 2MB)
+                    </p>
+                  </div>
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <div className="relative">
+                    <div className="border-2 border-gray-200 rounded-lg p-4 bg-white">
+                      <img
+                        src={logoPreview || entityInfo?.logo_url || ''}
+                        alt="Preview do logo"
+                        className="h-40 w-40 object-contain"
+                      />
+                    </div>
+                    {logoPreview && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-7 w-7 rounded-full p-0"
+                        onClick={removeLogo}
+                        disabled={uploadingLogo}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                {!logoPreview && (
+                  <div className="text-center">
+                    <input
+                      type="file"
+                      id="logo-change-modal"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      disabled={uploadingLogo}
+                    />
+                    <label htmlFor="logo-change-modal">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingLogo}
+                        onClick={() => document.getElementById('logo-change-modal')?.click()}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Alterar Logo
+                      </Button>
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="flex gap-2 justify-end pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowLogoModal(false)
+                  setLogoFile(null)
+                  setLogoPreview(null)
+                }}
+                disabled={uploadingLogo}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={uploadLogo}
+                disabled={!logoFile || uploadingLogo}
+              >
+                {uploadingLogo ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Salvar Logo
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Cadastro */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>

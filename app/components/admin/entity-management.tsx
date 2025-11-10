@@ -13,7 +13,10 @@ import {
   Plus, 
   CheckCircle, 
   AlertCircle, 
-  Loader2
+  Loader2,
+  Upload,
+  X,
+  Image as ImageIcon
 } from 'lucide-react'
 import EntityUserManagement from './entity-user-management'
 import { useAuditLogger } from '@/hooks/use-audit-logger'
@@ -41,6 +44,10 @@ export default function EntityManagement() {
     phone: "",
     description: ""
   })
+  
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -87,6 +94,74 @@ export default function EntityManagement() {
     }
   }
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        setError('Por favor, selecione uma imagem válida')
+        return
+      }
+      
+      // Validar tamanho (máx 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setError('A imagem deve ter no máximo 2MB')
+        return
+      }
+      
+      setLogoFile(file)
+      
+      // Criar preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeLogo = () => {
+    setLogoFile(null)
+    setLogoPreview(null)
+  }
+
+  const uploadLogo = async (entityId: string): Promise<string | null> => {
+    if (!logoFile) return null
+    
+    try {
+      setUploadingLogo(true)
+      
+      // Gerar nome único para o arquivo
+      const fileExt = logoFile.name.split('.').pop()
+      const fileName = `${entityId}/logo-${Date.now()}.${fileExt}`
+      
+      // Upload para o Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('entity-logos')
+        .upload(fileName, logoFile, {
+          cacheControl: '3600',
+          upsert: true
+        })
+      
+      if (error) {
+        console.error('Erro ao fazer upload do logo:', error)
+        return null
+      }
+      
+      // Obter URL pública
+      const { data: publicUrlData } = supabase.storage
+        .from('entity-logos')
+        .getPublicUrl(fileName)
+      
+      return publicUrlData.publicUrl
+    } catch (error) {
+      console.error('Erro ao fazer upload do logo:', error)
+      return null
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
   const handleCreateEntity = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -110,7 +185,7 @@ export default function EntityManagement() {
 
       const planId = plans?.[0]?.id
 
-      // Criar entidade
+      // Criar entidade primeiro sem logo
       const { data: newEntity, error: entityError } = await supabase
         .from('entities')
         .insert([{
@@ -132,6 +207,20 @@ export default function EntityManagement() {
       if (entityError) {
         setError(`Erro ao criar entidade: ${entityError.message}`)
         return
+      }
+
+      // Upload do logo se houver
+      let logoUrl = null
+      if (logoFile) {
+        logoUrl = await uploadLogo(newEntity.id)
+        
+        // Atualizar entidade com URL do logo
+        if (logoUrl) {
+          await supabase
+            .from('entities')
+            .update({ logo_url: logoUrl })
+            .eq('id', newEntity.id)
+        }
       }
 
       // Atualizar perfil do usuário
@@ -182,6 +271,8 @@ export default function EntityManagement() {
       setSuccess(`Entidade "${newEntity.name}" criada com sucesso! Você agora é o administrador.`)
       setShowCreateForm(false)
       setEntityForm({ name: "", legalName: "", cnpj: "", phone: "", description: "" })
+      setLogoFile(null)
+      setLogoPreview(null)
       
       // Recarregar dados
       await loadUserData()
@@ -297,6 +388,64 @@ export default function EntityManagement() {
                   placeholder="Breve descrição da entidade"
                   disabled={isCreating}
                 />
+              </div>
+
+              {/* Upload de Logo */}
+              <div>
+                <Label>Logo da Entidade</Label>
+                <div className="mt-2">
+                  {!logoPreview ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                      <input
+                        type="file"
+                        id="logo-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                        disabled={isCreating}
+                      />
+                      <label
+                        htmlFor="logo-upload"
+                        className="cursor-pointer flex flex-col items-center gap-2"
+                      >
+                        <div className="p-3 bg-gray-100 rounded-full">
+                          <ImageIcon className="h-6 w-6 text-gray-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            Clique para fazer upload do logo
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            PNG, JPG ou GIF (máx. 2MB)
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="relative inline-block">
+                      <div className="border-2 border-gray-200 rounded-lg p-4 bg-white">
+                        <img
+                          src={logoPreview}
+                          alt="Preview do logo"
+                          className="h-32 w-32 object-contain"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                        onClick={removeLogo}
+                        disabled={isCreating}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  O logo será exibido na biblioteca pública de documentos
+                </p>
               </div>
 
               {error && (

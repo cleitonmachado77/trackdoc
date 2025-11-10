@@ -536,19 +536,6 @@ export default function BibliotecaPage() {
         </div>
       </div>
 
-      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
-            Como Funciona
-          </CardTitle>
-          <CardDescription>
-            Todos os documentos marcados como "Ativo" serão exibidos em uma única página pública. 
-            Use o botão "Copiar Link Público" acima para compartilhar o link que exibe todos os documentos ativos da sua entidade.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Documentos na Biblioteca</CardTitle>

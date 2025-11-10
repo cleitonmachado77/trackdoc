@@ -44,32 +44,8 @@ interface DocumentModalProps {
 // Simulação de contadores de documentos por tipo para o ano atual
 const getCurrentYear = () => new Date().getFullYear()
 
-// Função para obter o próximo número sequencial para um tipo de documento
-const getNextDocumentNumber = (type: string, availableDocumentTypes: any[] = [], existingDocuments: any[] = []) => {
-  if (!type) return ""
-
-  const currentYear = getCurrentYear()
-
-  const typeInfo = availableDocumentTypes.find((dt) => dt.name === type)
-  const prefix = typeInfo?.prefix || type.substring(0, 3).toUpperCase()
-
-  const sameTypeDocuments = existingDocuments.filter((doc) => {
-    if (!doc.number) return false
-    const parts = doc.number.split("-")
-    return parts.length === 3 && parts[0] === prefix && parts[1] === currentYear.toString()
-  })
-
-  const sequenceNumbers = sameTypeDocuments
-    .map((doc) => {
-      const parts = doc.number.split("-")
-      return Number.parseInt(parts[2]) || 0
-    })
-    .filter((num) => !isNaN(num))
-
-  const nextSequence = sequenceNumbers.length > 0 ? Math.max(...sequenceNumbers) + 1 : 1
-
-  return `${prefix}-${currentYear}-${nextSequence.toString().padStart(3, "0")}`
-}
+// Função removida - números de documentos agora são gerados automaticamente pelo banco de dados
+// ao criar o documento, usando uma sequência numérica simples (ex: 000001, 000002, etc)
 
 // Função para obter usuário atual (simulado)
 const getCurrentUser = () => {
@@ -226,14 +202,13 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
     }
   }, [document, open, mode])
 
-  useEffect(() => {
-    if ((isCreate || (isEdit && formData.status === "draft")) && formData.type && availableDocumentTypes.length > 0) {
-      const mockExistingDocuments: any[] = []
-
-      const newNumber = getNextDocumentNumber(formData.type, availableDocumentTypes, mockExistingDocuments)
-      setFormData((prev) => ({ ...prev, number: newNumber }))
-    }
-  }, [formData.type, isCreate, isEdit, formData.status, availableDocumentTypes])
+  // Removido: números de documentos agora são gerados automaticamente pelo banco de dados
+  // useEffect(() => {
+  //   if ((isCreate || (isEdit && formData.status === "draft")) && formData.type && availableDocumentTypes.length > 0) {
+  //     const newNumber = getNextDocumentNumber(formData.type, availableDocumentTypes, mockExistingDocuments)
+  //     setFormData((prev) => ({ ...prev, number: newNumber }))
+  //   }
+  // }, [formData.type, isCreate, isEdit, formData.status, availableDocumentTypes])
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -594,7 +569,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                     <span className="text-sm font-medium text-blue-800">
                       {isNewVersion
                         ? `Nova versão: ${formData.number} v${formData.version}`
-                        : `Número do documento: ${formData.number || "Aguardando tipo..."}`}
+                        : `Número do documento: ${formData.number || "Será gerado automaticamente"}`}
                     </span>
                   </div>
                   <p className="text-xs text-blue-600 mt-1">

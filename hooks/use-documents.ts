@@ -359,9 +359,12 @@ export function useDocuments(filters: DocumentFilters = {}) {
 
       console.log('💾 [CREATE_DOCUMENT] Criando documento no banco:', documentToCreate)
 
+      // Remover document_number se foi fornecido, pois será gerado automaticamente pelo banco
+      const { document_number, ...documentWithoutNumber } = documentToCreate as any
+      
       const { data, error } = await supabase
         .from('documents')
-        .insert(documentToCreate)
+        .insert(documentWithoutNumber)
         .select()
         .single()
 
@@ -370,7 +373,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
         throw error
       }
 
-      console.log('✅ [CREATE_DOCUMENT] Documento criado com sucesso:', data.id)
+      console.log('✅ [CREATE_DOCUMENT] Documento criado com sucesso:', data.id, 'Número:', data.document_number)
 
       // Garantir que o documento recém-criado mantenha os relacionamentos e filtros de entidade
       const normalizedDocument: Document = {

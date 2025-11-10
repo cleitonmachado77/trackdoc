@@ -49,18 +49,8 @@ const getCurrentUser = () => ({
   department: "Tecnologia da Informação",
 })
 
-const getNextDocumentNumber = (type: string, department: string) => {
-  if (!type || !department) return ""
-
-  const currentYear = new Date().getFullYear()
-  const typePrefix = type.substring(0, 3).toUpperCase()
-  const deptPrefix = department.substring(0, 2).toUpperCase()
-
-  // Simulate getting next sequence number (in real app, this would come from database)
-  const nextSequence = Math.floor(Math.random() * 999) + 1
-
-  return `${typePrefix}-${deptPrefix}-${currentYear}-${nextSequence.toString().padStart(3, "0")}`
-}
+// Função removida - números de documentos agora são gerados automaticamente pelo banco de dados
+// ao criar o documento, usando uma sequência numérica simples (ex: 000001, 000002, etc)
 
 export default function DocumentEditor() {
   const { toast } = useToast()
@@ -328,12 +318,11 @@ Esta política entra em vigor a partir de ${new Date().toLocaleDateString("pt-BR
     }
 
     const approvers = getApprovers(documentType, department)
-    const documentNumber = getNextDocumentNumber(documentType, department)
 
     setDocumentHeader((prev) => ({
       ...prev,
       approvers: approvers,
-      number: documentNumber,
+      number: "", // Será gerado automaticamente pelo banco ao salvar
     }))
 
     setShowMetadataModal(false)
@@ -741,9 +730,7 @@ Esta política entra em vigor a partir de ${new Date().toLocaleDateString("pt-BR
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Número do Documento</Label>
                   <p className="text-lg font-mono font-semibold text-gray-900 mt-1">
-                    {documentType && department
-                      ? getNextDocumentNumber(documentType, department)
-                      : "Será gerado após preenchimento dos metadados"}
+                    Será gerado automaticamente ao salvar o documento
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     O número será atribuído automaticamente baseado no tipo e departamento

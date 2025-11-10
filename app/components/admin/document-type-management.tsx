@@ -205,6 +205,11 @@ export default function DocumentTypeManagement({
   /* --------- RENDER --------- */
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-end">
+        <span className="text-base font-semibold text-foreground">Tipos de Documentos</span>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>

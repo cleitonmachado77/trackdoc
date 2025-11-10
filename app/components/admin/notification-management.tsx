@@ -79,6 +79,8 @@ export default function NotificationManagement() {
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
   const [selectedNotification, setSelectedNotification] = useState<any>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
+  const [deletingNotification, setDeletingNotification] = useState<string | null>(null)
+  const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null)
 
   // Estados para formulários
   const [newNotification, setNewNotification] = useState({
@@ -293,6 +295,7 @@ export default function NotificationManagement() {
 
   // Função para deletar notificação
   const handleDeleteNotification = async (id: string) => {
+    setDeletingNotification(id)
     try {
       await deleteNotification(id)
       toast({
@@ -305,11 +308,14 @@ export default function NotificationManagement() {
         description: "Erro ao excluir notificação.",
         variant: "destructive",
       })
+    } finally {
+      setDeletingNotification(null)
     }
   }
 
   // Função para deletar template
   const handleDeleteTemplate = async (id: string) => {
+    setDeletingTemplate(id)
     try {
       await deleteTemplate(id)
       toast({
@@ -322,6 +328,8 @@ export default function NotificationManagement() {
         description: "Erro ao excluir template.",
         variant: "destructive",
       })
+    } finally {
+      setDeletingTemplate(null)
     }
   }
 
@@ -706,8 +714,12 @@ export default function NotificationManagement() {
                       )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4" />
+                          <Button variant="ghost" size="sm" disabled={deletingNotification === notification.id}>
+                            {deletingNotification === notification.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -718,12 +730,22 @@ export default function NotificationManagement() {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogCancel disabled={deletingNotification === notification.id}>
+                              Cancelar
+                            </AlertDialogCancel>
                             <AlertDialogAction 
                               className="bg-red-600 hover:bg-red-700"
+                              disabled={deletingNotification === notification.id}
                               onClick={() => handleDeleteNotification(notification.id)}
                             >
-                              Excluir
+                              {deletingNotification === notification.id ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Excluindo...
+                                </>
+                              ) : (
+                                'Excluir'
+                              )}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -869,8 +891,12 @@ export default function NotificationManagement() {
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" disabled={deletingTemplate === template.id}>
+                        {deletingTemplate === template.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -881,12 +907,22 @@ export default function NotificationManagement() {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogCancel disabled={deletingTemplate === template.id}>
+                          Cancelar
+                        </AlertDialogCancel>
                         <AlertDialogAction 
                           className="bg-red-600 hover:bg-red-700"
+                          disabled={deletingTemplate === template.id}
                           onClick={() => handleDeleteTemplate(template.id)}
                         >
-                          Excluir
+                          {deletingTemplate === template.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Excluindo...
+                            </>
+                          ) : (
+                            'Excluir'
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

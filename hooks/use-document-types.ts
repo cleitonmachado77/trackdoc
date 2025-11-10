@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 
@@ -28,13 +28,12 @@ export function useDocumentTypes() {
   )
 
   // Função para forçar recarregamento
-  const refetch = () => {
+  const refetch = useCallback(() => {
     console.log("🔄 [useDocumentTypes] Forçando recarregamento...")
     setRefreshTrigger(prev => prev + 1)
-  }
+  }, [])
 
-  useEffect(() => {
-    async function fetchDocumentTypes() {
+  const fetchDocumentTypes = useCallback(async () => {
       if (!user?.id) {
         setDocumentTypes([])
         setLoading(false)
@@ -119,10 +118,11 @@ export function useDocumentTypes() {
       } finally {
         setLoading(false)
       }
-    }
+  }, [user?.id, refreshTrigger, supabase])
 
+  useEffect(() => {
     fetchDocumentTypes()
-  }, [user?.id, refreshTrigger]) // Recarrega quando user ou refreshTrigger mudar
+  }, [fetchDocumentTypes])
 
   const validateFile = (file: File, documentType: DocumentType): string[] => {
     const errors: string[] = []

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,7 +17,7 @@ interface DocumentType {
   color: string
   requiredFields: string[]
   approvalRequired: boolean
-  retentionPeriod: number | null | undefined // Permite null ou undefined para "sem retenção"
+  retentionPeriod: number | null | undefined
   status: Status
   template: string | null
   documentsCount: number
@@ -46,32 +46,55 @@ interface DocumentTypeFormProps {
 
 /* ---------- COMPONENTE ---------- */
 export default function DocumentTypeForm({ documentType, onSave, isLoading = false }: DocumentTypeFormProps) {
-  console.log("📝 [FORM] ========== INICIALIZANDO FORMULÁRIO ==========")
-  console.log("📝 [FORM] documentType recebido:", documentType)
-  console.log("📝 [FORM] retentionPeriod:", documentType?.retentionPeriod, "tipo:", typeof documentType?.retentionPeriod)
-  
-  // Determinar se a retenção está habilitada (tem valor numérico > 0)
-  const hasRetention = documentType?.retentionPeriod != null && documentType.retentionPeriod > 0
-  console.log("📝 [FORM] hasRetention calculado:", hasRetention)
+  // Memoizar hasRetention para evitar recálculo
+  const initialHasRetention = useMemo(() => {
+    return documentType?.retentionPeriod != null && documentType.retentionPeriod > 0
+  }, [documentType?.retentionPeriod])
   
   const [formData, setFormData] = useState<Partial<DocumentType>>({
-    name: documentType?.name || "",
-    prefix: documentType?.prefix || "",
-    color: documentType?.color || "blue",
-    requiredFields: documentType?.requiredFields || ["title", "author", "version", "sector", "category"],
-    approvalRequired: documentType?.approvalRequired ?? false,
-    retentionPeriod: hasRetention ? documentType?.retentionPeriod : null, // null se desabilitado
-    status: documentType?.status || "active",
-    template: documentType?.template || null,
-    ...(documentType && { id: documentType.id }),
+    name: "",
+    prefix: "",
+    color: "blue",
+    requiredFields: ["title", "author", "version", "sector", "category"],
+    approvalRequired: false,
+    retentionPeriod: null,
+    status: "active",
+    template: null,
   })
   
-  // Estado para controlar se a retenção está habilitada
-  const [retentionEnabled, setRetentionEnabled] = useState(hasRetention)
+  const [retentionEnabled, setRetentionEnabled] = useState(false)
 
-  console.log("📝 [FORM] formData.retentionPeriod:", formData.retentionPeriod)
-  console.log("📝 [FORM] retentionEnabled:", retentionEnabled)
-  console.log("📝 [FORM] ==================================================")
+  // Sincronizar com documentType quando mudar
+  useEffect(() => {
+    if (documentType) {
+      const hasRet = documentType.retentionPeriod != null && documentType.retentionPeriod > 0
+      setFormData({
+        name: documentType.name || "",
+        prefix: documentType.prefix || "",
+        color: documentType.color || "blue",
+        requiredFields: documentType.requiredFields || ["title", "author", "version", "sector", "category"],
+        approvalRequired: documentType.approvalRequired ?? false,
+        retentionPeriod: hasRet ? documentType.retentionPeriod : null,
+        status: documentType.status || "active",
+        template: documentType.template || null,
+        id: documentType.id,
+      })
+      setRetentionEnabled(hasRet)
+    } else {
+      // Reset para novo tipo
+      setFormData({
+        name: "",
+        prefix: "",
+        color: "blue",
+        requiredFields: ["title", "author", "version", "sector", "category"],
+        approvalRequired: false,
+        retentionPeriod: null,
+        status: "active",
+        template: null,
+      })
+      setRetentionEnabled(false)
+    }
+  }, [documentType])
 
   return (
     <div className="space-y-6">
@@ -130,13 +153,10 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
           <Switch
             checked={retentionEnabled}
             onCheckedChange={(checked) => {
-              console.log("📝 [FORM] Retenção habilitada:", checked)
               setRetentionEnabled(checked)
               if (!checked) {
-                // Se desabilitar, definir como null
                 setFormData((prev) => ({ ...prev, retentionPeriod: null }))
               } else {
-                // Se habilitar, definir valor padrão de 24 meses
                 setFormData((prev) => ({ ...prev, retentionPeriod: 24 }))
               }
             }}
@@ -155,7 +175,6 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
               onChange={(e) => {
                 const value = Number.parseInt(e.target.value, 10)
                 if (!isNaN(value) && value >= 1) {
-                  console.log("📝 [FORM] Alterando retenção para:", value)
                   setFormData((prev) => ({ ...prev, retentionPeriod: value }))
                 }
               }}

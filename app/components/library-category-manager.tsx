@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@supabase/ssr"
-import { Plus, Trash2, Edit, FolderOpen } from "lucide-react"
+import { Plus, Trash2, Edit, FolderOpen, Loader2 } from "lucide-react"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,6 +52,7 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -173,6 +174,7 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
 
     if (!confirm("Tem certeza que deseja excluir esta categoria?")) return
 
+    setDeleting(id)
     try {
       const { error } = await supabase
         .from("library_categories")
@@ -195,6 +197,8 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
         description: "Não foi possível excluir a categoria",
         variant: "destructive",
       })
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -344,8 +348,13 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteCategory(category.id, category.document_count || 0)}
+                      disabled={deleting === category.id}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleting === category.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </TableCell>

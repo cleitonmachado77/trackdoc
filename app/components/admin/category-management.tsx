@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -69,6 +69,7 @@ export default function CategoryManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const filteredCategories = categories.filter((category) => {
     const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -127,10 +128,12 @@ export default function CategoryManagement() {
   }
 
   const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return
+    
+    setIsDeleting(true)
     try {
-      if (categoryToDelete) {
-        await deleteCategory(categoryToDelete.id)
-      }
+      await deleteCategory(categoryToDelete.id)
+      
       toast({
         title: "Categoria excluída",
         description: "A categoria foi excluída com sucesso.",
@@ -143,6 +146,8 @@ export default function CategoryManagement() {
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir a categoria.",
         variant: "destructive",
       })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -166,6 +171,11 @@ export default function CategoryManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-end">
+        <span className="text-base font-semibold text-foreground">Categorias</span>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -257,7 +267,7 @@ export default function CategoryManagement() {
             </div>
             <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
               <DialogTrigger asChild>
-                <Button onClick={() => setSelectedCategory(null)}>
+                <Button onClick={() => setSelectedCategory(null)} disabled={isSubmitting || isDeleting}>
                   <Plus className="h-4 w-4 mr-2" />
                   Nova Categoria
                 </Button>
@@ -265,6 +275,11 @@ export default function CategoryManagement() {
               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{selectedCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+                  <DialogDescription>
+                    {selectedCategory 
+                      ? "Edite as informações da categoria." 
+                      : "Crie uma nova categoria para organizar seus documentos."}
+                  </DialogDescription>
                 </DialogHeader>
                 <CategoryForm
                   category={selectedCategory}
@@ -459,9 +474,20 @@ export default function CategoryManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700">
-              Excluir
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteCategory} 
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

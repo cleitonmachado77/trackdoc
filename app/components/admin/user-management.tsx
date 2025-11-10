@@ -29,6 +29,7 @@ import {
   EyeOff,
   AlertCircle,
   Building2,
+  Loader2,
 } from "lucide-react"
 
 import {
@@ -118,6 +119,7 @@ export default function UserManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [userToDelete, setUserToDelete] = useState<SystemUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
@@ -188,6 +190,7 @@ export default function UserManagement() {
   const handleDeleteUser = async () => {
     if (!userToDelete) return
 
+    setIsDeleting(true)
     try {
       // Marcar usuário como inativo em vez de deletar
       const { error } = await supabase
@@ -212,6 +215,8 @@ export default function UserManagement() {
       setSuccess('Usuário suspenso com sucesso!')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao suspender usuário')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -601,9 +606,16 @@ export default function UserManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser}>
-              Suspender
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Suspendendo...
+                </>
+              ) : (
+                'Suspender'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

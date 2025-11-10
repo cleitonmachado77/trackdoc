@@ -210,7 +210,10 @@ export default function EntityManagement() {
   // Se usuário não tem entidade, mostrar interface de criação
   return (
     <div className="space-y-6">
-
+      {/* Page Header */}
+      <div className="flex items-center justify-end">
+        <span className="text-base font-semibold text-foreground">Entidades</span>
+      </div>
 
       <Card>
         <CardHeader>

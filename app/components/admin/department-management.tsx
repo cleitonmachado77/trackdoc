@@ -98,6 +98,7 @@ export default function DepartmentManagement() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [departmentToDelete, setDepartmentToDelete] = useState<Department | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Departamentos filtrados (memoizado para performance)
   const filteredDepartments = useMemo(() => {
@@ -172,6 +173,7 @@ export default function DepartmentManagement() {
   const handleDeleteDepartment = useCallback(async () => {
     if (!departmentToDelete) return
 
+    setIsDeleting(true)
     try {
       await deleteDepartment(departmentToDelete.id)
       toast({
@@ -186,6 +188,8 @@ export default function DepartmentManagement() {
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir o departamento.",
         variant: "destructive",
       })
+    } finally {
+      setIsDeleting(false)
     }
   }, [departmentToDelete, deleteDepartment, toast])
 
@@ -231,6 +235,11 @@ export default function DepartmentManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-end">
+        <span className="text-base font-semibold text-foreground">Departamentos</span>
+      </div>
+
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="hover:shadow-md transition-shadow">
@@ -398,12 +407,20 @@ export default function DepartmentManagement() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteDepartment} 
+              disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              Excluir departamento
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir departamento'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/hooks/use-auth-final'
 
@@ -26,13 +26,7 @@ export function useCategories() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchCategories()
-    }
-  }, [user?.id])
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -88,7 +82,13 @@ export function useCategories() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchCategories()
+    }
+  }, [user?.id, fetchCategories])
 
   const createCategory = async (categoryData: Partial<Category>) => {
     try {
@@ -118,16 +118,20 @@ export function useCategories() {
         .select()
         .single()
 
-      if (error) throw error
-
-      // Debug: Log da categoria criada
-
+      if (error) {
+        // Tratar erro de conflito (409)
+        if (error.code === '23505') {
+          throw new Error('Já existe uma categoria com este nome')
+        }
+        throw error
+      }
 
       await fetchCategories()
       return data
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar categoria')
-      throw err
+    } catch (err: any) {
+      const errorMessage = err.message || 'Erro ao criar categoria'
+      setError(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 
@@ -142,13 +146,20 @@ export function useCategories() {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        // Tratar erro de conflito (409)
+        if (error.code === '23505') {
+          throw new Error('Já existe uma categoria com este nome')
+        }
+        throw error
+      }
 
       await fetchCategories()
       return data
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao atualizar categoria')
-      throw err
+    } catch (err: any) {
+      const errorMessage = err.message || 'Erro ao atualizar categoria'
+      setError(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 
@@ -174,9 +185,10 @@ export function useCategories() {
       if (error) throw error
 
       await fetchCategories()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao deletar categoria')
-      throw err
+    } catch (err: any) {
+      const errorMessage = err.message || 'Erro ao deletar categoria'
+      setError(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 
@@ -200,9 +212,10 @@ export function useCategories() {
 
       await fetchCategories()
       return data
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao alterar status da categoria')
-      throw err
+    } catch (err: any) {
+      const errorMessage = err.message || 'Erro ao alterar status da categoria'
+      setError(errorMessage)
+      throw new Error(errorMessage)
     }
   }
 

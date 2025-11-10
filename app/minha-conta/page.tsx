@@ -301,13 +301,15 @@ export default function MinhaContaPage() {
 
       // Gerar nome único para o arquivo
       const fileExtension = file.name.split('.').pop()
-      const fileName = `avatar-${user?.id}-${Date.now()}.${fileExtension}`
-      const filePath = `avatars/${fileName}`
+      const fileName = `avatar-${Date.now()}.${fileExtension}`
+      const filePath = `${user?.id}/${fileName}`
 
       // Upload para o Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file)
+        .upload(filePath, file, {
+          upsert: true
+        })
 
       if (uploadError) throw uploadError
 
@@ -366,11 +368,13 @@ export default function MinhaContaPage() {
 
       // Tentar remover do storage (não é crítico se falhar)
       try {
-        const fileName = profile.avatar_url.split('/').pop()
-        if (fileName) {
+        // Extrair o caminho completo do arquivo da URL
+        const urlParts = profile.avatar_url.split('/avatars/')
+        if (urlParts.length > 1) {
+          const filePath = urlParts[1]
           await supabase.storage
             .from('avatars')
-            .remove([`avatars/${fileName}`])
+            .remove([filePath])
         }
       } catch (storageError) {
         console.warn('Erro ao remover arquivo do storage:', storageError)

@@ -30,7 +30,11 @@ export function useDepartmentEmployees(departmentId?: string) {
   const [availableEmployees, setAvailableEmployees] = useState<DepartmentEmployee[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [entityId, setEntityId] = useState<string | null>(null)
+  // ✅ IMPORTANTE: Inicializar como undefined para indicar "ainda não carregou"
+  // null = usuário solo (sem entidade)
+  // string = usuário com entidade
+  // undefined = ainda não foi carregado
+  const [entityId, setEntityId] = useState<string | null | undefined>(undefined)
 
   // ✅ Buscar entity_id do perfil do usuário
   useEffect(() => {
@@ -55,12 +59,11 @@ export function useDepartmentEmployees(departmentId?: string) {
 
         setEntityId(profileData?.entity_id || null)
 
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 [DEBUG] Entity ID carregado:', {
-            userId: user.id,
-            entityId: profileData?.entity_id || null
-          })
-        }
+        console.log('✅ [ENTITY] Entity ID carregado:', {
+          userId: user.id,
+          entityId: profileData?.entity_id || null,
+          temEntidade: !!profileData?.entity_id
+        })
       } catch (err) {
         console.error('Erro ao buscar entity_id:', err)
         setEntityId(null)
@@ -104,9 +107,15 @@ export function useDepartmentEmployees(departmentId?: string) {
   }
 
   useEffect(() => {
+    // ✅ IMPORTANTE: Só buscar funcionários DEPOIS que entityId for carregado
+    // entityId pode ser null (usuário solo) ou string (usuário com entidade)
+    // mas não pode ser undefined (ainda não carregou)
     if (user?.id && entityId !== undefined) {
+      console.log('✅ [FETCH] Iniciando busca de funcionários com entityId:', entityId)
       fetchEmployees()
       fetchAvailableEmployees()
+    } else {
+      console.log('⏳ [FETCH] Aguardando entityId ser carregado...', { user: !!user?.id, entityId })
     }
   }, [user?.id, departmentId, entityId])
 
@@ -202,12 +211,11 @@ export function useDepartmentEmployees(departmentId?: string) {
   }
 
   const fetchAvailableEmployees = async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 [DEBUG] fetchAvailableEmployees - Parâmetros:', {
-        entityId,
-        departmentId
-      })
-    }
+    console.log('🔍 [AVAILABLE] Buscando funcionários disponíveis:', {
+      entityId,
+      departmentId,
+      filtro: entityId ? `entity_id = ${entityId}` : 'entity_id IS NULL'
+    })
 
     try {
       // Buscar funcionários que não estão neste departamento específico
@@ -220,17 +228,43 @@ export function useDepartmentEmployees(departmentId?: string) {
       // Aplicar filtro de entidade: se usuário tem entidade, filtrar por ela
       // Se usuário não tem entidade (usuário solo), filtrar por usuários sem entidade
       if (entityId) {
+        console.log('🔍 [AVAILABLE] Filtrando por entity_id:', entityId)
         availableQuery = availableQuery.eq('entity_id', entityId)
       } else {
+        console.log('🔍 [AVAILABLE] Filtrando por entity_id IS NULL (usuários solo)')
         availableQuery = availableQuery.is('entity_id', null)
       }
 
       const { data, error } = await availableQuery
 
+      console.log('🔍 [AVAILABLE] Resultado da query:', {
+        total: data?.length || 0,
+        usuarios: data?.map(u => ({
+          nome: u.full_name,
+          email: u.email,
+          entity_id: u.entity_id
+        }))
+      })
+
       if (error) throw error
 
+      // ✅ FILTRO ADICIONAL: Garantir que usuários SOLO nunca apareçam para usuários com entidade
+      let filteredData = data || []
+      if (entityId && filteredData.length > 0) {
+        // Se o usuário logado TEM entidade, remover qualquer usuário com entity_id NULL
+        filteredData = filteredData.filter(profile => profile.entity_id === entityId)
+        console.log('🔍 [AVAILABLE] Após filtro adicional (remover SOLO):', {
+          total: filteredData.length,
+          usuarios: filteredData.map(u => ({
+            nome: u.full_name,
+            email: u.email,
+            entity_id: u.entity_id
+          }))
+        })
+      }
+
       // Filtrar usuários que não estão no departamento atual
-      if (departmentId && data) {
+      if (departmentId && filteredData.length > 0) {
         const { data: departmentUsers, error: deptError } = await supabase
           .from('user_departments')
           .select('user_id')
@@ -239,10 +273,20 @@ export function useDepartmentEmployees(departmentId?: string) {
         if (deptError) throw deptError
 
         const userIdsInDepartment = (departmentUsers || []).map(u => u.user_id)
-        const availableUsers = data.filter(profile => !userIdsInDepartment.includes(profile.id))
+        const availableUsers = filteredData.filter(profile => !userIdsInDepartment.includes(profile.id))
+        
+        console.log('🔍 [AVAILABLE] Após filtro de departamento:', {
+          total: availableUsers.length,
+          usuarios: availableUsers.map(u => ({
+            nome: u.full_name,
+            email: u.email,
+            entity_id: u.entity_id
+          }))
+        })
+        
         setAvailableEmployees(availableUsers)
       } else {
-        setAvailableEmployees(data || [])
+        setAvailableEmployees(filteredData)
       }
     } catch (err) {
       console.error('Erro ao carregar funcionários disponíveis:', err)

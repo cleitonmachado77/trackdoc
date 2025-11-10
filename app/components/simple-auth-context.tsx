@@ -119,14 +119,19 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         
         // Apenas reagir a mudanças significativas de autenticação
         if (event === 'SIGNED_IN') {
+          console.log('✅ [Auth] SIGNED_IN - Atualizando estado')
           setSession(session)
           setUser(session?.user ?? null)
+          setIsInitialized(true)
+          if (loading) {
+            setLoading(false)
+          }
         } else if (event === 'SIGNED_OUT') {
           // Não atualizar estado aqui, deixar o signOut fazer isso
-          console.log('🚪 [Auth] SIGNED_OUT detectado')
+          console.log('🚪 [Auth] SIGNED_OUT detectado - ignorando (signOut já limpou)')
         }
         
-        if (loading) {
+        if (loading && event !== 'SIGNED_OUT') {
           setLoading(false)
         }
       }
@@ -222,13 +227,13 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       setIsInitialized(false)
       
       // Aguardar para garantir que tudo foi processado
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 200))
       
-      // Redirecionar para login interno com reload forçado
+      // Redirecionar para login interno
       if (typeof window !== 'undefined') {
         console.log('🔄 [Auth] Redirecionando para /login')
-        // Usar replace e adicionar timestamp para forçar reload
-        window.location.replace('/login?t=' + Date.now())
+        // Usar replace para não criar histórico
+        window.location.replace('/login')
       }
     } catch (error) {
       console.error('❌ [Auth] Erro ao fazer logout:', error)

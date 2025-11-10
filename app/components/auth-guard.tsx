@@ -18,13 +18,17 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     // Aguardar o loading terminar antes de fazer qualquer redirecionamento
-    if (loading) return
+    if (loading) {
+      console.log('🔄 [AuthGuard] Aguardando loading...')
+      return
+    }
 
     // Páginas públicas que não precisam de autenticação
     const publicPages = ["/login", "/register", "/verify-email", "/reset-password", "/confirm-email"]
     
     // Se não está autenticado e não está em uma página pública, redirecionar para login
     if (!user && !publicPages.includes(pathname) && !hasRedirected.current) {
+      console.log('🔒 [AuthGuard] Não autenticado, redirecionando para /login')
       hasRedirected.current = true
       router.push("/login")
       return
@@ -32,10 +36,16 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     
     // Se está autenticado e está em uma página pública (exceto confirm-email), redirecionar para home
     if (user && publicPages.includes(pathname) && pathname !== "/confirm-email" && !hasRedirected.current) {
+      console.log('✅ [AuthGuard] Autenticado em página pública, redirecionando para /')
       hasRedirected.current = true
-      router.push("/")
+      // Usar setTimeout para evitar conflito com outros redirecionamentos
+      setTimeout(() => {
+        router.push("/")
+      }, 100)
       return
     }
+    
+    console.log('✅ [AuthGuard] Estado OK - User:', !!user, 'Path:', pathname)
   }, [user, loading, pathname, router])
 
   // Reset do flag quando o pathname muda

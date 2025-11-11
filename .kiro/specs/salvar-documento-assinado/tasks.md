@@ -1,23 +1,30 @@
 # Implementation Plan
 
-- [ ] 1. Adicionar estado e UI do checkbox "Salvar após Assinado"
+- [x] 1. Adicionar estado e UI do checkbox "Salvar após Assinado"
+
+
   - Adicionar estado `saveAfterSigned` no componente ElectronicSignature
   - Adicionar estado `isSavingDocument` para indicador de carregamento
   - Implementar checkbox na UI com label "Salvar após Assinado"
   - Posicionar checkbox em local visível nas seções de assinatura simples e múltipla
   - _Requirements: 1.1, 1.2, 1.3_
 
+
+
 - [ ] 2. Implementar função de salvamento automático de documento
   - Criar função `saveSignedDocument` que recebe dados da assinatura
   - Utilizar hook `useDocuments` para criar documento
   - Preparar objeto com dados do documento (título, descrição, arquivo, status)
   - Definir status como "approved" por padrão
+
+
   - Adicionar descrição "Documento criado via assinatura eletrônica"
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 4.1, 4.2, 4.3, 4.4, 4.5_
 
 - [ ] 3. Integrar salvamento com conclusão de assinatura
   - Identificar callback/função executada após assinatura concluída
   - Adicionar verificação do estado `saveAfterSigned`
+
   - Chamar `saveSignedDocument` se opção estiver marcada
   - Passar dados necessários (arquivo PDF, nome, caminho)
   - Garantir que não bloqueia fluxo de assinatura

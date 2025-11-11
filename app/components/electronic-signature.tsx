@@ -18,8 +18,10 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, FileText, Download, CheckCircle, Clock, XCircle, FileCheck, Eye, X, Settings, AlertCircle, Users, Calendar, History, Search, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import { useDocuments } from '@/hooks/use-documents'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,6 +30,7 @@ const supabase = createBrowserClient(
 
 export default function ElectronicSignature() {
   const { signatures, documents, loading, error, loadSignatures, loadDocuments, sendForSignature, sendForMultiSignature } = useElectronicSignatures()
+  const { createDocument } = useDocuments()
   const { toast } = useToast()
   const { user } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -39,6 +42,10 @@ export default function ElectronicSignature() {
   const [downloadUrl, setDownloadUrl] = useState<string>('')
   const [isDragOver, setIsDragOver] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  
+  // Estados para salvar documento após assinado
+  const [saveAfterSigned, setSaveAfterSigned] = useState(false)
+  const [isSavingDocument, setIsSavingDocument] = useState(false)
 
   // Estados para verificação de assinatura
   const [verificationCode, setVerificationCode] = useState('')
@@ -148,6 +155,56 @@ export default function ElectronicSignature() {
       console.error('Erro ao criar notificação de assinatura:', error)
     }
   }, [user?.email, user?.id])
+
+  // Função para salvar documento assinado automaticamente
+  const saveSignedDocument = React.useCallback(async (
+    fileName: string,
+    filePath: string,
+    fileSize: number
+  ) => {
+    if (!saveAfterSigned) {
+      console.log('📄 [SAVE_SIGNED] Opção de salvar não está marcada, pulando...')
+      return
+    }
+
+    try {
+      setIsSavingDocument(true)
+      console.log('💾 [SAVE_SIGNED] Iniciando salvamento automático do documento assinado...')
+
+      const documentData = {
+        title: fileName.replace('.pdf', ''),
+        description: 'Documento criado via assinatura eletrônica',
+        file_path: filePath,
+        file_name: fileName,
+        file_size: fileSize,
+        file_type: 'application/pdf',
+        status: 'approved' as const,
+      }
+
+      console.log('📋 [SAVE_SIGNED] Dados do documento:', documentData)
+
+      await createDocument(documentData)
+
+      console.log('✅ [SAVE_SIGNED] Documento salvo com sucesso!')
+
+      toast({
+        title: "Documento salvo",
+        description: `O documento "${fileName}" foi salvo automaticamente na página Documentos.`,
+        duration: 5000,
+      })
+    } catch (error: any) {
+      console.error('❌ [SAVE_SIGNED] Erro ao salvar documento:', error)
+      
+      toast({
+        title: "Erro ao salvar documento",
+        description: "O documento foi assinado com sucesso, mas não foi possível salvá-lo automaticamente. Você pode fazer o download e upload manual.",
+        variant: "destructive",
+        duration: 7000,
+      })
+    } finally {
+      setIsSavingDocument(false)
+    }
+  }, [saveAfterSigned, createDocument, toast])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -368,6 +425,15 @@ export default function ElectronicSignature() {
 
         // Criar notificação de sucesso
         await createSignatureNotification(selectedFile.name, true)
+
+        // Salvar documento automaticamente se opção estiver marcada
+        if (result.data?.documentName) {
+          await saveSignedDocument(
+            result.data.documentName,
+            result.data.documentName, // O path é o mesmo que o nome no storage
+            selectedFile.size
+          )
+        }
 
         // Limpar formulário
         setSelectedFile(null)
@@ -879,6 +945,24 @@ export default function ElectronicSignature() {
                   </p>
                 </div>
 
+                {/* Checkbox para salvar após assinado */}
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <Checkbox
+                    id="saveAfterSigned"
+                    checked={saveAfterSigned}
+                    onCheckedChange={(checked) => setSaveAfterSigned(checked as boolean)}
+                  />
+                  <Label 
+                    htmlFor="saveAfterSigned" 
+                    className="text-sm font-medium cursor-pointer flex-1"
+                  >
+                    Salvar após Assinado
+                    <span className="block text-xs text-gray-500 font-normal mt-0.5">
+                      O documento assinado será automaticamente salvo na página Documentos
+                    </span>
+                  </Label>
+                </div>
+
                 <Button
                   onClick={handleUploadSignature}
                   disabled={!selectedFile || isProcessing}
@@ -1140,7 +1224,11 @@ export default function ElectronicSignature() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <MultiSignatureUploadContent signatureTemplate={signatureTemplate} />
+                <MultiSignatureUploadContent 
+                  signatureTemplate={signatureTemplate}
+                  saveAfterSigned={saveAfterSigned}
+                  setSaveAfterSigned={setSaveAfterSigned}
+                />
               </CardContent>
             </Card>
 
@@ -1563,7 +1651,15 @@ export default function ElectronicSignature() {
 }
 
 // Componente para upload de assinatura múltipla
-function MultiSignatureUploadContent({ signatureTemplate }: { signatureTemplate: any }) {
+function MultiSignatureUploadContent({ 
+  signatureTemplate,
+  saveAfterSigned,
+  setSaveAfterSigned 
+}: { 
+  signatureTemplate: any
+  saveAfterSigned: boolean
+  setSaveAfterSigned: (value: boolean) => void
+}) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
@@ -1764,6 +1860,23 @@ function MultiSignatureUploadContent({ signatureTemplate }: { signatureTemplate:
         />
       </div>
 
+      {/* Checkbox para salvar após assinado */}
+      <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <Checkbox
+          id="saveAfterSignedMulti"
+          checked={saveAfterSigned}
+          onCheckedChange={(checked) => setSaveAfterSigned(checked as boolean)}
+        />
+        <Label 
+          htmlFor="saveAfterSignedMulti" 
+          className="text-sm font-medium cursor-pointer flex-1"
+        >
+          Salvar após Assinado
+          <span className="block text-xs text-gray-500 font-normal mt-0.5">
+            O documento assinado será automaticamente salvo na página Documentos após todas as assinaturas
+          </span>
+        </Label>
+      </div>
 
       <Button
         onClick={handleMultiSignatureUpload}
@@ -1955,7 +2068,13 @@ function PendingApprovalsSummary({ onRefreshTrigger }: { onRefreshTrigger?: numb
 }
 
 // Componente para gerenciar assinaturas múltiplas
-function MultiSignatureRequestsContent() {
+function MultiSignatureRequestsContent({
+  saveAfterSigned,
+  saveSignedDocument
+}: {
+  saveAfterSigned: boolean
+  saveSignedDocument: (fileName: string, filePath: string, fileSize: number) => Promise<void>
+}) {
   const {
     getMyRequests,
     finalizeSignature,
@@ -2015,6 +2134,14 @@ function MultiSignatureRequestsContent() {
           title: "Sucesso!",
           description: "Assinatura múltipla finalizada com sucesso!",
         })
+
+        // Salvar documento automaticamente se opção estiver marcada
+        if (saveAfterSigned && result.data?.signedFilePath) {
+          const fileName = result.data.signedFilePath.split('/').pop() || result.data.signedFilePath
+          // Estimar tamanho do arquivo (não temos o tamanho exato, usar um valor padrão)
+          await saveSignedDocument(fileName, result.data.signedFilePath, 0)
+        }
+
         loadMyRequests() // Recarregar dados
       } else {
         toast({

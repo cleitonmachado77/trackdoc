@@ -501,9 +501,9 @@ export class DigitalSignatureService {
     
     let currentY = height - 10
     
-    // Ícone no topo da barra lateral (iconpdf.png)
+    // Logo TrackDock no topo da barra lateral (icon.png)
     try {
-      const iconPath = path.join(process.cwd(), 'public', 'iconpdf.png')
+      const iconPath = path.join(process.cwd(), 'public', 'icon.png')
       const iconBuffer = fs.readFileSync(iconPath)
       const iconImage = await page.doc.embedPng(iconBuffer)
       const iconSize = 14 // Tamanho pequeno para caber na barra
@@ -519,7 +519,7 @@ export class DigitalSignatureService {
       
       currentY -= (iconDims.height + 6)
     } catch (error) {
-      console.warn('Erro ao carregar ícone na barra lateral:', error)
+      console.warn('Erro ao carregar logo TrackDock na barra lateral:', error)
       // Fallback: desenhar círculo simples
       const iconSize = 12
       const iconX = sidebarX + (sidebarWidth - iconSize) / 2
@@ -697,9 +697,9 @@ export class DigitalSignatureService {
     // Posição inicial para o título
     let currentY = height - 10
     
-    // Ícone no topo da barra lateral (iconpdf.png)
+    // Ícone no topo da barra lateral (icon.png)
     try {
-      const iconPath = path.join(process.cwd(), 'public', 'iconpdf.png')
+      const iconPath = path.join(process.cwd(), 'public', 'icon.png')
       const iconBuffer = fs.readFileSync(iconPath)
       const iconImage = await page.doc.embedPng(iconBuffer)
       const iconSize = 14 // Tamanho pequeno para caber na barra
@@ -876,9 +876,9 @@ export class DigitalSignatureService {
     // Posição inicial para o título
     let currentY = height - 10
     
-    // Ícone no topo da barra lateral (iconpdf.png)
+    // Ícone no topo da barra lateral (icon.png)
     try {
-      const iconPath = path.join(process.cwd(), 'public', 'iconpdf.png')
+      const iconPath = path.join(process.cwd(), 'public', 'icon.png')
       const iconBuffer = fs.readFileSync(iconPath)
       const iconImage = await page.doc.embedPng(iconBuffer)
       const iconSize = 14 // Tamanho pequeno para caber na barra
@@ -1164,3 +1164,4 @@ export class DigitalSignatureService {
 
 // Exportar instância singleton
 export const digitalSignatureService = DigitalSignatureService.getInstance()
+

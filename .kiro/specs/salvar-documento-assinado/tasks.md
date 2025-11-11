@@ -25,6 +25,7 @@
   - Identificar callback/função executada após assinatura concluída
   - Adicionar verificação do estado `saveAfterSigned`
 
+
   - Chamar `saveSignedDocument` se opção estiver marcada
   - Passar dados necessários (arquivo PDF, nome, caminho)
   - Garantir que não bloqueia fluxo de assinatura

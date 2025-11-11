@@ -46,6 +46,7 @@ export default function ElectronicSignature() {
   // Estados para salvar documento após assinado
   const [saveAfterSigned, setSaveAfterSigned] = useState(false)
   const [isSavingDocument, setIsSavingDocument] = useState(false)
+  const [originalFileName, setOriginalFileName] = useState<string>('')
 
   // Estados para verificação de assinatura
   const [verificationCode, setVerificationCode] = useState('')
@@ -158,9 +159,10 @@ export default function ElectronicSignature() {
 
   // Função para salvar documento assinado automaticamente
   const saveSignedDocument = React.useCallback(async (
-    fileName: string,
-    filePath: string,
-    fileSize: number
+    signedFileName: string,
+    signedFilePath: string,
+    fileSize: number,
+    originalName: string
   ) => {
     if (!saveAfterSigned) {
       console.log('📄 [SAVE_SIGNED] Opção de salvar não está marcada, pulando...')
@@ -170,12 +172,18 @@ export default function ElectronicSignature() {
     try {
       setIsSavingDocument(true)
       console.log('💾 [SAVE_SIGNED] Iniciando salvamento automático do documento assinado...')
+      console.log('📋 [SAVE_SIGNED] Nome original:', originalName)
+      console.log('📋 [SAVE_SIGNED] Nome assinado:', signedFileName)
+      console.log('📋 [SAVE_SIGNED] Path assinado:', signedFilePath)
+
+      // Usar o nome original para o título, mas manter o path do arquivo assinado
+      const cleanTitle = originalName.replace('.pdf', '').replace(/\.[^/.]+$/, '')
 
       const documentData = {
-        title: fileName.replace('.pdf', ''),
+        title: cleanTitle,
         description: 'Documento criado via assinatura eletrônica',
-        file_path: filePath,
-        file_name: fileName,
+        file_path: signedFilePath,
+        file_name: signedFileName,
         file_size: fileSize,
         file_type: 'application/pdf',
         status: 'approved' as const,
@@ -189,7 +197,7 @@ export default function ElectronicSignature() {
 
       toast({
         title: "Documento salvo",
-        description: `O documento "${fileName}" foi salvo automaticamente na página Documentos.`,
+        description: `O documento "${cleanTitle}" foi salvo automaticamente na página Documentos.`,
         duration: 5000,
       })
     } catch (error: any) {
@@ -210,6 +218,7 @@ export default function ElectronicSignature() {
     const file = event.target.files?.[0]
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file)
+      setOriginalFileName(file.name) // Armazenar nome original
     } else if (file) {
       toast({
         title: "Erro",
@@ -238,6 +247,7 @@ export default function ElectronicSignature() {
       const file = files[0]
       if (file.type === 'application/pdf') {
         setSelectedFile(file)
+        setOriginalFileName(file.name) // Armazenar nome original
       } else {
         toast({
           title: "Erro",
@@ -431,12 +441,14 @@ export default function ElectronicSignature() {
           await saveSignedDocument(
             result.data.documentName,
             result.data.documentName, // O path é o mesmo que o nome no storage
-            selectedFile.size
+            selectedFile.size,
+            originalFileName || selectedFile.name
           )
         }
 
         // Limpar formulário
         setSelectedFile(null)
+        setOriginalFileName('')
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
         }

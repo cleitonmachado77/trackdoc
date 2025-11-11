@@ -5,8 +5,9 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@supabase/ssr"
-import { FileText, Download, ExternalLink, Building2, FolderOpen, Eye, X } from "lucide-react"
+import { FileText, Download, ExternalLink, Building2, FolderOpen, Eye, X, Search, LayoutGrid, List } from "lucide-react"
 import UniversalDocumentViewer from "@/app/components/universal-document-viewer"
 import {
   Dialog,
@@ -58,6 +59,8 @@ export default function BibliotecaPublicaPage() {
   const [selectedItem, setSelectedItem] = useState<LibraryItem | null>(null)
   const [scale, setScale] = useState(1)
   const [rotation, setRotation] = useState(0)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
 
   useEffect(() => {
     if (slug) {
@@ -217,10 +220,16 @@ export default function BibliotecaPublicaPage() {
     )
   }
 
+  // Filtrar itens pela pesquisa
+  const filteredItems = items.filter(item =>
+    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   // Agrupar por categoria
   const groupedItems: Record<string, { category: Category | null; items: LibraryItem[] }> = {}
   
-  items.forEach((item) => {
+  filteredItems.forEach((item) => {
     const category = categories.find(c => c.id === item.category_id) || null
     const key = category?.id || "uncategorized"
     
@@ -272,7 +281,55 @@ export default function BibliotecaPublicaPage() {
 
       {/* Content */}
       <div className="container mx-auto px-4 py-12">
-        {items.length === 0 ? (
+        {/* Barra de Pesquisa e Filtros */}
+        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+            <Input
+              type="text"
+              placeholder="Pesquisar documentos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-12 text-base"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("list")}
+              className="h-12 w-12"
+            >
+              <List className="h-5 w-5" />
+            </Button>
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+              className="h-12 w-12"
+            >
+              <LayoutGrid className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
+        {filteredItems.length === 0 ? (
+          <Card className="shadow-sm">
+            <CardContent className="py-16 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
+                <FileText className="h-10 w-10 text-gray-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">
+                {searchTerm ? "Nenhum documento encontrado" : "Nenhum documento disponível"}
+              </h3>
+              <p className="text-muted-foreground">
+                {searchTerm 
+                  ? "Tente ajustar sua pesquisa" 
+                  : "Esta biblioteca ainda não possui documentos públicos"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : items.length === 0 ? (
           <Card className="shadow-sm">
             <CardContent className="py-16 text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
@@ -310,66 +367,131 @@ export default function BibliotecaPublicaPage() {
                   )}
                 </div>
                 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {categoryItems.map((item) => (
-                    <Card 
-                      key={item.id} 
-                      className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 bg-white"
-                    >
-                      <CardHeader className="space-y-4">
-                        <div className="flex items-start justify-between">
-                          <div className="p-3 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors">
-                            {getFileIcon(item.file_type)}
+                {viewMode === "list" ? (
+                  /* Modo Lista */
+                  <div className="space-y-3">
+                    {categoryItems.map((item) => (
+                      <Card 
+                        key={item.id} 
+                        className="group hover:shadow-md transition-all duration-200 bg-white"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors flex-shrink-0">
+                              {getFileIcon(item.file_type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors truncate">
+                                    {item.title}
+                                  </h3>
+                                  {item.description && (
+                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                                      {item.description}
+                                    </p>
+                                  )}
+                                </div>
+                                {item.file_type && (
+                                  <Badge 
+                                    variant="secondary" 
+                                    className="font-mono text-xs flex-shrink-0"
+                                  >
+                                    {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                              {item.file_path && (
+                                <>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => viewFile(item)}
+                                  >
+                                    <Eye className="h-4 w-4 mr-2" />
+                                    Visualizar
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => downloadFile(item.file_path!, item.file_name || "documento")}
+                                  >
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Baixar
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          {item.file_type && (
-                            <Badge 
-                              variant="secondary" 
-                              className="font-mono text-xs"
-                            >
-                              {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
-                            </Badge>
-                          )}
-                        </div>
-                        <div>
-                          <CardTitle className="text-xl leading-tight group-hover:text-primary transition-colors">
-                            {item.title}
-                          </CardTitle>
-                          {item.description && (
-                            <CardDescription className="mt-2 line-clamp-2">
-                              {item.description}
-                            </CardDescription>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex gap-2">
-                          {item.file_path && (
-                            <>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => viewFile(item)}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  /* Modo Grid */
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {categoryItems.map((item) => (
+                      <Card 
+                        key={item.id} 
+                        className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 bg-white"
+                      >
+                        <CardHeader className="space-y-3 pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors">
+                              {getFileIcon(item.file_type)}
+                            </div>
+                            {item.file_type && (
+                              <Badge 
+                                variant="secondary" 
+                                className="font-mono text-xs"
                               >
-                                <Eye className="h-4 w-4 mr-2" />
-                                Visualizar
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                onClick={() => downloadFile(item.file_path!, item.file_name || "documento")}
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                Baixar
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                                {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
+                              </Badge>
+                            )}
+                          </div>
+                          <div>
+                            <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                              {item.title}
+                            </CardTitle>
+                            {item.description && (
+                              <CardDescription className="mt-1 text-xs line-clamp-2">
+                                {item.description}
+                              </CardDescription>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex flex-col gap-2">
+                            {item.file_path && (
+                              <>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => viewFile(item)}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Visualizar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => downloadFile(item.file_path!, item.file_name || "documento")}
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Baixar
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

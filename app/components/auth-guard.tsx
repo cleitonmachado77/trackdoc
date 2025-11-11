@@ -17,12 +17,6 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const hasRedirected = useRef(false)
 
   useEffect(() => {
-    // Se acabou de fazer logout, não fazer nada (vai redirecionar para site externo)
-    if (typeof window !== 'undefined' && sessionStorage.getItem('just_logged_out') === 'true') {
-      console.log('🚪 [AuthGuard] Logout em andamento, ignorando...')
-      return
-    }
-    
     // Aguardar o loading terminar
     if (loading) {
       return

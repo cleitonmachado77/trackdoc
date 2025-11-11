@@ -16,9 +16,6 @@ export function getSupabaseSingleton() {
           persistSession: true,
           detectSessionInUrl: true,
           flowType: 'pkce',
-          // Configuração de storage customizada para garantir limpeza
-          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-          storageKey: 'sb-auth-token',
         },
         global: {
           headers: {

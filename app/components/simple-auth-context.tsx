@@ -53,14 +53,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         return
       }
 
-      // Limpar flag de logout se existir (pode ter ficado de um logout anterior)
-      if (typeof window !== 'undefined') {
-        const justLoggedOut = sessionStorage.getItem('just_logged_out')
-        if (justLoggedOut === 'true') {
-          console.log('🧹 [Auth] Limpando flag de logout anterior')
-          sessionStorage.removeItem('just_logged_out')
-        }
-      }
+
 
       try {
         console.log('🔐 [Auth] Iniciando verificação de sessão...')
@@ -169,11 +162,6 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     
     console.log('🚪 [Auth] Iniciando logout...')
     
-    // Marcar que estamos fazendo logout ANTES de tudo
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('just_logged_out', 'true')
-    }
-    
     try {
       // 1. Fazer logout no Supabase PRIMEIRO e AGUARDAR
       await supabase.auth.signOut({ scope: 'global' })
@@ -182,7 +170,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
     }
     
-    // 2. Limpar TODO o storage ANTES de qualquer outra coisa
+    // 2. Limpar TODO o storage
     if (typeof window !== 'undefined') {
       console.log('🧹 [Auth] Limpando storage...')
       
@@ -196,9 +184,6 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       localStorage.clear()
       sessionStorage.clear()
       
-      // Restaurar APENAS a flag de logout
-      sessionStorage.setItem('just_logged_out', 'true')
-      
       console.log('✅ [Auth] Storage e cookies limpos')
     }
     
@@ -209,10 +194,9 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     setIsInitialized(false)
     
     // 4. Redirecionar IMEDIATAMENTE para a página de login SEM criar histórico
-    // NÃO aguardar timeout - redirecionar direto
     if (typeof window !== 'undefined') {
       console.log('🔄 [Auth] Redirecionando para /login')
-      // Usar replace para não criar histórico e evitar voltar para a página
+      // Usar replace para não criar histórico
       window.location.replace('/login')
     }
   }

@@ -173,7 +173,7 @@ export default function CategoryManagement() {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-start mb-6">
-        <h1 className="text-4xl font-bold text-foreground uppercase">CATEGORIAS</h1>
+        <h1 className="text-3xl font-bold text-foreground">Categorias</h1>
       </div>
 
       {/* Stats Cards */}

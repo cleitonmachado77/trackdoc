@@ -237,7 +237,7 @@ export default function DepartmentManagement() {
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-start mb-6">
-        <h1 className="text-4xl font-bold text-foreground uppercase">DEPARTAMENTOS</h1>
+        <h1 className="text-3xl font-bold text-foreground">Departamentos</h1>
       </div>
 
       {/* Cards de Estatísticas */}

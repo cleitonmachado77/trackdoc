@@ -207,7 +207,7 @@ export default function DocumentTypeManagement({
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-start mb-6">
-        <h1 className="text-4xl font-bold text-foreground uppercase">TIPOS DE DOCUMENTOS</h1>
+        <h1 className="text-3xl font-bold text-foreground">Tipos de Documentos</h1>
       </div>
 
       {/* Stats Cards */}

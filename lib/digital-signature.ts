@@ -235,12 +235,12 @@ export class DigitalSignatureService {
     const margin = 50
     let currentY = height - margin
     
-    // Logo TrackDock (imagem)
+    // Logo TrackDock (imagem bem pequena)
     try {
       const logoPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
       const logoBuffer = fs.readFileSync(logoPath)
       const logoImage = await pdfDoc.embedPng(logoBuffer)
-      const logoDims = logoImage.scale(0.15) // Logo pequeno
+      const logoDims = logoImage.scale(0.08) // Logo bem pequeno (reduzido de 0.15 para 0.08)
       
       page.drawImage(logoImage, {
         x: margin,
@@ -249,18 +249,18 @@ export class DigitalSignatureService {
         height: logoDims.height
       })
       
-      currentY -= (logoDims.height + 20)
+      currentY -= (logoDims.height + 15)
     } catch (error) {
       console.warn('Erro ao carregar logo, usando texto:', error)
       // Fallback: usar texto
       page.drawText("TrackDock", {
         x: margin,
         y: currentY,
-        size: 12,
+        size: 10,
         font: boldFont,
         color: rgb(0.2, 0.4, 0.8)
       })
-      currentY -= 30
+      currentY -= 25
     }
     
     // Título (fonte menor)
@@ -501,36 +501,48 @@ export class DigitalSignatureService {
     
     let currentY = height - 10
     
-    // Logo favicon no topo da barra lateral
+    // Ícone no topo da barra lateral (iconpdf.png)
     try {
-      const faviconPath = path.join(process.cwd(), 'public', 'favicon.svg')
-      const faviconBuffer = fs.readFileSync(faviconPath)
+      const iconPath = path.join(process.cwd(), 'public', 'iconpdf.png')
+      const iconBuffer = fs.readFileSync(iconPath)
+      const iconImage = await page.doc.embedPng(iconBuffer)
+      const iconSize = 14 // Tamanho pequeno para caber na barra
+      const iconDims = iconImage.scale(iconSize / iconImage.width)
       
-      // Converter SVG para PNG (pdf-lib não suporta SVG diretamente)
-      // Vamos tentar usar o PNG do logo como alternativa
-      try {
-        const logoPngPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
-        const logoPngBuffer = fs.readFileSync(logoPngPath)
-        const logoImage = await page.doc.embedPng(logoPngBuffer)
-        const logoSize = 18 // Tamanho pequeno para caber na barra
-        const logoDims = logoImage.scale(logoSize / logoImage.width)
-        
-        // Centralizar logo na barra lateral
-        page.drawImage(logoImage, {
-          x: sidebarX + (sidebarWidth - logoDims.width) / 2,
-          y: currentY - logoDims.height,
-          width: logoDims.width,
-          height: logoDims.height
-        })
-        
-        currentY -= (logoDims.height + 8)
-      } catch (pngError) {
-        console.warn('Erro ao carregar logo PNG:', pngError)
-        currentY -= 5
-      }
+      // Centralizar ícone na barra lateral
+      page.drawImage(iconImage, {
+        x: sidebarX + (sidebarWidth - iconDims.width) / 2,
+        y: currentY - iconDims.height,
+        width: iconDims.width,
+        height: iconDims.height
+      })
+      
+      currentY -= (iconDims.height + 6)
     } catch (error) {
-      console.warn('Erro ao carregar favicon:', error)
-      currentY -= 5
+      console.warn('Erro ao carregar ícone na barra lateral:', error)
+      // Fallback: desenhar círculo simples
+      const iconSize = 12
+      const iconX = sidebarX + (sidebarWidth - iconSize) / 2
+      const iconY = currentY - iconSize
+      
+      page.drawCircle({
+        x: iconX + iconSize / 2,
+        y: iconY + iconSize / 2,
+        size: iconSize / 2,
+        color: rgb(0.2, 0.4, 0.8),
+        borderColor: rgb(0.2, 0.4, 0.8),
+        borderWidth: 1
+      })
+      
+      page.drawText("T", {
+        x: iconX + 3.5,
+        y: iconY + 2.5,
+        size: 8,
+        font: boldFont,
+        color: rgb(1, 1, 1)
+      })
+      
+      currentY -= (iconSize + 6)
     }
     
     // Título (ajustado para não sobrepor)

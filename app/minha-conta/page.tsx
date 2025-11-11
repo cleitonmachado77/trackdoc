@@ -75,7 +75,11 @@ interface Profile {
   }
 }
 
-export default function MinhaContaPage() {
+interface MinhaContaPageProps {
+  onBack?: () => void
+}
+
+export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
   const { user } = useAuth()
   const { toast } = useToast()
 
@@ -477,19 +481,17 @@ export default function MinhaContaPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
-            <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => window.location.href = '/'}
-            className="flex items-center gap-2"
-          >
-            Voltar ao Início
-          </Button>
+      <div className="mb-6 space-y-4">
+        <Button
+          variant="outline"
+          onClick={onBack || (() => window.location.href = '/?view=admin')}
+          className="flex items-center gap-2"
+        >
+          Voltar ao Início
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
+          <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
         </div>
       </div>
 

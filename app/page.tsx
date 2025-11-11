@@ -1943,7 +1943,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       case "help":
         return <HelpCenter />
       case "minha-conta":
-        return <MinhaContaPage />
+        return <MinhaContaPage onBack={() => setActiveView("admin")} />
       default:
         return renderDashboard()
     }

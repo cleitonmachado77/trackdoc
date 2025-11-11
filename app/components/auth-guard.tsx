@@ -17,40 +17,30 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const hasRedirected = useRef(false)
 
   useEffect(() => {
-    // Se está fazendo logout, não fazer nada
-    if (typeof window !== 'undefined' && sessionStorage.getItem('logging_out') === 'true') {
-      console.log('🚪 [AuthGuard] Logout em andamento, ignorando...')
-      return
-    }
-    
-    // Aguardar o loading terminar antes de fazer qualquer redirecionamento
+    // Aguardar o loading terminar
     if (loading) {
-      console.log('🔄 [AuthGuard] Aguardando loading...')
       return
     }
 
-    // Páginas públicas que não precisam de autenticação
+    // Páginas públicas
     const publicPages = ["/login", "/register", "/verify-email", "/reset-password", "/confirm-email", "/forgot-password"]
+    const isPublicPage = publicPages.includes(pathname)
     
-    // Se não está autenticado e não está em uma página pública, redirecionar para login
-    if (!user && !publicPages.includes(pathname) && !hasRedirected.current) {
-      console.log('🔒 [AuthGuard] Não autenticado, redirecionando para /login')
+    // Se não está autenticado e não está em página pública
+    if (!user && !isPublicPage && !hasRedirected.current) {
+      console.log('🔒 [AuthGuard] Redirecionando para /login')
       hasRedirected.current = true
-      // Usar replace para não criar histórico
       router.replace("/login")
       return
     } 
     
-    // Se está autenticado e está em uma página pública (exceto confirm-email), redirecionar para home
-    if (user && publicPages.includes(pathname) && pathname !== "/confirm-email" && !hasRedirected.current) {
-      console.log('✅ [AuthGuard] Autenticado em página pública, redirecionando para /')
+    // Se está autenticado e está em página pública (exceto confirm-email)
+    if (user && isPublicPage && pathname !== "/confirm-email" && !hasRedirected.current) {
+      console.log('✅ [AuthGuard] Redirecionando para /')
       hasRedirected.current = true
-      // Usar replace para não criar histórico
       router.replace("/")
       return
     }
-    
-    console.log('✅ [AuthGuard] Estado OK - User:', !!user, 'Path:', pathname)
   }, [user, loading, pathname, router])
 
   // Reset do flag quando o pathname muda

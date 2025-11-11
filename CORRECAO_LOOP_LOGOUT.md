@@ -1,209 +1,208 @@
-# Correção do Loop Infinito no Logout
+# Correção do Loop Infinito no Logout - VERSÃO SIMPLIFICADA
 
 ## Problema Identificado
 
-Quando o usuário clicava no botão "Sair" no sidebar pela segunda vez, a página entrava em um loop infinito de redirecionamentos, causando uma tela piscando continuamente. O erro 404 POST que aparecia brevemente no console era provavelmente relacionado a tentativas de comunicação com o Supabase durante o processo de logout.
+Quando o usuário clicava no botão "Sair" no sidebar, a página entrava em um loop infinito de redirecionamentos entre `/login` e `/` (dashboard), ou o sistema fazia login automático imediatamente após o logout. O problema era a complexidade excessiva do processo de logout com múltiplos componentes tentando controlar o fluxo.
 
 ## Causa Raiz
 
-O problema estava na sequência de eventos durante o logout:
+O problema estava na **complexidade excessiva** e **falta de sincronização** entre componentes:
 
-1. **Função `signOut`** em `simple-auth-context.tsx`:
-   - Fazia logout no Supabase primeiro (operação assíncrona)
-   - Limpava o storage
-   - Limpava o estado local
-   - Redirecionava para `/login` usando `window.location.replace()`
+1. **Logout não-bloqueante**: Logout do Supabase acontecia em background, mas a sessão não era realmente destruída antes do redirecionamento
+2. **Storage não limpo completamente**: Dados residuais do Supabase faziam o sistema detectar sessão ativa
+3. **Múltiplos componentes interferindo**: AuthGuard, LandingRedirect e ProfileContext todos tentando controlar o fluxo
+4. **Flags e timeouts complexos**: Tentativas de coordenação com flags `logging_out` criavam mais problemas
+5. **Auto-login**: Supabase detectava tokens válidos no storage e fazia login automático
 
-2. **Listener `onAuthStateChange`**:
-   - Detectava o evento `SIGNED_OUT` do Supabase
-   - Tentava atualizar o estado novamente (mesmo já tendo sido limpo)
+## Solução: SIMPLIFICAÇÃO RADICAL
 
-3. **AuthGuard**:
-   - Detectava que não havia usuário
-   - Tentava redirecionar para `/login` novamente
-   - Criava conflito com o redirecionamento já em andamento
+A solução foi **remover toda a complexidade** e fazer o logout de forma **síncrona e direta**:
 
-4. **Loop de Redirecionamentos**:
-   - Múltiplos redirecionamentos simultâneos
-   - Estado inconsistente entre componentes
-   - Página ficava piscando continuamente
-
-## Correções Implementadas
-
-### 1. Otimização da Função `signOut`
+### 1. Função `signOut` SIMPLIFICADA
 
 **Arquivo**: `app/components/simple-auth-context.tsx`
 
 **Mudanças**:
-- Adicionar flag `logging_out` no sessionStorage para sinalizar logout em andamento
-- Limpar o estado local **PRIMEIRO** (antes de fazer logout no Supabase)
-- Fazer logout no Supabase de forma **não-bloqueante** (sem await)
-- Aguardar 100ms para garantir que o estado foi limpo
-- Redirecionar **imediatamente** após limpar o estado
-- Usar `window.location.href` para forçar reload completo
+- **AGUARDAR** o logout do Supabase completar (com `await`)
+- Limpar **TODO** o storage (localStorage e sessionStorage) com `.clear()`
+- Limpar estado local
+- Redirecionar com reload forçado
+- **SEM flags, SEM timeouts, SEM complexidade**
 
 ```typescript
 const signOut = async () => {
-  // 1. Marcar que estamos fazendo logout
-  sessionStorage.setItem('logging_out', 'true')
+  // 1. Fazer logout no Supabase e AGUARDAR
+  await supabase.auth.signOut({ scope: 'global' })
   
-  // 2. Limpar estado local PRIMEIRO
+  // 2. Limpar TODO o storage
+  localStorage.clear()
+  sessionStorage.clear()
+  
+  // 3. Limpar estado local
   setSession(null)
   setUser(null)
   setAuthError(null)
   setIsInitialized(false)
   
-  // 3. Limpar storage
-  // ... código de limpeza ...
-  
-  // 4. Fazer logout no Supabase (sem await)
-  supabase.auth.signOut({ scope: 'global' })
-  
-  // 5. Aguardar um pouco
-  await new Promise(resolve => setTimeout(resolve, 100))
-  
-  // 6. Redirecionar imediatamente
-  sessionStorage.removeItem('logging_out')
+  // 4. Redirecionar
   window.location.href = '/login'
 }
 ```
 
-### 2. Simplificação do Listener `onAuthStateChange`
+### 2. Listener `onAuthStateChange` SIMPLIFICADO
 
 **Arquivo**: `app/components/simple-auth-context.tsx`
 
 **Mudanças**:
-- Ignorar **completamente** o evento `SIGNED_OUT`
-- Deixar a função `signOut` cuidar de toda a lógica de logout
-- Evitar atualizações de estado duplicadas
+- Ignorar `TOKEN_REFRESHED` e `SIGNED_OUT`
+- Apenas processar `SIGNED_IN`
+- Código mínimo e direto
 
 ```typescript
 const { data: { subscription } } = supabase.auth.onAuthStateChange(
   (event, session) => {
-    // Ignorar SIGNED_OUT completamente
-    if (event === 'SIGNED_OUT') {
-      console.log('🚪 [Auth] SIGNED_OUT detectado - ignorando')
+    if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
       return
     }
     
-    // Apenas processar SIGNED_IN
-    if (event === 'SIGNED_IN') {
+    if (event === 'SIGNED_IN' && session) {
       setSession(session)
-      setUser(session?.user ?? null)
+      setUser(session.user)
+      setIsInitialized(true)
+      setLoading(false)
     }
   }
 )
 ```
 
-### 3. Melhoria no AuthGuard
+### 3. AuthGuard SIMPLIFICADO
 
 **Arquivo**: `app/components/auth-guard.tsx`
 
 **Mudanças**:
-- Verificar flag `logging_out` antes de fazer qualquer redirecionamento
-- Usar `router.replace()` em vez de `router.push()` para evitar histórico
-- Adicionar `/forgot-password` à lista de páginas públicas
-- Evitar redirecionamentos duplicados
+- Remover verificação de flag `logging_out`
+- Código mínimo e direto
+- Apenas verificar autenticação e redirecionar
 
 ```typescript
-// Verificar se está fazendo logout
-if (sessionStorage.getItem('logging_out') === 'true') {
-  return
-}
+useEffect(() => {
+  if (loading) return
 
-// Usar replace para não criar histórico
-if (!user && !publicPages.includes(pathname)) {
-  router.replace("/login")
-  return
-}
+  const publicPages = ["/login", "/register", "/verify-email", "/reset-password", "/confirm-email", "/forgot-password"]
+  const isPublicPage = publicPages.includes(pathname)
+  
+  if (!user && !isPublicPage && !hasRedirected.current) {
+    hasRedirected.current = true
+    router.replace("/login")
+  } 
+  
+  if (user && isPublicPage && pathname !== "/confirm-email" && !hasRedirected.current) {
+    hasRedirected.current = true
+    router.replace("/")
+  }
+}, [user, loading, pathname, router])
 ```
 
-### 4. Correção no LandingRedirect
+### 4. LandingRedirect SIMPLIFICADO
 
 **Arquivo**: `app/components/landing-redirect.tsx`
 
 **Mudanças**:
-- Redirecionar para site externo **apenas** quando estiver na raiz (`/`)
-- Evitar conflito com redirecionamento do AuthGuard
+- Código mínimo
+- Apenas redirecionar se na raiz sem usuário
 
 ```typescript
-// Apenas redirecionar se estiver na raiz E não tiver usuário
-if (!loading && !user && pathname === '/') {
-  window.location.href = 'https://www.trackdoc.app.br/'
-}
+useEffect(() => {
+  if (!loading && !user && pathname === '/') {
+    window.location.href = 'https://www.trackdoc.app.br/'
+  }
+}, [user, loading, pathname])
 ```
 
-### 5. Correção no ProfileContext
+### 5. ProfileContext SIMPLIFICADO
 
 **Arquivo**: `app/components/profile-context.tsx`
 
 **Mudanças**:
-- Verificar flag `logging_out` antes de carregar perfil
-- **NÃO** redirecionar quando perfil não é encontrado (deixar AuthGuard cuidar)
-- Sempre usar perfil básico em caso de erro (evitar loops)
+- Remover verificação de flag `logging_out`
+- Remover timeout complexo
+- Sempre usar perfil básico em caso de erro
+- Código mínimo e direto
 
 ```typescript
-// Se está fazendo logout, não carregar perfil
-if (sessionStorage.getItem('logging_out') === 'true') {
-  return
-}
+const loadProfile = async () => {
+  if (!user) {
+    setProfile(null)
+    setLoading(false)
+    return
+  }
 
-// Em caso de erro, usar perfil básico
-if (err) {
-  setProfile({
-    id: user.id,
-    email: user.email,
-    full_name: user.user_metadata?.full_name || 'Usuário',
-    role: 'user',
-    status: 'active'
-  })
+  try {
+    const response = await fetch('/api/profile')
+    const result = await response.json()
+
+    if (response.ok && result.success) {
+      setProfile(result.profile)
+    } else {
+      throw new Error('Erro ao carregar perfil')
+    }
+  } catch (err) {
+    // Usar perfil básico em caso de erro
+    setProfile({
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name || 'Usuário',
+      role: 'user',
+      status: 'active'
+    })
+  } finally {
+    setLoading(false)
+  }
 }
 ```
 
-## Fluxo Correto Após as Correções
+## Fluxo SIMPLIFICADO Após as Correções
 
 1. **Usuário clica em "Sair"**
    - Função `signOut` é chamada
-   - Flag `logging_out` é definida no sessionStorage
 
-2. **Estado é limpo imediatamente**
+2. **Logout no Supabase é AGUARDADO**
+   - `await supabase.auth.signOut({ scope: 'global' })`
+   - Sessão é destruída no servidor
+   - Tokens são invalidados
+
+3. **TODO o storage é limpo**
+   - `localStorage.clear()`
+   - `sessionStorage.clear()`
+   - Nenhum dado residual permanece
+
+4. **Estado local é limpo**
    - `setSession(null)`
    - `setUser(null)`
-   - Storage é limpo
+   - Contexto de autenticação resetado
 
-3. **Outros componentes param de interferir**
-   - AuthGuard detecta flag e não redireciona
-   - ProfileContext detecta flag e não carrega perfil
-   - LandingRedirect só age na raiz
-
-4. **Logout no Supabase acontece em background**
-   - Não bloqueia o redirecionamento
-   - Erros são tratados silenciosamente
-
-5. **Aguarda 100ms para garantir limpeza**
-   - Tempo para estado ser propagado
-   - Evita race conditions
-
-6. **Redirecionamento imediato**
-   - Flag `logging_out` é removida
+5. **Redirecionamento com reload forçado**
    - `window.location.href = '/login'`
-   - Força reload completo da página
-   - Evita conflitos com outros redirecionamentos
+   - Página recarrega completamente
+   - Todos os componentes reinicializam do zero
 
-7. **Página de login carrega limpa**
+6. **Página de login carrega limpa**
+   - Sem sessão ativa
+   - Sem tokens
    - Sem estado anterior
-   - Sem loops de redirecionamento
    - Pronta para novo login
 
-## Benefícios
+## Benefícios da Simplificação
 
-✅ **Logout instantâneo**: Estado limpo imediatamente
-✅ **Sem loops**: Apenas um redirecionamento, flag previne conflitos
-✅ **Sem erros 404**: Logout não-bloqueante
-✅ **Experiência suave**: Sem tela piscando ou alternando entre páginas
-✅ **Múltiplos logouts**: Funciona corretamente mesmo após vários logouts consecutivos
-✅ **Coordenação entre componentes**: Flag `logging_out` sincroniza todos os componentes
-✅ **Sem conflitos**: LandingRedirect, AuthGuard e ProfileContext não interferem durante logout
+✅ **Código mais simples**: Menos de 20 linhas na função `signOut`
+✅ **Sem complexidade**: Sem flags, sem timeouts, sem coordenação complexa
+✅ **Logout garantido**: `await` garante que sessão é destruída antes de continuar
+✅ **Storage completamente limpo**: `.clear()` remove TUDO, sem exceções
+✅ **Sem auto-login**: Sem tokens residuais para causar login automático
+✅ **Sem loops**: Apenas um redirecionamento, reload forçado
+✅ **Experiência suave**: Logout rápido e direto
+✅ **Múltiplos logouts**: Funciona perfeitamente sempre
+✅ **Fácil de manter**: Código simples e direto, fácil de entender e debugar
 
 ## Testes Recomendados
 
@@ -230,9 +229,26 @@ if (err) {
    - Fazer logout
    - Verificar se não há erros 404 ou outros erros
 
-## Notas Técnicas
+## Princípios da Solução
 
-- O erro 404 POST que aparecia era provavelmente uma tentativa do Supabase de fazer logout no servidor durante o processo de limpeza
-- Ao fazer o logout de forma não-bloqueante, evitamos que esse erro apareça ou bloqueie o fluxo
-- O uso de `window.location.href` força um reload completo, garantindo que todo o estado da aplicação seja resetado
-- O AuthGuard agora usa `router.replace()` para evitar criar entradas desnecessárias no histórico do navegador
+1. **KISS (Keep It Simple, Stupid)**: Menos código = menos bugs
+2. **Síncrono quando necessário**: `await` garante ordem de execução
+3. **Limpeza completa**: `.clear()` é mais confiável que remoção seletiva
+4. **Reload forçado**: Garante que nenhum estado residual permanece
+5. **Sem otimizações prematuras**: Simplicidade > Performance neste caso
+
+## Por que a Solução Anterior Falhou
+
+- **Complexidade excessiva**: Flags, timeouts e coordenação entre múltiplos componentes
+- **Logout não-bloqueante**: Sessão não era destruída antes do redirecionamento
+- **Limpeza seletiva**: Alguns tokens podiam permanecer no storage
+- **Race conditions**: Múltiplos componentes tentando controlar o fluxo simultaneamente
+- **Auto-login**: Tokens residuais faziam o Supabase detectar sessão ativa
+
+## Por que a Nova Solução Funciona
+
+- **Simplicidade**: Apenas 4 passos claros e diretos
+- **Síncrono**: `await` garante que logout completa antes de continuar
+- **Limpeza total**: `.clear()` remove absolutamente tudo
+- **Reload forçado**: Reinicia toda a aplicação do zero
+- **Sem interferência**: Componentes não tentam controlar o fluxo durante logout

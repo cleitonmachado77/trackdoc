@@ -29,59 +29,26 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     // Evitar recarregamento se já foi carregado
     if (hasLoadedProfile.current && profile) {
-      console.log('⏭️ [ProfileContext] Perfil já carregado, pulando...')
-      return
-    }
-
-    // Se está fazendo logout, não carregar perfil
-    if (typeof window !== 'undefined' && sessionStorage.getItem('logging_out') === 'true') {
-      console.log('🚪 [ProfileContext] Logout em andamento, não carregando perfil')
       return
     }
 
     try {
       setLoading(true)
-      console.log('📥 [ProfileContext] Carregando perfil...')
       
-      // Timeout de 5 segundos para evitar travamento
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout ao carregar perfil')), 5000)
-      )
-      
-      const fetchPromise = fetch('/api/profile').then(async (response) => {
-        const result = await response.json()
+      const response = await fetch('/api/profile')
+      const result = await response.json()
 
-        if (!response.ok) {
-          if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
-            console.log('❌ [ProfileContext] Perfil não encontrado')
-            // NÃO redirecionar aqui - deixar o AuthGuard cuidar disso
-            throw new Error('Perfil não encontrado')
-          }
-          throw new Error(result.error || 'Erro ao carregar perfil')
-        }
-
-        if (!result.success) {
-          throw new Error(result.error || 'Erro na resposta da API')
-        }
-
-        return result.profile
-      })
-
-      const profileData = await Promise.race([fetchPromise, timeoutPromise])
-      
-      if (profileData) {
-        setProfile(profileData)
+      if (response.ok && result.success) {
+        setProfile(result.profile)
         setError(null)
         hasLoadedProfile.current = true
-        console.log('✅ [ProfileContext] Perfil carregado')
+      } else {
+        throw new Error(result.error || 'Erro ao carregar perfil')
       }
     } catch (err) {
       console.error('❌ [ProfileContext] Erro:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar perfil'
-      setError(errorMessage)
       
-      // Sempre usar perfil básico do user em caso de erro
-      console.warn('⚠️ [ProfileContext] Usando perfil básico devido a erro')
+      // Usar perfil básico em caso de erro
       setProfile({
         id: user.id,
         email: user.email,

@@ -98,37 +98,25 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
     initializeAuth()
 
-    // Listener de mudanças de autenticação otimizado
+    // Listener de mudanças de autenticação - SIMPLIFICADO
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return
         
         console.log('🔄 [Auth] Estado mudou:', event)
         
-        // Ignorar TOKEN_REFRESHED para evitar recarregamentos desnecessários
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('🔄 [Auth] Token atualizado silenciosamente')
+        // Ignorar eventos que não precisamos processar
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+          console.log('⏭️ [Auth] Evento ignorado:', event)
           return
         }
         
-        // Ignorar SIGNED_OUT completamente - o signOut já cuida de tudo
-        if (event === 'SIGNED_OUT') {
-          console.log('🚪 [Auth] SIGNED_OUT detectado - ignorando (signOut já limpou)')
-          return
-        }
-        
-        // Apenas reagir a mudanças significativas de autenticação
-        if (event === 'SIGNED_IN') {
+        // Apenas processar SIGNED_IN
+        if (event === 'SIGNED_IN' && session) {
           console.log('✅ [Auth] SIGNED_IN - Atualizando estado')
           setSession(session)
-          setUser(session?.user ?? null)
+          setUser(session.user)
           setIsInitialized(true)
-          if (loading) {
-            setLoading(false)
-          }
-        }
-        
-        if (loading && event !== 'SIGNED_OUT') {
           setLoading(false)
         }
       }
@@ -170,87 +158,34 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const signOut = async () => {
     if (!supabase) return
     
+    console.log('🚪 [Auth] Iniciando logout...')
+    
     try {
-      console.log('🚪 [Auth] Iniciando logout...')
-      
-      // Marcar que estamos fazendo logout para evitar redirecionamentos conflitantes
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('logging_out', 'true')
-      }
-      
-      // Limpar estado local PRIMEIRO para evitar que o AuthGuard tente redirecionar
-      setSession(null)
-      setUser(null)
-      setAuthError(null)
-      setIsInitialized(false)
-      
-      // Limpar TODOS os dados do localStorage/sessionStorage
-      if (typeof window !== 'undefined') {
-        console.log('🧹 [Auth] Limpando storage...')
-        
-        // Limpar todos os itens do Supabase
-        const keysToRemove: string[] = []
-        
-        // localStorage
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i)
-          if (key && (key.includes('supabase') || key.includes('sb-'))) {
-            keysToRemove.push(key)
-          }
-        }
-        keysToRemove.forEach(key => {
-          console.log(`🗑️ [Auth] Removendo localStorage: ${key}`)
-          localStorage.removeItem(key)
-        })
-        
-        // sessionStorage (exceto logging_out)
-        const sessionKeysToRemove: string[] = []
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i)
-          if (key && key !== 'logging_out' && (key.includes('supabase') || key.includes('sb-'))) {
-            sessionKeysToRemove.push(key)
-          }
-        }
-        sessionKeysToRemove.forEach(key => {
-          console.log(`🗑️ [Auth] Removendo sessionStorage: ${key}`)
-          sessionStorage.removeItem(key)
-        })
-        
-        console.log('✅ [Auth] Storage limpo')
-      }
-      
-      // Fazer logout no Supabase (sem await para não bloquear)
-      supabase.auth.signOut({ scope: 'global' }).then(({ error }) => {
-        if (error) {
-          console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
-        } else {
-          console.log('✅ [Auth] Logout no Supabase concluído')
-        }
-      }).catch(err => {
-        console.error('❌ [Auth] Erro ao fazer logout:', err)
-      })
-      
-      // Aguardar um pouco para garantir que o estado foi limpo
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Redirecionar imediatamente para login
-      if (typeof window !== 'undefined') {
-        console.log('🔄 [Auth] Redirecionando para /login')
-        // Limpar flag de logout
-        sessionStorage.removeItem('logging_out')
-        // Usar href para forçar reload completo da página
-        window.location.href = '/login'
-      }
+      // 1. Fazer logout no Supabase PRIMEIRO e AGUARDAR
+      await supabase.auth.signOut({ scope: 'global' })
+      console.log('✅ [Auth] Logout no Supabase concluído')
     } catch (error) {
-      console.error('❌ [Auth] Erro ao fazer logout:', error)
-      // Mesmo com erro, limpar e redirecionar
-      setSession(null)
-      setUser(null)
-      setAuthError(null)
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('logging_out')
-        window.location.href = '/login'
-      }
+      console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
+    }
+    
+    // 2. Limpar TODO o storage
+    if (typeof window !== 'undefined') {
+      console.log('🧹 [Auth] Limpando storage...')
+      localStorage.clear()
+      sessionStorage.clear()
+      console.log('✅ [Auth] Storage limpo')
+    }
+    
+    // 3. Limpar estado local
+    setSession(null)
+    setUser(null)
+    setAuthError(null)
+    setIsInitialized(false)
+    
+    // 4. Redirecionar com reload forçado
+    if (typeof window !== 'undefined') {
+      console.log('🔄 [Auth] Redirecionando para /login')
+      window.location.href = '/login'
     }
   }
 

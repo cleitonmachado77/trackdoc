@@ -111,9 +111,9 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           return
         }
         
-        // Ignorar SIGNED_OUT se já estamos sem usuário (evita loop)
-        if (event === 'SIGNED_OUT' && !user) {
-          console.log('⏭️ [Auth] SIGNED_OUT ignorado - já sem usuário')
+        // Ignorar SIGNED_OUT completamente - o signOut já cuida de tudo
+        if (event === 'SIGNED_OUT') {
+          console.log('🚪 [Auth] SIGNED_OUT detectado - ignorando (signOut já limpou)')
           return
         }
         
@@ -126,9 +126,6 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           if (loading) {
             setLoading(false)
           }
-        } else if (event === 'SIGNED_OUT') {
-          // Não atualizar estado aqui, deixar o signOut fazer isso
-          console.log('🚪 [Auth] SIGNED_OUT detectado - ignorando (signOut já limpou)')
         }
         
         if (loading && event !== 'SIGNED_OUT') {
@@ -176,16 +173,13 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     try {
       console.log('🚪 [Auth] Iniciando logout...')
       
-      // Fazer logout no Supabase PRIMEIRO
-      const { error } = await supabase.auth.signOut({ scope: 'global' })
+      // Limpar estado local PRIMEIRO para evitar que o AuthGuard tente redirecionar
+      setSession(null)
+      setUser(null)
+      setAuthError(null)
+      setIsInitialized(false)
       
-      if (error) {
-        console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
-      } else {
-        console.log('✅ [Auth] Logout no Supabase concluído')
-      }
-      
-      // Limpar TODOS os dados do localStorage/sessionStorage ANTES de limpar estado
+      // Limpar TODOS os dados do localStorage/sessionStorage
       if (typeof window !== 'undefined') {
         console.log('🧹 [Auth] Limpando storage...')
         
@@ -220,20 +214,22 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         console.log('✅ [Auth] Storage limpo')
       }
       
-      // Limpar estado local DEPOIS
-      setSession(null)
-      setUser(null)
-      setAuthError(null)
-      setIsInitialized(false)
+      // Fazer logout no Supabase (sem await para não bloquear)
+      supabase.auth.signOut({ scope: 'global' }).then(({ error }) => {
+        if (error) {
+          console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
+        } else {
+          console.log('✅ [Auth] Logout no Supabase concluído')
+        }
+      }).catch(err => {
+        console.error('❌ [Auth] Erro ao fazer logout:', err)
+      })
       
-      // Aguardar para garantir que tudo foi processado
-      await new Promise(resolve => setTimeout(resolve, 200))
-      
-      // Redirecionar para login interno
+      // Redirecionar imediatamente para login
       if (typeof window !== 'undefined') {
         console.log('🔄 [Auth] Redirecionando para /login')
-        // Usar replace para não criar histórico
-        window.location.replace('/login')
+        // Usar href para forçar reload completo da página
+        window.location.href = '/login'
       }
     } catch (error) {
       console.error('❌ [Auth] Erro ao fazer logout:', error)

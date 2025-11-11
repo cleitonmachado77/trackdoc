@@ -213,13 +213,12 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     setAuthError(null)
     setIsInitialized(false)
     
-    // 4. Redirecionar IMEDIATAMENTE para o site principal SEM criar histórico
+    // 4. Redirecionar IMEDIATAMENTE para a página de login SEM criar histórico
     // NÃO aguardar timeout - redirecionar direto
     if (typeof window !== 'undefined') {
-      console.log('🔄 [Auth] Redirecionando para site principal')
+      console.log('🔄 [Auth] Redirecionando para /login')
       // Usar replace para não criar histórico e evitar voltar para a página
-      // A flag just_logged_out será limpa automaticamente quando sair do domínio
-      window.location.replace('https://www.trackdoc.com.br/')
+      window.location.replace('/login')
     }
   }
 

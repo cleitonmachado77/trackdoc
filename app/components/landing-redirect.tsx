@@ -13,10 +13,13 @@ export default function LandingRedirect() {
     // Só redirecionar para o site principal se:
     // 1. Não está carregando
     // 2. Não tem usuário
-    // 3. Não está em uma página de autenticação
-    const authPages = ['/login', '/register', '/verify-email', '/reset-password', '/confirm-email']
+    // 3. Está na raiz (/) especificamente
+    // 4. Não está em uma página de autenticação
+    const authPages = ['/login', '/register', '/verify-email', '/reset-password', '/confirm-email', '/forgot-password']
     
-    if (!loading && !user && !authPages.includes(pathname)) {
+    // Apenas redirecionar se estiver na raiz E não tiver usuário
+    if (!loading && !user && pathname === '/' && !authPages.includes(pathname)) {
+      console.log('🔄 [LandingRedirect] Redirecionando para site principal')
       window.location.href = 'https://www.trackdoc.app.br/'
     }
   }, [user, loading, router, pathname])

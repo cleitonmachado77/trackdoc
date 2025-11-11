@@ -33,6 +33,12 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    // Se está fazendo logout, não carregar perfil
+    if (typeof window !== 'undefined' && sessionStorage.getItem('logging_out') === 'true') {
+      console.log('🚪 [ProfileContext] Logout em andamento, não carregando perfil')
+      return
+    }
+
     try {
       setLoading(true)
       console.log('📥 [ProfileContext] Carregando perfil...')
@@ -48,10 +54,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         if (!response.ok) {
           if (response.status === 401 && result.code === 'PROFILE_NOT_FOUND') {
             console.log('❌ [ProfileContext] Perfil não encontrado')
-            localStorage.clear()
-            sessionStorage.clear()
-            window.location.replace('/login')
-            return null
+            // NÃO redirecionar aqui - deixar o AuthGuard cuidar disso
+            throw new Error('Perfil não encontrado')
           }
           throw new Error(result.error || 'Erro ao carregar perfil')
         }
@@ -76,17 +80,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar perfil'
       setError(errorMessage)
       
-      // Se for timeout, continuar com perfil básico do user
-      if (errorMessage.includes('Timeout')) {
-        console.warn('⚠️ [ProfileContext] Usando perfil básico devido a timeout')
-        setProfile({
-          id: user.id,
-          email: user.email,
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-          role: 'user',
-          status: 'active'
-        })
-      }
+      // Sempre usar perfil básico do user em caso de erro
+      console.warn('⚠️ [ProfileContext] Usando perfil básico devido a erro')
+      setProfile({
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+        role: 'user',
+        status: 'active'
+      })
+      hasLoadedProfile.current = true
     } finally {
       setLoading(false)
     }

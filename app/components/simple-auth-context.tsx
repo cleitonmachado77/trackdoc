@@ -173,6 +173,11 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     try {
       console.log('🚪 [Auth] Iniciando logout...')
       
+      // Marcar que estamos fazendo logout para evitar redirecionamentos conflitantes
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('logging_out', 'true')
+      }
+      
       // Limpar estado local PRIMEIRO para evitar que o AuthGuard tente redirecionar
       setSession(null)
       setUser(null)
@@ -198,11 +203,11 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           localStorage.removeItem(key)
         })
         
-        // sessionStorage
+        // sessionStorage (exceto logging_out)
         const sessionKeysToRemove: string[] = []
         for (let i = 0; i < sessionStorage.length; i++) {
           const key = sessionStorage.key(i)
-          if (key && (key.includes('supabase') || key.includes('sb-'))) {
+          if (key && key !== 'logging_out' && (key.includes('supabase') || key.includes('sb-'))) {
             sessionKeysToRemove.push(key)
           }
         }
@@ -225,9 +230,14 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         console.error('❌ [Auth] Erro ao fazer logout:', err)
       })
       
+      // Aguardar um pouco para garantir que o estado foi limpo
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       // Redirecionar imediatamente para login
       if (typeof window !== 'undefined') {
         console.log('🔄 [Auth] Redirecionando para /login')
+        // Limpar flag de logout
+        sessionStorage.removeItem('logging_out')
         // Usar href para forçar reload completo da página
         window.location.href = '/login'
       }
@@ -238,6 +248,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       setUser(null)
       setAuthError(null)
       if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('logging_out')
         window.location.href = '/login'
       }
     }

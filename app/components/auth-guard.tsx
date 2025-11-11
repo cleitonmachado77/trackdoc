@@ -17,6 +17,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const hasRedirected = useRef(false)
 
   useEffect(() => {
+    // Se está fazendo logout, não fazer nada
+    if (typeof window !== 'undefined' && sessionStorage.getItem('logging_out') === 'true') {
+      console.log('🚪 [AuthGuard] Logout em andamento, ignorando...')
+      return
+    }
+    
     // Aguardar o loading terminar antes de fazer qualquer redirecionamento
     if (loading) {
       console.log('🔄 [AuthGuard] Aguardando loading...')

@@ -449,7 +449,7 @@ export default function BibliotecaPage() {
   )
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="w-full h-full p-6 space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Biblioteca Pública</h1>
@@ -816,14 +816,14 @@ export default function BibliotecaPage() {
           </Dialog>
         </div>
 
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>Documentos na Biblioteca</CardTitle>
           <CardDescription>
             Gerencie os documentos disponíveis publicamente
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {loading ? (
             <div className="text-center py-8">Carregando...</div>
           ) : items.length === 0 ? (
@@ -831,13 +831,14 @@ export default function BibliotecaPage() {
               Nenhum documento na biblioteca pública
             </div>
           ) : (
-            <Table>
+            <div className="w-full overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="w-[40%] min-w-[300px]">Título</TableHead>
+                  <TableHead className="w-[20%] min-w-[150px]">Categoria</TableHead>
+                  <TableHead className="w-[15%] min-w-[100px]">Status</TableHead>
+                  <TableHead className="w-[25%] min-w-[200px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -899,13 +900,14 @@ export default function BibliotecaPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
         </TabsContent>
 
         <TabsContent value="categories">
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Gerenciar Categorias</CardTitle>
               <CardDescription>

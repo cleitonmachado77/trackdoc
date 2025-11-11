@@ -236,8 +236,8 @@ export default function DepartmentManagement() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-end">
-        <span className="text-base font-semibold text-foreground">Departamentos</span>
+      <div className="flex items-center justify-start mb-6">
+        <h1 className="text-4xl font-bold text-foreground uppercase">DEPARTAMENTOS</h1>
       </div>
 
       {/* Cards de Estatísticas */}

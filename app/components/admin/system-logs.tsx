@@ -644,8 +644,8 @@ export default function SystemLogs() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-base font-semibold text-foreground">Logs do Sistema</span>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-4xl font-bold text-foreground uppercase">LOGS DO SISTEMA</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportLogs} disabled={loading || filteredLogs.length === 0}>
             <Download className="h-4 w-4 mr-2" />

@@ -1632,62 +1632,26 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                 </div>
               )}
 
-              {/* Ações Rápidas de Admin */}
-              {adminView === "overview" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Ações Rápidas</CardTitle>
-                    <CardDescription>
-                      Acesso rápido às principais funcionalidades administrativas
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setActiveView("minha-conta")}
-                      >
-                        <User className="h-6 w-6" />
-                        <span className="text-sm">Minha Conta</span>
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setAdminView("departments")}
-                      >
-                        <Building2 className="h-6 w-6" />
-                        <span className="text-sm">Departamentos</span>
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => setAdminView("system-logs")}
-                      >
-                        <BarChart3 className="h-6 w-6" />
-                        <span className="text-sm">Logs do Sistema</span>
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        className="h-20 flex flex-col items-center justify-center space-y-2"
-                        onClick={() => {
-                          setActiveView("documents")
-                        }}
-                      >
-                        <FileText className="h-6 w-6" />
-                        <span className="text-sm">Documentos</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Navegação Admin */}
               {adminView === "overview" && adminViewMode === "cards" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Minha Conta */}
+                  <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setActiveView("minha-conta")}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <User className="h-5 w-5 text-blue-600" />
+                        Minha Conta
+                      </CardTitle>
+                      <CardDescription>
+                        Gerenciar perfil e configurações pessoais
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{user?.user_metadata?.full_name || 'Usuário'}</div>
+                      <p className="text-sm text-muted-foreground">perfil ativo</p>
+                    </CardContent>
+                  </Card>
+
                   {/* Tipos de Documento */}
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setAdminView("document-types")}>
                     <CardHeader>
@@ -1778,6 +1742,25 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {/* Visualização em Lista */}
               {adminView === "overview" && adminViewMode === "list" && (
                 <div className="space-y-3">
+                  {/* Minha Conta */}
+                  <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveView("minha-conta")}>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <User className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Minha Conta</h3>
+                          <p className="text-sm text-gray-600">Gerenciar perfil e configurações pessoais</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900">{user?.user_metadata?.full_name || 'Usuário'}</div>
+                        <p className="text-sm text-gray-500">perfil ativo</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Tipos de Documento */}
                   <div className="bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setAdminView("document-types")}>
                     <div className="p-4 flex items-center justify-between">

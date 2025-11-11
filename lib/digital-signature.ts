@@ -423,7 +423,7 @@ export class DigitalSignatureService {
     
     // Rodapé com informações de segurança
     const footerY = 40
-    page.drawText("Este documento foi assinado digitalmente. Todas as assinaturas são verificáveis através dos códigos fornecidos.", {
+    page.drawText("Este documento foi assinado digitalmente. Todas as assinaturas são verificáveis em www.trackdock.com.br.", {
       x: margin,
       y: footerY,
       size: 8,
@@ -697,25 +697,25 @@ export class DigitalSignatureService {
     // Posição inicial para o título
     let currentY = height - 10
     
-    // Logo favicon no topo da barra lateral
+    // Ícone no topo da barra lateral (iconpdf.png)
     try {
-      const logoPngPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
-      const logoPngBuffer = fs.readFileSync(logoPngPath)
-      const logoImage = await page.doc.embedPng(logoPngBuffer)
-      const logoSize = 18 // Tamanho pequeno para caber na barra
-      const logoDims = logoImage.scale(logoSize / logoImage.width)
+      const iconPath = path.join(process.cwd(), 'public', 'iconpdf.png')
+      const iconBuffer = fs.readFileSync(iconPath)
+      const iconImage = await page.doc.embedPng(iconBuffer)
+      const iconSize = 14 // Tamanho pequeno para caber na barra
+      const iconDims = iconImage.scale(iconSize / iconImage.width)
       
-      // Centralizar logo na barra lateral
-      page.drawImage(logoImage, {
-        x: sidebarX + (sidebarWidth - logoDims.width) / 2,
-        y: currentY - logoDims.height,
-        width: logoDims.width,
-        height: logoDims.height
+      // Centralizar ícone na barra lateral
+      page.drawImage(iconImage, {
+        x: sidebarX + (sidebarWidth - iconDims.width) / 2,
+        y: currentY - iconDims.height,
+        width: iconDims.width,
+        height: iconDims.height
       })
       
-      currentY -= (logoDims.height + 8)
+      currentY -= (iconDims.height + 6)
     } catch (error) {
-      console.warn('Erro ao carregar logo na barra lateral:', error)
+      console.warn('Erro ao carregar ícone na barra lateral:', error)
       currentY -= 5
     }
     
@@ -876,25 +876,25 @@ export class DigitalSignatureService {
     // Posição inicial para o título
     let currentY = height - 10
     
-    // Logo favicon no topo da barra lateral
+    // Ícone no topo da barra lateral (iconpdf.png)
     try {
-      const logoPngPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
-      const logoPngBuffer = fs.readFileSync(logoPngPath)
-      const logoImage = await page.doc.embedPng(logoPngBuffer)
-      const logoSize = 18 // Tamanho pequeno para caber na barra
-      const logoDims = logoImage.scale(logoSize / logoImage.width)
+      const iconPath = path.join(process.cwd(), 'public', 'iconpdf.png')
+      const iconBuffer = fs.readFileSync(iconPath)
+      const iconImage = await page.doc.embedPng(iconBuffer)
+      const iconSize = 14 // Tamanho pequeno para caber na barra
+      const iconDims = iconImage.scale(iconSize / iconImage.width)
       
-      // Centralizar logo na barra lateral
-      page.drawImage(logoImage, {
-        x: sidebarX + (sidebarWidth - logoDims.width) / 2,
-        y: currentY - logoDims.height,
-        width: logoDims.width,
-        height: logoDims.height
+      // Centralizar ícone na barra lateral
+      page.drawImage(iconImage, {
+        x: sidebarX + (sidebarWidth - iconDims.width) / 2,
+        y: currentY - iconDims.height,
+        width: iconDims.width,
+        height: iconDims.height
       })
       
-      currentY -= (logoDims.height + 8)
+      currentY -= (iconDims.height + 6)
     } catch (error) {
-      console.warn('Erro ao carregar logo na barra lateral:', error)
+      console.warn('Erro ao carregar ícone na barra lateral:', error)
       currentY -= 5
     }
     

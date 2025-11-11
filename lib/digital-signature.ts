@@ -1,5 +1,7 @@
 import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, degrees } from 'pdf-lib'
 import * as CryptoJS from 'crypto-js'
+import fs from 'fs'
+import path from 'path'
 
 // Função helper para obter timestamp no horário de Brasília
 function getBrasiliaDate(): Date {
@@ -233,61 +235,36 @@ export class DigitalSignatureService {
     const margin = 50
     let currentY = height - margin
     
-    // Logo TrackDock (texto por enquanto, pode ser substituído por imagem)
-    page.drawText("TrackDock", {
-      x: margin,
-      y: currentY,
-      size: 16,
-      font: boldFont,
-      color: rgb(0.2, 0.4, 0.8) // Azul
-    })
+    // Logo TrackDock (imagem)
+    try {
+      const logoPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
+      const logoBuffer = fs.readFileSync(logoPath)
+      const logoImage = await pdfDoc.embedPng(logoBuffer)
+      const logoDims = logoImage.scale(0.15) // Logo pequeno
+      
+      page.drawImage(logoImage, {
+        x: margin,
+        y: currentY - logoDims.height,
+        width: logoDims.width,
+        height: logoDims.height
+      })
+      
+      currentY -= (logoDims.height + 20)
+    } catch (error) {
+      console.warn('Erro ao carregar logo, usando texto:', error)
+      // Fallback: usar texto
+      page.drawText("TrackDock", {
+        x: margin,
+        y: currentY,
+        size: 12,
+        font: boldFont,
+        color: rgb(0.2, 0.4, 0.8)
+      })
+      currentY -= 30
+    }
     
-    currentY -= 40
-    
-    // Título
+    // Título (fonte menor)
     page.drawText("CERTIFICADO DE ASSINATURA MÚLTIPLA", {
-      x: margin,
-      y: currentY,
-      size: 18,
-      font: boldFont,
-      color: rgb(textColor.r, textColor.g, textColor.b)
-    })
-    
-    currentY -= 30
-    
-    // Linha separadora
-    page.drawLine({
-      start: { x: margin, y: currentY },
-      end: { x: width - margin, y: currentY },
-      thickness: 2,
-      color: rgb(borderColor.r, borderColor.g, borderColor.b)
-    })
-    
-    currentY -= 30
-    
-    // Informações gerais
-    page.drawText(`Total de Assinaturas: ${signatures.length}`, {
-      x: margin,
-      y: currentY,
-      size: 12,
-      font: boldFont,
-      color: rgb(textColor.r, textColor.g, textColor.b)
-    })
-    
-    currentY -= 20
-    
-    page.drawText(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, {
-      x: margin,
-      y: currentY,
-      size: 10,
-      font: font,
-      color: rgb(textColor.r, textColor.g, textColor.b)
-    })
-    
-    currentY -= 40
-    
-    // Lista de assinaturas
-    page.drawText("SIGNATÁRIOS:", {
       x: margin,
       y: currentY,
       size: 14,
@@ -296,6 +273,48 @@ export class DigitalSignatureService {
     })
     
     currentY -= 25
+    
+    // Linha separadora (mais fina)
+    page.drawLine({
+      start: { x: margin, y: currentY },
+      end: { x: width - margin, y: currentY },
+      thickness: 1,
+      color: rgb(borderColor.r, borderColor.g, borderColor.b)
+    })
+    
+    currentY -= 20
+    
+    // Informações gerais (fontes menores)
+    page.drawText(`Total de Assinaturas: ${signatures.length}`, {
+      x: margin,
+      y: currentY,
+      size: 9,
+      font: boldFont,
+      color: rgb(textColor.r, textColor.g, textColor.b)
+    })
+    
+    currentY -= 15
+    
+    page.drawText(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, {
+      x: margin,
+      y: currentY,
+      size: 8,
+      font: font,
+      color: rgb(textColor.r * 0.7, textColor.g * 0.7, textColor.b * 0.7)
+    })
+    
+    currentY -= 30
+    
+    // Lista de assinaturas (fonte menor)
+    page.drawText("SIGNATÁRIOS:", {
+      x: margin,
+      y: currentY,
+      size: 10,
+      font: boldFont,
+      color: rgb(textColor.r, textColor.g, textColor.b)
+    })
+    
+    currentY -= 20
     
     // Renderizar cada assinatura
     for (let i = 0; i < signatures.length; i++) {
@@ -480,19 +499,52 @@ export class DigitalSignatureService {
     const smallFontSize = 5
     const centerX = sidebarX + (sidebarWidth / 2)
     
-    let currentY = height - 20
+    let currentY = height - 10
     
-    // Título
+    // Logo favicon no topo da barra lateral
+    try {
+      const faviconPath = path.join(process.cwd(), 'public', 'favicon.svg')
+      const faviconBuffer = fs.readFileSync(faviconPath)
+      
+      // Converter SVG para PNG (pdf-lib não suporta SVG diretamente)
+      // Vamos tentar usar o PNG do logo como alternativa
+      try {
+        const logoPngPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
+        const logoPngBuffer = fs.readFileSync(logoPngPath)
+        const logoImage = await page.doc.embedPng(logoPngBuffer)
+        const logoSize = 18 // Tamanho pequeno para caber na barra
+        const logoDims = logoImage.scale(logoSize / logoImage.width)
+        
+        // Centralizar logo na barra lateral
+        page.drawImage(logoImage, {
+          x: sidebarX + (sidebarWidth - logoDims.width) / 2,
+          y: currentY - logoDims.height,
+          width: logoDims.width,
+          height: logoDims.height
+        })
+        
+        currentY -= (logoDims.height + 8)
+      } catch (pngError) {
+        console.warn('Erro ao carregar logo PNG:', pngError)
+        currentY -= 5
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar favicon:', error)
+      currentY -= 5
+    }
+    
+    // Título (ajustado para não sobrepor)
     page.drawText("VERIFICAÇÃO", {
       x: centerX + 2,
       y: currentY,
-      size: 6,
+      size: 5,
       font: boldFont,
       color: rgb(borderColor.r, borderColor.g, borderColor.b),
       rotate: degrees(-90)
     })
     
-    let signatureY = height - 60
+    // Ajustar posição inicial das assinaturas para não sobrepor o título
+    let signatureY = currentY - 70
     const lineSpacing = 2
     
     // Função para calcular altura do texto rotacionado
@@ -631,20 +683,42 @@ export class DigitalSignatureService {
     const centerX = sidebarX + (sidebarWidth / 2)
     
     // Posição inicial para o título
-    let currentY = height - 20
+    let currentY = height - 10
     
-    // Título "ASSINATURAS" rotacionado verticalmente (centro)
+    // Logo favicon no topo da barra lateral
+    try {
+      const logoPngPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
+      const logoPngBuffer = fs.readFileSync(logoPngPath)
+      const logoImage = await page.doc.embedPng(logoPngBuffer)
+      const logoSize = 18 // Tamanho pequeno para caber na barra
+      const logoDims = logoImage.scale(logoSize / logoImage.width)
+      
+      // Centralizar logo na barra lateral
+      page.drawImage(logoImage, {
+        x: sidebarX + (sidebarWidth - logoDims.width) / 2,
+        y: currentY - logoDims.height,
+        width: logoDims.width,
+        height: logoDims.height
+      })
+      
+      currentY -= (logoDims.height + 8)
+    } catch (error) {
+      console.warn('Erro ao carregar logo na barra lateral:', error)
+      currentY -= 5
+    }
+    
+    // Título "ASSINATURAS" rotacionado verticalmente (ajustado para não sobrepor)
     page.drawText("ASSINATURAS", {
       x: centerX + 2,
       y: currentY,
-      size: titleSize,
+      size: 5,
       font: boldFont,
       color: rgb(borderColor.r, borderColor.g, borderColor.b),
       rotate: degrees(-90)
     })
     
-    // Posição inicial para as assinaturas
-    let signatureY = height - 50
+    // Posição inicial para as assinaturas (ajustada para não sobrepor o título)
+    let signatureY = currentY - 70
     const spacingY = 8
     const lineSpacing = 2
     
@@ -788,20 +862,42 @@ export class DigitalSignatureService {
     const centerX = sidebarX + (sidebarWidth / 2)
     
     // Posição inicial para o título
-    let currentY = height - 20
+    let currentY = height - 10
     
-    // Título "ASSINATURAS" rotacionado verticalmente (centro)
+    // Logo favicon no topo da barra lateral
+    try {
+      const logoPngPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
+      const logoPngBuffer = fs.readFileSync(logoPngPath)
+      const logoImage = await page.doc.embedPng(logoPngBuffer)
+      const logoSize = 18 // Tamanho pequeno para caber na barra
+      const logoDims = logoImage.scale(logoSize / logoImage.width)
+      
+      // Centralizar logo na barra lateral
+      page.drawImage(logoImage, {
+        x: sidebarX + (sidebarWidth - logoDims.width) / 2,
+        y: currentY - logoDims.height,
+        width: logoDims.width,
+        height: logoDims.height
+      })
+      
+      currentY -= (logoDims.height + 8)
+    } catch (error) {
+      console.warn('Erro ao carregar logo na barra lateral:', error)
+      currentY -= 5
+    }
+    
+    // Título "ASSINATURAS" rotacionado verticalmente (ajustado para não sobrepor)
     page.drawText("ASSINATURAS", {
       x: centerX + 2,
       y: currentY,
-      size: titleSize,
+      size: 5,
       font: boldFont,
       color: rgb(borderColor.r, borderColor.g, borderColor.b),
       rotate: degrees(-90)
     })
     
-    // Posição inicial para a coluna única (espaçamento adequado)
-    let columnY = height - 50
+    // Posição inicial para a coluna única (espaçamento adequado, ajustado para não sobrepor)
+    let columnY = currentY - 70
     const spacingY = 8 // Espaçamento adequado entre campos
     
     // === 2 COLUNAS VERTICAIS LADO A LADO (COMO NA IMAGEM) ===
@@ -810,9 +906,9 @@ export class DigitalSignatureService {
     const column1X = centerX - 5  // Coluna esquerda
     const column2X = centerX + 5  // Coluna direita
     
-    // Posições iniciais para as colunas (posição ajustada)
-    let column1Y = height - 80
-    let column2Y = height - 80
+    // Posições iniciais para as colunas (posição ajustada para não sobrepor o título)
+    let column1Y = currentY - 70
+    let column2Y = currentY - 70
     const lineSpacing = 2 // Espaçamento reduzido entre blocos
     
     // === COLUNA 1 (Esquerda) - INFORMAÇÕES PRINCIPAIS ===

@@ -221,11 +221,10 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     // 4. Aguardar um pouco para garantir que tudo foi limpo
     await new Promise(resolve => setTimeout(resolve, 300))
     
-    // 5. Redirecionar com reload forçado e cache busting
+    // 5. Redirecionar para o site principal
     if (typeof window !== 'undefined') {
-      console.log('🔄 [Auth] Redirecionando para /login')
-      // Adicionar timestamp para evitar cache
-      window.location.href = '/login?t=' + Date.now()
+      console.log('🔄 [Auth] Redirecionando para site principal')
+      window.location.href = 'https://www.trackdoc.com.br/'
     }
   }
 

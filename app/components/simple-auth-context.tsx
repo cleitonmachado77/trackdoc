@@ -191,9 +191,6 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     if (typeof window !== 'undefined') {
       console.log('🧹 [Auth] Limpando storage...')
       
-      // Salvar a flag antes de limpar
-      const justLoggedOut = sessionStorage.getItem('just_logged_out')
-      
       // Limpar cookies do Supabase manualmente
       document.cookie.split(";").forEach((c) => {
         document.cookie = c
@@ -204,10 +201,8 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       localStorage.clear()
       sessionStorage.clear()
       
-      // Restaurar a flag
-      if (justLoggedOut) {
-        sessionStorage.setItem('just_logged_out', 'true')
-      }
+      // Restaurar APENAS a flag de logout
+      sessionStorage.setItem('just_logged_out', 'true')
       
       console.log('✅ [Auth] Storage e cookies limpos')
     }
@@ -218,13 +213,13 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     setAuthError(null)
     setIsInitialized(false)
     
-    // 4. Aguardar um pouco para garantir que tudo foi limpo
-    await new Promise(resolve => setTimeout(resolve, 300))
-    
-    // 5. Redirecionar para o site principal
+    // 4. Redirecionar IMEDIATAMENTE para o site principal SEM criar histórico
+    // NÃO aguardar timeout - redirecionar direto
     if (typeof window !== 'undefined') {
       console.log('🔄 [Auth] Redirecionando para site principal')
-      window.location.href = 'https://www.trackdoc.com.br/'
+      // Usar replace para não criar histórico e evitar voltar para a página
+      // A flag just_logged_out será limpa automaticamente quando sair do domínio
+      window.location.replace('https://www.trackdoc.com.br/')
     }
   }
 

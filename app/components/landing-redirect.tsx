@@ -10,6 +10,12 @@ export default function LandingRedirect() {
   const { user, loading } = useAuth()
 
   useEffect(() => {
+    // Se acabou de fazer logout, não fazer nada (signOut já está redirecionando)
+    if (typeof window !== 'undefined' && sessionStorage.getItem('just_logged_out') === 'true') {
+      console.log('🚪 [LandingRedirect] Logout em andamento, ignorando...')
+      return
+    }
+    
     // Apenas redirecionar se estiver na raiz E não tiver usuário E não estiver carregando
     if (!loading && !user && pathname === '/') {
       console.log('🔄 [LandingRedirect] Redirecionando para site principal')

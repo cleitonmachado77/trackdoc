@@ -176,14 +176,36 @@ export default function BibliotecaPage() {
     if (!entityId) return
 
     try {
+      console.log('📚 [BIBLIOTECA] Carregando documentos para entity_id:', entityId)
+      
+      // Debug: buscar todos os documentos para ver o que está sendo filtrado
+      const { data: allDocs } = await supabase
+        .from("documents")
+        .select("id, title, status")
+        .eq("entity_id", entityId)
+      
+      console.log('🔍 [BIBLIOTECA DEBUG] Total de documentos na entidade:', allDocs?.length || 0)
+      console.log('🔍 [BIBLIOTECA DEBUG] Status dos documentos:', 
+        allDocs?.reduce((acc: any, doc: any) => {
+          acc[doc.status] = (acc[doc.status] || 0) + 1
+          return acc
+        }, {})
+      )
+      
       const { data, error } = await supabase
         .from("documents")
-        .select("id, title, description, file_name, file_type")
+        .select("id, title, description, file_name, file_type, status")
         .eq("entity_id", entityId)
         .eq("status", "approved")
         .order("title")
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ [BIBLIOTECA] Erro ao carregar documentos:', error)
+        throw error
+      }
+      
+      console.log('✅ [BIBLIOTECA] Documentos aprovados carregados:', data?.length || 0)
+      
       setDocuments(data || [])
     } catch (error) {
       console.error("Erro ao carregar documentos:", error)

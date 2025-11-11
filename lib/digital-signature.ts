@@ -1,4 +1,4 @@
-import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, PDFPage, PDFFont, rgb, StandardFonts, degrees } from 'pdf-lib'
 import * as CryptoJS from 'crypto-js'
 
 // Função helper para obter timestamp no horário de Brasília
@@ -183,12 +183,369 @@ export class DigitalSignatureService {
       await this.addMultiSignatureToSide(pages[i], allSignatures, font, boldFont, i + 1, pages.length, customTemplate)
     }
     
+    // Adicionar página final com resumo de todas as assinaturas
+    await this.addSignatureSummaryPage(pdfDoc, allSignatures, font, boldFont, customTemplate)
+    
     // Salvar PDF assinado
     const signedPdfBytes = await pdfDoc.save()
     
     return {
       signedPdf: Buffer.from(signedPdfBytes),
       signatures: allSignatures
+    }
+  }
+
+  /**
+   * Adiciona página final com resumo de todas as assinaturas
+   */
+  private async addSignatureSummaryPage(
+    pdfDoc: PDFDocument,
+    signatures: SignatureData[],
+    font: PDFFont,
+    boldFont: PDFFont,
+    customTemplate?: any
+  ): Promise<void> {
+    // Adicionar nova página
+    const page = pdfDoc.addPage([595.28, 841.89]) // A4 size
+    const { width, height } = page.getSize()
+    
+    // Configurações do template
+    const template = customTemplate || {
+      background_color: "#ffffff",
+      border_color: "#000000",
+      text_color: "#000000"
+    }
+
+    // Converter cores hex para RGB
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      return result ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+      } : { r: 0, g: 0, b: 0 }
+    }
+
+    const borderColor = hexToRgb(template.border_color)
+    const textColor = hexToRgb(template.text_color)
+    
+    // Margens
+    const margin = 50
+    let currentY = height - margin
+    
+    // Logo TrackDock (texto por enquanto, pode ser substituído por imagem)
+    page.drawText("TrackDock", {
+      x: margin,
+      y: currentY,
+      size: 16,
+      font: boldFont,
+      color: rgb(0.2, 0.4, 0.8) // Azul
+    })
+    
+    currentY -= 40
+    
+    // Título
+    page.drawText("CERTIFICADO DE ASSINATURA MÚLTIPLA", {
+      x: margin,
+      y: currentY,
+      size: 18,
+      font: boldFont,
+      color: rgb(textColor.r, textColor.g, textColor.b)
+    })
+    
+    currentY -= 30
+    
+    // Linha separadora
+    page.drawLine({
+      start: { x: margin, y: currentY },
+      end: { x: width - margin, y: currentY },
+      thickness: 2,
+      color: rgb(borderColor.r, borderColor.g, borderColor.b)
+    })
+    
+    currentY -= 30
+    
+    // Informações gerais
+    page.drawText(`Total de Assinaturas: ${signatures.length}`, {
+      x: margin,
+      y: currentY,
+      size: 12,
+      font: boldFont,
+      color: rgb(textColor.r, textColor.g, textColor.b)
+    })
+    
+    currentY -= 20
+    
+    page.drawText(`Data de Geração: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, {
+      x: margin,
+      y: currentY,
+      size: 10,
+      font: font,
+      color: rgb(textColor.r, textColor.g, textColor.b)
+    })
+    
+    currentY -= 40
+    
+    // Lista de assinaturas
+    page.drawText("SIGNATÁRIOS:", {
+      x: margin,
+      y: currentY,
+      size: 14,
+      font: boldFont,
+      color: rgb(textColor.r, textColor.g, textColor.b)
+    })
+    
+    currentY -= 25
+    
+    // Renderizar cada assinatura
+    for (let i = 0; i < signatures.length; i++) {
+      const signature = signatures[i]
+      
+      // Verificar se há espaço suficiente na página
+      if (currentY < 150) {
+        // Adicionar nova página se necessário
+        const newPage = pdfDoc.addPage([595.28, 841.89])
+        currentY = height - margin
+        
+        // Continuar na nova página
+        newPage.drawText(`SIGNATÁRIOS (continuação):`, {
+          x: margin,
+          y: currentY,
+          size: 14,
+          font: boldFont,
+          color: rgb(textColor.r, textColor.g, textColor.b)
+        })
+        
+        currentY -= 25
+      }
+      
+      // Box para cada assinatura
+      const boxHeight = 110
+      const boxY = currentY - boxHeight
+      
+      // Fundo do box
+      page.drawRectangle({
+        x: margin,
+        y: boxY,
+        width: width - 2 * margin,
+        height: boxHeight,
+        color: rgb(0.97, 0.97, 0.97),
+        borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
+        borderWidth: 1
+      })
+      
+      // Número do signatário
+      page.drawText(`${i + 1}.`, {
+        x: margin + 10,
+        y: currentY - 20,
+        size: 12,
+        font: boldFont,
+        color: rgb(textColor.r, textColor.g, textColor.b)
+      })
+      
+      // Nome
+      page.drawText(`Nome: ${signature.userName}`, {
+        x: margin + 30,
+        y: currentY - 20,
+        size: 11,
+        font: boldFont,
+        color: rgb(textColor.r, textColor.g, textColor.b)
+      })
+      
+      // Email
+      page.drawText(`Email: ${signature.userEmail}`, {
+        x: margin + 30,
+        y: currentY - 35,
+        size: 9,
+        font: font,
+        color: rgb(textColor.r * 0.7, textColor.g * 0.7, textColor.b * 0.7)
+      })
+      
+      // Data e hora
+      page.drawText(`Data/Hora: ${signature.timestamp.toLocaleDateString('pt-BR')} às ${signature.timestamp.toLocaleTimeString('pt-BR')}`, {
+        x: margin + 30,
+        y: currentY - 50,
+        size: 9,
+        font: font,
+        color: rgb(textColor.r * 0.7, textColor.g * 0.7, textColor.b * 0.7)
+      })
+      
+      // Código de verificação
+      page.drawText(`Código de Verificação: ${signature.verificationCode}`, {
+        x: margin + 30,
+        y: currentY - 65,
+        size: 8,
+        font: boldFont,
+        color: rgb(0.2, 0.4, 0.8)
+      })
+      
+      // Hash da assinatura
+      const hashText = `Hash: ${signature.hash.substring(0, 40)}...`
+      page.drawText(hashText, {
+        x: margin + 30,
+        y: currentY - 80,
+        size: 7,
+        font: font,
+        color: rgb(textColor.r * 0.6, textColor.g * 0.6, textColor.b * 0.6)
+      })
+      
+      // Hash do documento
+      const docHashText = `Doc Hash: ${signature.documentHash.substring(0, 40)}...`
+      page.drawText(docHashText, {
+        x: margin + 30,
+        y: currentY - 95,
+        size: 7,
+        font: font,
+        color: rgb(textColor.r * 0.6, textColor.g * 0.6, textColor.b * 0.6)
+      })
+      
+      currentY -= (boxHeight + 15)
+    }
+    
+    // Rodapé com informações de segurança
+    const footerY = 40
+    page.drawText("Este documento foi assinado digitalmente. Todas as assinaturas são verificáveis através dos códigos fornecidos.", {
+      x: margin,
+      y: footerY,
+      size: 8,
+      font: font,
+      color: rgb(textColor.r * 0.6, textColor.g * 0.6, textColor.b * 0.6)
+    })
+    
+    // Adicionar barra lateral apenas com hashes e códigos (sem nomes)
+    await this.addMultiSignatureToSideMinimal(page, signatures, font, boldFont, customTemplate)
+  }
+
+  /**
+   * Adiciona múltiplas assinaturas visuais na lateral da página (vertical) - VERSÃO MÍNIMA
+   * Apenas hashes e códigos de verificação, sem nomes
+   */
+  private async addMultiSignatureToSideMinimal(
+    page: PDFPage,
+    signatures: SignatureData[],
+    font: PDFFont,
+    boldFont: PDFFont,
+    customTemplate?: any
+  ): Promise<void> {
+    const { width, height } = page.getSize()
+    
+    // Configurações da barra lateral
+    const sidebarWidth = 26
+    
+    // Configurações do template
+    const template = customTemplate || {
+      background_color: "#ffffff",
+      border_color: "#000000",
+      text_color: "#000000"
+    }
+
+    // Converter cores hex para RGB
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      return result ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+      } : { r: 0.95, g: 0.95, b: 0.95 }
+    }
+
+    const bgColor = hexToRgb(template.background_color)
+    const borderColor = hexToRgb(template.border_color)
+    const textColor = hexToRgb(template.text_color)
+    
+    // Posição da barra lateral
+    const sidebarX = width - sidebarWidth
+    const sidebarY = 0
+    const sidebarHeight = height
+    
+    // Desenhar fundo da barra lateral
+    page.drawRectangle({
+      x: sidebarX,
+      y: sidebarY,
+      width: sidebarWidth,
+      height: sidebarHeight,
+      color: rgb(bgColor.r, bgColor.g, bgColor.b)
+    })
+    
+    // Desenhar borda da barra lateral
+    page.drawRectangle({
+      x: sidebarX,
+      y: sidebarY,
+      width: sidebarWidth,
+      height: sidebarHeight,
+      borderColor: rgb(borderColor.r, borderColor.g, borderColor.b),
+      borderWidth: 0.5
+    })
+    
+    const smallFontSize = 5
+    const centerX = sidebarX + (sidebarWidth / 2)
+    
+    let currentY = height - 20
+    
+    // Título
+    page.drawText("VERIFICAÇÃO", {
+      x: centerX + 2,
+      y: currentY,
+      size: 6,
+      font: boldFont,
+      color: rgb(borderColor.r, borderColor.g, borderColor.b),
+      rotate: degrees(-90)
+    })
+    
+    let signatureY = height - 60
+    const lineSpacing = 2
+    
+    // Função para calcular altura do texto rotacionado
+    const getTextHeight = (text: string, fontSize: number) => {
+      return text.length * fontSize * 0.6
+    }
+    
+    // Renderizar apenas códigos e hashes
+    for (let i = 0; i < signatures.length; i++) {
+      const signature = signatures[i]
+      
+      // Separador
+      if (i > 0) {
+        signatureY -= 5
+        page.drawLine({
+          start: { x: sidebarX + 2, y: signatureY },
+          end: { x: sidebarX + sidebarWidth - 2, y: signatureY },
+          thickness: 0.5,
+          color: rgb(borderColor.r, borderColor.g, borderColor.b)
+        })
+        signatureY -= 5
+      }
+      
+      // Código de verificação
+      const codeText = `${i + 1}. ${signature.verificationCode}`
+      page.drawText(codeText, {
+        x: centerX,
+        y: signatureY,
+        size: smallFontSize,
+        font: boldFont,
+        color: rgb(textColor.r, textColor.g, textColor.b),
+        rotate: degrees(-90)
+      })
+      const codeHeight = getTextHeight(codeText, smallFontSize)
+      signatureY -= (codeHeight + lineSpacing)
+      
+      // Hash (primeiros 12 caracteres)
+      const hashText = `${signature.hash.substring(0, 12)}`
+      page.drawText(hashText, {
+        x: centerX,
+        y: signatureY,
+        size: smallFontSize,
+        font: font,
+        color: rgb(textColor.r * 0.7, textColor.g * 0.7, textColor.b * 0.7),
+        rotate: degrees(-90)
+      })
+      const hashHeight = getTextHeight(hashText, smallFontSize)
+      signatureY -= (hashHeight + lineSpacing)
+      
+      // Verificar espaço
+      if (signatureY < 50) {
+        break
+      }
     }
   }
 
@@ -215,10 +572,10 @@ export class DigitalSignatureService {
       title: "ASSINATURAS",
       show_date: true,
       show_time: true,
-      show_user_name: true,
+      show_user_name: false, // Não mostrar nomes na lateral
       show_email: false,
-      show_verification_code: true, // Mostrar código de verificação por padrão
-      show_hash_code: true, // Mostrar hash por padrão
+      show_verification_code: true,
+      show_hash_code: true,
       position: "side-right",
       background_color: "#ffffff",
       border_color: "#000000",
@@ -283,7 +640,7 @@ export class DigitalSignatureService {
       size: titleSize,
       font: boldFont,
       color: rgb(borderColor.r, borderColor.g, borderColor.b),
-      rotate: { type: 'degrees', angle: -90 }
+      rotate: degrees(-90)
     })
     
     // Posição inicial para as assinaturas
@@ -296,7 +653,7 @@ export class DigitalSignatureService {
       return text.length * fontSize * 0.6
     }
     
-    // Renderizar cada assinatura
+    // Renderizar cada assinatura (apenas códigos e hashes)
     for (let i = 0; i < signatures.length; i++) {
       const signature = signatures[i]
       
@@ -312,76 +669,31 @@ export class DigitalSignatureService {
         signatureY -= 5
       }
       
-      // Nome do usuário
-      if (template.show_user_name) {
-        const userName = signature.userName
-        page.drawText(userName, {
-          x: centerX,
-          y: signatureY,
-          size: smallFontSize,
-          font: boldFont,
-          color: rgb(textColor.r, textColor.g, textColor.b),
-          rotate: { type: 'degrees', angle: -90 }
-        })
-        const nameHeight = getTextHeight(userName, smallFontSize)
-        signatureY -= (nameHeight + lineSpacing)
-      }
-      
-      // Data
-      if (template.show_date) {
-        const dateStr = signature.timestamp.toLocaleDateString('pt-BR')
-        page.drawText(dateStr, {
-          x: centerX,
-          y: signatureY,
-          size: smallFontSize,
-          font: font,
-          color: rgb(textColor.r, textColor.g, textColor.b),
-          rotate: { type: 'degrees', angle: -90 }
-        })
-        const dateHeight = getTextHeight(dateStr, smallFontSize)
-        signatureY -= (dateHeight + lineSpacing)
-      }
-      
-      // Hora
-      if (template.show_time) {
-        const timeStr = signature.timestamp.toLocaleTimeString('pt-BR')
-        page.drawText(timeStr, {
-          x: centerX,
-          y: signatureY,
-          size: smallFontSize,
-          font: font,
-          color: rgb(textColor.r, textColor.g, textColor.b),
-          rotate: { type: 'degrees', angle: -90 }
-        })
-        const timeHeight = getTextHeight(timeStr, smallFontSize)
-        signatureY -= (timeHeight + lineSpacing)
-      }
-      
       // Código de verificação
       if (template.show_verification_code) {
-        const codeText = `Cod ${signature.verificationCode}`
+        const codeText = `${i + 1}. ${signature.verificationCode}`
         page.drawText(codeText, {
           x: centerX,
           y: signatureY,
           size: smallFontSize,
           font: boldFont,
           color: rgb(textColor.r, textColor.g, textColor.b),
-          rotate: { type: 'degrees', angle: -90 }
+          rotate: degrees(-90)
         })
         const codeHeight = getTextHeight(codeText, smallFontSize)
         signatureY -= (codeHeight + lineSpacing)
       }
       
-      // Hash do documento
+      // Hash do documento (primeiros 12 caracteres)
       if (template.show_hash_code) {
-        const hashText = `Hash ${signature.documentHash.substring(0, 8)}`
+        const hashText = `${signature.documentHash.substring(0, 12)}`
         page.drawText(hashText, {
           x: centerX,
           y: signatureY,
           size: smallFontSize,
           font: font,
           color: rgb(textColor.r, textColor.g, textColor.b),
-          rotate: { type: 'degrees', angle: -90 }
+          rotate: degrees(-90)
         })
         const hashHeight = getTextHeight(hashText, smallFontSize)
         signatureY -= (hashHeight + lineSpacing)
@@ -485,7 +797,7 @@ export class DigitalSignatureService {
       size: titleSize,
       font: boldFont,
       color: rgb(borderColor.r, borderColor.g, borderColor.b),
-      rotate: { type: 'degrees', angle: -90 }
+      rotate: degrees(-90)
     })
     
     // Posição inicial para a coluna única (espaçamento adequado)
@@ -518,7 +830,7 @@ export class DigitalSignatureService {
         size: smallFontSize,
         font: boldFont,
         color: rgb(textColor.r, textColor.g, textColor.b),
-        rotate: { type: 'degrees', angle: -90 }
+        rotate: degrees(-90)
       })
       // Calcula altura do nome e ajusta posição para próximo campo
       const nameHeight = getTextHeight(userName, smallFontSize)
@@ -534,7 +846,7 @@ export class DigitalSignatureService {
         size: smallFontSize,
         font: font,
         color: rgb(textColor.r, textColor.g, textColor.b),
-        rotate: { type: 'degrees', angle: -90 }
+        rotate: degrees(-90)
       })
       // Calcula altura da data e ajusta posição para próximo campo
       const dateHeight = getTextHeight(dateStr, smallFontSize)
@@ -549,7 +861,7 @@ export class DigitalSignatureService {
         size: smallFontSize,
         font: font,
         color: rgb(textColor.r, textColor.g, textColor.b),
-        rotate: { type: 'degrees', angle: -90 }
+        rotate: degrees(-90)
       })
       // Calcula altura da hora e ajusta posição para próximo campo
       const timeHeight = getTextHeight(timeStr, smallFontSize)
@@ -565,7 +877,7 @@ export class DigitalSignatureService {
         size: smallFontSize,
         font: boldFont,
         color: rgb(textColor.r, textColor.g, textColor.b),
-        rotate: { type: 'degrees', angle: -90 }
+        rotate: degrees(-90)
       })
       // Calcula altura do código e ajusta posição para próximo campo
       const codeHeight = getTextHeight(codeText, smallFontSize)
@@ -583,7 +895,7 @@ export class DigitalSignatureService {
         size: smallFontSize,
         font: font,
         color: rgb(textColor.r * 0.8, textColor.g * 0.8, textColor.b * 0.8),
-        rotate: { type: 'degrees', angle: -90 }
+        rotate: degrees(-90)
       })
       // Calcula altura do texto personalizado e ajusta posição para próximo campo
       const customTextHeight = getTextHeight(customText, smallFontSize)
@@ -600,7 +912,7 @@ export class DigitalSignatureService {
         size: smallFontSize,
         font: font,
         color: rgb(textColor.r * 0.7, textColor.g * 0.7, textColor.b * 0.7),
-        rotate: { type: 'degrees', angle: -90 }
+        rotate: degrees(-90)
       })
       // Calcula altura do hash e ajusta posição para próximo campo
       const hashHeight = getTextHeight(hashText, smallFontSize)
@@ -615,7 +927,7 @@ export class DigitalSignatureService {
       size: smallFontSize,
       font: font,
       color: rgb(textColor.r * 0.6, textColor.g * 0.6, textColor.b * 0.6),
-      rotate: { type: 'degrees', angle: -90 }
+      rotate: degrees(-90)
     })
     // Calcula altura do hash do documento e ajusta posição para próximo campo
     const docHashHeight = getTextHeight(docHashText, smallFontSize)
@@ -629,7 +941,7 @@ export class DigitalSignatureService {
       size: smallFontSize,
       font: font,
       color: rgb(textColor.r * 0.6, textColor.g * 0.6, textColor.b * 0.6),
-      rotate: { type: 'degrees', angle: -90 }
+      rotate: degrees(-90)
     })
   }
 

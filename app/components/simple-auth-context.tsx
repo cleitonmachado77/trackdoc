@@ -162,15 +162,21 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     
     console.log('🚪 [Auth] Iniciando logout...')
     
+    // Limpar estado local PRIMEIRO
+    setSession(null)
+    setUser(null)
+    setAuthError(null)
+    setIsInitialized(false)
+    
     try {
-      // 1. Fazer logout no Supabase PRIMEIRO e AGUARDAR
+      // Fazer logout no Supabase
       await supabase.auth.signOut({ scope: 'global' })
       console.log('✅ [Auth] Logout no Supabase concluído')
     } catch (error) {
       console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
     }
     
-    // 2. Limpar TODO o storage
+    // Limpar TODO o storage
     if (typeof window !== 'undefined') {
       console.log('🧹 [Auth] Limpando storage...')
       
@@ -185,19 +191,12 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       sessionStorage.clear()
       
       console.log('✅ [Auth] Storage e cookies limpos')
-    }
-    
-    // 3. Limpar estado local
-    setSession(null)
-    setUser(null)
-    setAuthError(null)
-    setIsInitialized(false)
-    
-    // 4. Redirecionar IMEDIATAMENTE para a página de login SEM criar histórico
-    if (typeof window !== 'undefined') {
-      console.log('🔄 [Auth] Redirecionando para /login')
-      // Usar replace para não criar histórico
-      window.location.replace('/login')
+      
+      // Aguardar um pouco e então recarregar a página completamente
+      setTimeout(() => {
+        console.log('🔄 [Auth] Recarregando página...')
+        window.location.href = '/login'
+      }, 100)
     }
   }
 

@@ -48,6 +48,18 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     hasRedirected.current = false
   }, [pathname])
 
+  // Timeout de segurança - se ficar mais de 5 segundos carregando, redirecionar para login
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        console.warn('⚠️ [AuthGuard] Timeout de autenticação - redirecionando para login')
+        window.location.href = '/login'
+      }, 5000)
+      
+      return () => clearTimeout(timeout)
+    }
+  }, [loading])
+
   // Mostrar loading enquanto verifica autenticação
   if (loading) {
     console.log('🔄 [AuthGuard] Ainda carregando autenticação...')

@@ -162,12 +162,6 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     
     console.log('🚪 [Auth] Iniciando logout...')
     
-    // Limpar estado local PRIMEIRO
-    setSession(null)
-    setUser(null)
-    setAuthError(null)
-    setIsInitialized(false)
-    
     try {
       // Fazer logout no Supabase
       await supabase.auth.signOut({ scope: 'global' })
@@ -191,12 +185,14 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       sessionStorage.clear()
       
       console.log('✅ [Auth] Storage e cookies limpos')
+      console.log('🔄 [Auth] Recarregando página...')
       
-      // Aguardar um pouco e então recarregar a página completamente
+      // Forçar reload COMPLETO da página (como se fechasse e abrisse)
+      window.location.replace('/login')
+      // Fallback caso replace não funcione
       setTimeout(() => {
-        console.log('🔄 [Auth] Recarregando página...')
         window.location.href = '/login'
-      }, 100)
+      }, 50)
     }
   }
 

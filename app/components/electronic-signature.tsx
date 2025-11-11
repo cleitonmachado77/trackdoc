@@ -161,7 +161,6 @@ export default function ElectronicSignature() {
   const saveSignedDocument = React.useCallback(async (
     signedFileName: string,
     signedFilePath: string,
-    fileSize: number,
     originalName: string
   ) => {
     if (!saveAfterSigned) {
@@ -175,6 +174,25 @@ export default function ElectronicSignature() {
       console.log('📋 [SAVE_SIGNED] Nome original:', originalName)
       console.log('📋 [SAVE_SIGNED] Nome assinado:', signedFileName)
       console.log('📋 [SAVE_SIGNED] Path assinado:', signedFilePath)
+
+      // Buscar informações do arquivo no storage para obter o tamanho real
+      let fileSize = 0
+      try {
+        const { data: fileData, error: fileError } = await supabase.storage
+          .from('documents')
+          .list('', {
+            search: signedFileName
+          })
+
+        if (!fileError && fileData && fileData.length > 0) {
+          fileSize = fileData[0].metadata?.size || 0
+          console.log('📊 [SAVE_SIGNED] Tamanho do arquivo obtido:', fileSize)
+        } else {
+          console.warn('⚠️ [SAVE_SIGNED] Não foi possível obter o tamanho do arquivo')
+        }
+      } catch (sizeError) {
+        console.warn('⚠️ [SAVE_SIGNED] Erro ao buscar tamanho do arquivo:', sizeError)
+      }
 
       // Usar o nome original para o título, mas manter o path do arquivo assinado
       const cleanTitle = originalName.replace('.pdf', '').replace(/\.[^/.]+$/, '')
@@ -441,7 +459,6 @@ export default function ElectronicSignature() {
           await saveSignedDocument(
             result.data.documentName,
             result.data.documentName, // O path é o mesmo que o nome no storage
-            selectedFile.size,
             originalFileName || selectedFile.name
           )
         }
@@ -2150,8 +2167,7 @@ function MultiSignatureRequestsContent({
         // Salvar documento automaticamente se opção estiver marcada
         if (saveAfterSigned && result.data?.signedFilePath) {
           const fileName = result.data.signedFilePath.split('/').pop() || result.data.signedFilePath
-          // Estimar tamanho do arquivo (não temos o tamanho exato, usar um valor padrão)
-          await saveSignedDocument(fileName, result.data.signedFilePath, 0)
+          await saveSignedDocument(fileName, result.data.signedFilePath, fileName)
         }
 
         loadMyRequests() // Recarregar dados

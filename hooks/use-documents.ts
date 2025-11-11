@@ -299,10 +299,10 @@ export function useDocuments(filters: DocumentFilters = {}) {
     try {
       console.log('🚀 [CREATE_DOCUMENT] Iniciando criação de documento:', { documentData, hasFile: !!file })
 
-      let filePath = ''
-      let fileName = ''
-      let fileSize = 0
-      let fileType = ''
+      let filePath = documentData.file_path || ''
+      let fileName = documentData.file_name || ''
+      let fileSize = documentData.file_size || 0
+      let fileType = documentData.file_type || ''
 
       // Se há arquivo, fazer upload primeiro
       if (file) {

@@ -235,12 +235,12 @@ export class DigitalSignatureService {
     const margin = 50
     let currentY = height - margin
     
-    // Logo TrackDock (imagem bem pequena)
+    // Logo TrackDock (imagem muito pequena)
     try {
       const logoPath = path.join(process.cwd(), 'public', 'logo-horizontal-preto.png')
       const logoBuffer = fs.readFileSync(logoPath)
       const logoImage = await pdfDoc.embedPng(logoBuffer)
-      const logoDims = logoImage.scale(0.08) // Logo bem pequeno (reduzido de 0.15 para 0.08)
+      const logoDims = logoImage.scale(0.04) // Logo muito pequeno (reduzido de 0.08 para 0.04)
       
       page.drawImage(logoImage, {
         x: margin,
@@ -249,30 +249,30 @@ export class DigitalSignatureService {
         height: logoDims.height
       })
       
-      currentY -= (logoDims.height + 15)
+      currentY -= (logoDims.height + 12)
     } catch (error) {
       console.warn('Erro ao carregar logo, usando texto:', error)
       // Fallback: usar texto
       page.drawText("TrackDock", {
         x: margin,
         y: currentY,
-        size: 10,
+        size: 8,
         font: boldFont,
         color: rgb(0.2, 0.4, 0.8)
       })
-      currentY -= 25
+      currentY -= 20
     }
     
-    // Título (fonte menor)
+    // Título (fonte bem menor)
     page.drawText("CERTIFICADO DE ASSINATURA MÚLTIPLA", {
       x: margin,
       y: currentY,
-      size: 14,
+      size: 11,
       font: boldFont,
       color: rgb(textColor.r, textColor.g, textColor.b)
     })
     
-    currentY -= 25
+    currentY -= 20
     
     // Linha separadora (mais fina)
     page.drawLine({

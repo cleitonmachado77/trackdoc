@@ -53,17 +53,12 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         return
       }
 
-      // Verificar se acabou de fazer logout (flag temporária)
+      // Limpar flag de logout se existir (pode ter ficado de um logout anterior)
       if (typeof window !== 'undefined') {
         const justLoggedOut = sessionStorage.getItem('just_logged_out')
         if (justLoggedOut === 'true') {
-          console.log('🚪 [Auth] Logout recente detectado, não restaurando sessão')
+          console.log('🧹 [Auth] Limpando flag de logout anterior')
           sessionStorage.removeItem('just_logged_out')
-          setSession(null)
-          setUser(null)
-          setIsInitialized(true)
-          setLoading(false)
-          return
         }
       }
 

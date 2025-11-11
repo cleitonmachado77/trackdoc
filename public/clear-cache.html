@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Cache - TrackDoc</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpar Cache do TrackDoc</h1>
+        <p>
+            Se você está tendo problemas com login/logout em loop, 
+            clique no botão abaixo para limpar completamente o cache 
+            e os dados armazenados do TrackDoc.
+        </p>
+        
+        <button onclick="clearEverything()">Limpar Tudo e Ir para Login</button>
+        <button onclick="clearAndGoHome()">Limpar Tudo e Ir para Home</button>
+        
+        <div class="success" id="success">
+            ✅ Cache limpo com sucesso! Redirecionando...
+        </div>
+        
+        <div class="info">
+            <strong>O que será limpo:</strong><br>
+            • Todos os cookies<br>
+            • LocalStorage completo<br>
+            • SessionStorage completo<br>
+            • Cache do navegador<br>
+            • Sessões do Supabase
+        </div>
+    </div>
+
+    <script>
+        function clearEverything() {
+            console.log('🧹 Limpando tudo...')
+            
+            // Limpar cookies
+            document.cookie.split(";").forEach((c) => {
+                document.cookie = c
+                    .replace(/^ +/, "")
+                    .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+            })
+            
+            // Limpar storage
+            localStorage.clear()
+            sessionStorage.clear()
+            
+            // Limpar cache (se disponível)
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name)
+                    })
+                })
+            }
+            
+            // Mostrar sucesso
+            document.getElementById('success').style.display = 'block'
+            
+            // Redirecionar após 1 segundo
+            setTimeout(() => {
+                window.location.href = '/login?cleared=true&t=' + Date.now()
+            }, 1000)
+        }
+        
+        function clearAndGoHome() {
+            console.log('🧹 Limpando tudo...')
+            
+            // Limpar cookies
+            document.cookie.split(";").forEach((c) => {
+                document.cookie = c
+                    .replace(/^ +/, "")
+                    .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+            })
+            
+            // Limpar storage
+            localStorage.clear()
+            sessionStorage.clear()
+            
+            // Limpar cache (se disponível)
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        caches.delete(name)
+                    })
+                })
+            }
+            
+            // Mostrar sucesso
+            document.getElementById('success').style.display = 'block'
+            
+            // Redirecionar após 1 segundo
+            setTimeout(() => {
+                window.location.href = '/?cleared=true&t=' + Date.now()
+            }, 1000)
+        }
+    </script>
+</body>
+</html>

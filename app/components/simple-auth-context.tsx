@@ -53,6 +53,20 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         return
       }
 
+      // Verificar se acabou de fazer logout (flag temporária)
+      if (typeof window !== 'undefined') {
+        const justLoggedOut = sessionStorage.getItem('just_logged_out')
+        if (justLoggedOut === 'true') {
+          console.log('🚪 [Auth] Logout recente detectado, não restaurando sessão')
+          sessionStorage.removeItem('just_logged_out')
+          setSession(null)
+          setUser(null)
+          setIsInitialized(true)
+          setLoading(false)
+          return
+        }
+      }
+
       try {
         console.log('🔐 [Auth] Iniciando verificação de sessão...')
         
@@ -160,6 +174,11 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     
     console.log('🚪 [Auth] Iniciando logout...')
     
+    // Marcar que estamos fazendo logout ANTES de tudo
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('just_logged_out', 'true')
+    }
+    
     try {
       // 1. Fazer logout no Supabase PRIMEIRO e AGUARDAR
       await supabase.auth.signOut({ scope: 'global' })
@@ -168,12 +187,29 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
       console.error('❌ [Auth] Erro ao fazer logout no Supabase:', error)
     }
     
-    // 2. Limpar TODO o storage
+    // 2. Limpar TODO o storage ANTES de qualquer outra coisa
     if (typeof window !== 'undefined') {
       console.log('🧹 [Auth] Limpando storage...')
+      
+      // Salvar a flag antes de limpar
+      const justLoggedOut = sessionStorage.getItem('just_logged_out')
+      
+      // Limpar cookies do Supabase manualmente
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+          .replace(/^ +/, "")
+          .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+      })
+      
       localStorage.clear()
       sessionStorage.clear()
-      console.log('✅ [Auth] Storage limpo')
+      
+      // Restaurar a flag
+      if (justLoggedOut) {
+        sessionStorage.setItem('just_logged_out', 'true')
+      }
+      
+      console.log('✅ [Auth] Storage e cookies limpos')
     }
     
     // 3. Limpar estado local
@@ -182,10 +218,14 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     setAuthError(null)
     setIsInitialized(false)
     
-    // 4. Redirecionar com reload forçado
+    // 4. Aguardar um pouco para garantir que tudo foi limpo
+    await new Promise(resolve => setTimeout(resolve, 300))
+    
+    // 5. Redirecionar com reload forçado e cache busting
     if (typeof window !== 'undefined') {
       console.log('🔄 [Auth] Redirecionando para /login')
-      window.location.href = '/login'
+      // Adicionar timestamp para evitar cache
+      window.location.href = '/login?t=' + Date.now()
     }
   }
 

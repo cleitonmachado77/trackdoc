@@ -12,19 +12,19 @@ export function getSupabaseSingleton() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         auth: {
-          // Prevenir refresh automático ao trocar de aba
           autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: true,
-          // Aumentar o intervalo de verificação de sessão
           flowType: 'pkce',
+          // Configuração de storage customizada para garantir limpeza
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+          storageKey: 'sb-auth-token',
         },
         global: {
           headers: {
             'x-client-info': 'trackdoc-web',
           },
         },
-        // Configurações de realtime para evitar reconexões
         realtime: {
           params: {
             eventsPerSecond: 2,
@@ -34,4 +34,12 @@ export function getSupabaseSingleton() {
     )
   }
   return supabaseInstance
+}
+
+// Função para resetar o singleton (útil para logout)
+export function resetSupabaseSingleton() {
+  if (supabaseInstance) {
+    console.log('🔄 [Supabase] Resetando singleton...')
+    supabaseInstance = null
+  }
 }

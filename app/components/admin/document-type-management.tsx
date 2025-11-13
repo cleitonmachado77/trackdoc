@@ -166,12 +166,20 @@ export default function DocumentTypeManagement({
 
     // Verificar se há documentos vinculados ANTES de tentar excluir
     if (typeToDelete.documentsCount && typeToDelete.documentsCount > 0) {
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      
+      // Aguardar um momento para o modal fechar
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Não é possível excluir",
         description: `Este tipo de documento possui ${typeToDelete.documentsCount} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir o tipo.`,
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
+      
+      // Limpar o estado
       setTypeToDelete(null)
       return
     }
@@ -184,11 +192,15 @@ export default function DocumentTypeManagement({
       // Executar exclusão no servidor
       const result = await deleteDocumentType(typeToDeleteRef.id)
       
-      // Fechar modal
+      // Fechar modal primeiro
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
       
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
       if (result.success) {
+        // Mostrar o toast
         toast({
           title: "Tipo excluído",
           description: `O tipo "${typeToDeleteRef.name}" foi excluído com sucesso.`,
@@ -197,6 +209,7 @@ export default function DocumentTypeManagement({
         // Recarregar dados automaticamente
         router.refresh()
       } else {
+        // Mostrar o toast de erro
         toast({
           title: "Erro ao excluir",
           description: result.error || "Erro ao excluir tipo de documento",
@@ -204,13 +217,19 @@ export default function DocumentTypeManagement({
         })
       }
     } catch (error) {
+      // Fechar modal primeiro
+      setShowDeleteConfirm(false)
+      setTypeToDelete(null)
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Erro inesperado",
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
-      setTypeToDelete(null)
     } finally {
       setIsDeleting(false)
     }
@@ -512,7 +531,13 @@ export default function DocumentTypeManagement({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                setTypeToDelete(null)
+              }}
+            >
               {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 ? "Fechar" : "Cancelar"}
             </AlertDialogCancel>
             {(!typeToDelete?.documentsCount || typeToDelete.documentsCount === 0) && (

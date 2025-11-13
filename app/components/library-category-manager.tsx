@@ -184,12 +184,20 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
 
     // Verificar se há documentos vinculados
     if (categoryToDelete.document_count && categoryToDelete.document_count > 0) {
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      
+      // Aguardar um momento para o modal fechar
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Não é possível excluir",
         description: `Esta categoria possui ${categoryToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir a categoria.`,
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
+      
+      // Limpar o estado
       setCategoryToDelete(null)
       return
     }
@@ -203,24 +211,38 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
 
       if (error) throw error
 
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
+      
+      // Recarregar dados
+      loadCategories()
+      onCategoryChange?.()
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Sucesso",
         description: "Categoria excluída com sucesso",
       })
-
-      loadCategories()
-      onCategoryChange?.()
-      setShowDeleteConfirm(false)
-      setCategoryToDelete(null)
     } catch (error) {
       console.error("Erro ao excluir categoria:", error)
+      
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Erro",
         description: "Não foi possível excluir a categoria",
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
-      setCategoryToDelete(null)
     } finally {
       setDeleting(null)
     }
@@ -422,7 +444,13 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={!!deleting}>
+            <AlertDialogCancel 
+              disabled={!!deleting}
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                setCategoryToDelete(null)
+              }}
+            >
               {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
             </AlertDialogCancel>
             {(!categoryToDelete?.document_count || categoryToDelete.document_count === 0) && (

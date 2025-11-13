@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -71,18 +71,20 @@ export default function CategoryManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const filteredCategories = categories.filter((category) => {
-    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || category.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredCategories = useMemo(() => {
+    return categories.filter((category) => {
+      const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === "all" || category.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [categories, searchTerm, statusFilter])
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: categories.length,
     active: categories.filter((c) => c.status === "active").length,
     inactive: categories.filter((c) => c.status === "inactive").length,
     totalDocuments: categories.reduce((sum, c) => sum + (c.document_count || 0), 0),
-  }
+  }), [categories])
 
   const handleSaveCategory = async (categoryData: Partial<Category>) => {
     try {
@@ -132,12 +134,20 @@ export default function CategoryManagement() {
     
     // Verificar se há documentos vinculados ANTES de tentar excluir
     if (categoryToDelete.document_count && categoryToDelete.document_count > 0) {
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      
+      // Aguardar um momento para o modal fechar
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Não é possível excluir",
         description: `Esta categoria possui ${categoryToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir a categoria.`,
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
+      
+      // Limpar o estado
       setCategoryToDelete(null)
       return
     }
@@ -146,20 +156,32 @@ export default function CategoryManagement() {
     try {
       await deleteCategory(categoryToDelete.id)
       
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Categoria excluída",
         description: "A categoria foi excluída com sucesso.",
       })
+    } catch (error) {
+      // Fechar o modal primeiro
       setShowDeleteConfirm(false)
       setCategoryToDelete(null)
-    } catch (error) {
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir a categoria.",
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
-      setCategoryToDelete(null)
     } finally {
       setIsDeleting(false)
     }
@@ -519,7 +541,13 @@ export default function CategoryManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                setCategoryToDelete(null)
+              }}
+            >
               {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
             </AlertDialogCancel>
             {(!categoryToDelete?.document_count || categoryToDelete.document_count === 0) && (

@@ -175,12 +175,20 @@ export default function DepartmentManagement() {
 
     // Verificar se há documentos vinculados ANTES de tentar excluir
     if (departmentToDelete.document_count && departmentToDelete.document_count > 0) {
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      
+      // Aguardar um momento para o modal fechar
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Não é possível excluir",
         description: `Este departamento possui ${departmentToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir o departamento.`,
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
+      
+      // Limpar o estado
       setDepartmentToDelete(null)
       return
     }
@@ -188,20 +196,33 @@ export default function DepartmentManagement() {
     setIsDeleting(true)
     try {
       await deleteDepartment(departmentToDelete.id)
+      
+      // Fechar o modal primeiro
+      setShowDeleteConfirm(false)
+      setDepartmentToDelete(null)
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Departamento excluído",
         description: "O departamento foi excluído com sucesso.",
       })
+    } catch (error: unknown) {
+      // Fechar o modal primeiro
       setShowDeleteConfirm(false)
       setDepartmentToDelete(null)
-    } catch (error: unknown) {
+      
+      // Aguardar um momento
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Mostrar o toast
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir o departamento.",
         variant: "destructive",
       })
-      setShowDeleteConfirm(false)
-      setDepartmentToDelete(null)
     } finally {
       setIsDeleting(false)
     }
@@ -455,7 +476,13 @@ export default function DepartmentManagement() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              onClick={() => {
+                setShowDeleteConfirm(false)
+                setDepartmentToDelete(null)
+              }}
+            >
               {departmentToDelete?.document_count && departmentToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
             </AlertDialogCancel>
             {(!departmentToDelete?.document_count || departmentToDelete.document_count === 0) && (

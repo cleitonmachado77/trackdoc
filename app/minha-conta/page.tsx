@@ -540,7 +540,7 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
 
   return (
     <div className="w-full h-full overflow-auto bg-gray-50">
-      <div className="container mx-auto p-6">
+      <div className="w-full p-6">
         <div className="mb-6 space-y-4">
           <Button
             variant="outline"

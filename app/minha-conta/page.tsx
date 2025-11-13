@@ -211,13 +211,15 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
       setProfile({ ...profile!, ...editedProfile })
       setEditing(false)
 
-      // Atualizar o contexto global do perfil para refletir na sidebar
-      await refreshProfile()
-
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso.",
       })
+
+      // Atualizar o contexto global do perfil para refletir na sidebar
+      console.log('🔄 Atualizando perfil na sidebar...')
+      await refreshProfile()
+      console.log('✅ Perfil atualizado na sidebar')
     } catch (error: any) {
       console.error('Erro ao salvar perfil:', error)
       toast({
@@ -342,13 +344,15 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
       setProfile({ ...profile!, avatar_url: publicUrl })
       setAvatarPreview(null)
 
-      // Atualizar o contexto global do perfil para refletir na sidebar
-      await refreshProfile()
-
       toast({
         title: "Foto atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso.",
       })
+
+      // Atualizar o contexto global do perfil para refletir na sidebar
+      console.log('🔄 Atualizando foto na sidebar...')
+      await refreshProfile()
+      console.log('✅ Foto atualizada na sidebar')
     } catch (error: any) {
       console.error('Erro ao fazer upload do avatar:', error)
       toast({
@@ -395,13 +399,15 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
       // Atualizar estado local
       setProfile({ ...profile, avatar_url: null })
 
-      // Atualizar o contexto global do perfil para refletir na sidebar
-      await refreshProfile()
-
       toast({
         title: "Foto removida",
         description: "Sua foto de perfil foi removida com sucesso.",
       })
+
+      // Atualizar o contexto global do perfil para refletir na sidebar
+      console.log('🔄 Removendo foto da sidebar...')
+      await refreshProfile()
+      console.log('✅ Foto removida da sidebar')
     } catch (error: any) {
       console.error('Erro ao remover avatar:', error)
       toast({

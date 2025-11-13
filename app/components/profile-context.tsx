@@ -19,7 +19,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const hasLoadedProfile = useRef(false)
 
-  const loadProfile = async () => {
+  const loadProfile = async (forceRefresh = false) => {
     if (!user) {
       setProfile(null)
       setLoading(false)
@@ -27,18 +27,24 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    // Evitar recarregamento se já foi carregado
-    if (hasLoadedProfile.current && profile) {
+    // Evitar recarregamento se já foi carregado (exceto quando forçado)
+    if (!forceRefresh && hasLoadedProfile.current && profile) {
       return
     }
 
     try {
       setLoading(true)
       
-      const response = await fetch('/api/profile')
+      const response = await fetch('/api/profile', {
+        cache: 'no-store', // Garantir que sempre busca dados frescos
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const result = await response.json()
 
       if (response.ok && result.success) {
+        console.log('✅ [ProfileContext] Perfil atualizado:', result.profile)
         setProfile(result.profile)
         setError(null)
         hasLoadedProfile.current = true
@@ -79,7 +85,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id, authLoading])
 
   const refreshProfile = async () => {
-    await loadProfile()
+    console.log('🔄 [ProfileContext] Forçando refresh do perfil...')
+    await loadProfile(true) // Forçar refresh
   }
 
   // ✅ NÃO BLOQUEAR A RENDERIZAÇÃO

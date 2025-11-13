@@ -130,6 +130,18 @@ export default function CategoryManagement() {
   const handleDeleteCategory = async () => {
     if (!categoryToDelete) return
     
+    // Verificar se há documentos vinculados ANTES de tentar excluir
+    if (categoryToDelete.document_count && categoryToDelete.document_count > 0) {
+      toast({
+        title: "Não é possível excluir",
+        description: `Esta categoria possui ${categoryToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir a categoria.`,
+        variant: "destructive",
+      })
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
+      return
+    }
+    
     setIsDeleting(true)
     try {
       await deleteCategory(categoryToDelete.id)
@@ -146,6 +158,8 @@ export default function CategoryManagement() {
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir a categoria.",
         variant: "destructive",
       })
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
     } finally {
       setIsDeleting(false)
     }
@@ -467,28 +481,47 @@ export default function CategoryManagement() {
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza que deseja excluir esta categoria?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 
+                ? "Não é possível excluir esta categoria" 
+                : "Tem certeza que deseja excluir esta categoria?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso removerá permanentemente a categoria{" "}
-              <span className="font-semibold">{categoryToDelete?.name}</span> e todos os seus dados associados.
+              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? (
+                <>
+                  A categoria <span className="font-semibold">{categoryToDelete?.name}</span> possui{" "}
+                  <span className="font-semibold text-red-600">{categoryToDelete.document_count} documento(s) vinculado(s)</span>.
+                  <br /><br />
+                  Para excluir esta categoria, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ela.
+                </>
+              ) : (
+                <>
+                  Esta ação não pode ser desfeita. Isso removerá permanentemente a categoria{" "}
+                  <span className="font-semibold">{categoryToDelete?.name}</span> e todos os seus dados associados.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteCategory} 
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
-            </AlertDialogAction>
+            <AlertDialogCancel disabled={isDeleting}>
+              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
+            </AlertDialogCancel>
+            {(!categoryToDelete?.document_count || categoryToDelete.document_count === 0) && (
+              <AlertDialogAction 
+                onClick={handleDeleteCategory} 
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir'
+                )}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

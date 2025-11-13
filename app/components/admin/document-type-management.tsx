@@ -164,6 +164,18 @@ export default function DocumentTypeManagement({
   const handleDeleteDocumentType = async () => {
     if (!typeToDelete) return
 
+    // Verificar se há documentos vinculados ANTES de tentar excluir
+    if (typeToDelete.documentsCount && typeToDelete.documentsCount > 0) {
+      toast({
+        title: "Não é possível excluir",
+        description: `Este tipo de documento possui ${typeToDelete.documentsCount} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir o tipo.`,
+        variant: "destructive",
+      })
+      setShowDeleteConfirm(false)
+      setTypeToDelete(null)
+      return
+    }
+
     const typeToDeleteRef = typeToDelete
     
     setIsDeleting(true)
@@ -197,6 +209,8 @@ export default function DocumentTypeManagement({
         description: error instanceof Error ? error.message : "Erro inesperado",
         variant: "destructive",
       })
+      setShowDeleteConfirm(false)
+      setTypeToDelete(null)
     } finally {
       setIsDeleting(false)
     }
@@ -460,30 +474,47 @@ export default function DocumentTypeManagement({
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Tem certeza que deseja excluir este tipo de documento?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 
+                ? "Não é possível excluir este tipo de documento" 
+                : "Tem certeza que deseja excluir este tipo de documento?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Isso removerá permanentemente o tipo de documento{" "}
-              <span className="font-semibold">{typeToDelete?.name}</span> e todos os seus dados associados.
+              {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 ? (
+                <>
+                  O tipo de documento <span className="font-semibold">{typeToDelete?.name}</span> possui{" "}
+                  <span className="font-semibold text-red-600">{typeToDelete.documentsCount} documento(s) vinculado(s)</span>.
+                  <br /><br />
+                  Para excluir este tipo, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ele.
+                </>
+              ) : (
+                <>
+                  Esta ação não pode ser desfeita. Isso removerá permanentemente o tipo de documento{" "}
+                  <span className="font-semibold">{typeToDelete?.name}</span> e todos os seus dados associados.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
-              Cancelar
+              {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 ? "Fechar" : "Cancelar"}
             </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteDocumentType}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
-            </AlertDialogAction>
+            {(!typeToDelete?.documentsCount || typeToDelete.documentsCount === 0) && (
+              <AlertDialogAction 
+                onClick={handleDeleteDocumentType}
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir'
+                )}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

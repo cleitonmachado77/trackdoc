@@ -14,6 +14,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
   Table,
   TableBody,
   TableCell,
@@ -53,6 +63,8 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -162,24 +174,32 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
     }
   }
 
-  const deleteCategory = async (id: string, documentCount: number) => {
-    if (documentCount > 0) {
+  const handleDeleteClick = (category: Category) => {
+    setCategoryToDelete(category)
+    setShowDeleteConfirm(true)
+  }
+
+  const deleteCategory = async () => {
+    if (!categoryToDelete) return
+
+    // Verificar se há documentos vinculados
+    if (categoryToDelete.document_count && categoryToDelete.document_count > 0) {
       toast({
-        title: "Atenção",
-        description: "Não é possível excluir uma categoria com documentos vinculados",
+        title: "Não é possível excluir",
+        description: `Esta categoria possui ${categoryToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir a categoria.`,
         variant: "destructive",
       })
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
       return
     }
 
-    if (!confirm("Tem certeza que deseja excluir esta categoria?")) return
-
-    setDeleting(id)
+    setDeleting(categoryToDelete.id)
     try {
       const { error } = await supabase
         .from("library_categories")
         .delete()
-        .eq("id", id)
+        .eq("id", categoryToDelete.id)
 
       if (error) throw error
 
@@ -190,6 +210,8 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
 
       loadCategories()
       onCategoryChange?.()
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
     } catch (error) {
       console.error("Erro ao excluir categoria:", error)
       toast({
@@ -197,6 +219,8 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
         description: "Não foi possível excluir a categoria",
         variant: "destructive",
       })
+      setShowDeleteConfirm(false)
+      setCategoryToDelete(null)
     } finally {
       setDeleting(null)
     }
@@ -347,7 +371,7 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteCategory(category.id, category.document_count || 0)}
+                      onClick={() => handleDeleteClick(category)}
                       disabled={deleting === category.id}
                     >
                       {deleting === category.id ? (
@@ -363,6 +387,55 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
           </TableBody>
         </Table>
       )}
+
+      {/* AlertDialog para confirmação de exclusão */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 
+                ? "Não é possível excluir esta categoria" 
+                : "Tem certeza que deseja excluir esta categoria?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? (
+                <>
+                  A categoria <span className="font-semibold">{categoryToDelete?.name}</span> possui{" "}
+                  <span className="font-semibold text-red-600">{categoryToDelete.document_count} documento(s) vinculado(s)</span>.
+                  <br /><br />
+                  Para excluir esta categoria, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ela.
+                </>
+              ) : (
+                <>
+                  Esta ação não pode ser desfeita. Isso removerá permanentemente a categoria{" "}
+                  <span className="font-semibold">{categoryToDelete?.name}</span>.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deleting}>
+              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
+            </AlertDialogCancel>
+            {(!categoryToDelete?.document_count || categoryToDelete.document_count === 0) && (
+              <AlertDialogAction 
+                onClick={deleteCategory} 
+                disabled={!!deleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir'
+                )}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

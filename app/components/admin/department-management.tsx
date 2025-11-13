@@ -173,6 +173,18 @@ export default function DepartmentManagement() {
   const handleDeleteDepartment = useCallback(async () => {
     if (!departmentToDelete) return
 
+    // Verificar se há documentos vinculados ANTES de tentar excluir
+    if (departmentToDelete.document_count && departmentToDelete.document_count > 0) {
+      toast({
+        title: "Não é possível excluir",
+        description: `Este departamento possui ${departmentToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir o departamento.`,
+        variant: "destructive",
+      })
+      setShowDeleteConfirm(false)
+      setDepartmentToDelete(null)
+      return
+    }
+
     setIsDeleting(true)
     try {
       await deleteDepartment(departmentToDelete.id)
@@ -188,6 +200,8 @@ export default function DepartmentManagement() {
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir o departamento.",
         variant: "destructive",
       })
+      setShowDeleteConfirm(false)
+      setDepartmentToDelete(null)
     } finally {
       setIsDeleting(false)
     }
@@ -390,38 +404,60 @@ export default function DepartmentManagement() {
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>
+              {departmentToDelete?.document_count && departmentToDelete.document_count > 0 
+                ? "Não é possível excluir este departamento" 
+                : "Confirmar exclusão"}
+            </AlertDialogTitle>
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Tem certeza que deseja excluir o departamento{" "}
-                <span className="font-semibold">"{departmentToDelete?.name || 'Desconhecido'}"</span>?
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Esta ação não pode ser desfeita e removerá permanentemente:
-              </p>
-              <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-                <li>O departamento e suas configurações</li>
-                <li>Vínculos com funcionários</li>
-                <li>Histórico de associações</li>
-              </ul>
+              {departmentToDelete?.document_count && departmentToDelete.document_count > 0 ? (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    O departamento <span className="font-semibold">"{departmentToDelete?.name}"</span> possui{" "}
+                    <span className="font-semibold text-red-600">{departmentToDelete.document_count} documento(s) vinculado(s)</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Para excluir este departamento, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ele.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Tem certeza que deseja excluir o departamento{" "}
+                    <span className="font-semibold">"{departmentToDelete?.name || 'Desconhecido'}"</span>?
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Esta ação não pode ser desfeita e removerá permanentemente:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                    <li>O departamento e suas configurações</li>
+                    <li>Vínculos com funcionários</li>
+                    <li>Histórico de associações</li>
+                  </ul>
+                </>
+              )}
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteDepartment} 
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir departamento'
-              )}
-            </AlertDialogAction>
+            <AlertDialogCancel disabled={isDeleting}>
+              {departmentToDelete?.document_count && departmentToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
+            </AlertDialogCancel>
+            {(!departmentToDelete?.document_count || departmentToDelete.document_count === 0) && (
+              <AlertDialogAction 
+                onClick={handleDeleteDepartment} 
+                disabled={isDeleting}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir departamento'
+                )}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

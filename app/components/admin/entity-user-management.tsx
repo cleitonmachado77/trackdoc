@@ -22,7 +22,15 @@ import {
   X,
   Image as ImageIcon,
   Edit,
+  Trash2,
+  MoreVertical,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { createBrowserClient } from '@supabase/ssr'
@@ -76,10 +84,16 @@ export default function EntityUserManagement() {
   const [entityUsers, setEntityUsers] = useState<EntityUser[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<EntityUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [isCreatingUser, setIsCreatingUser] = useState(false)
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false)
+  const [isDeletingUser, setIsDeletingUser] = useState(false)
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -120,6 +134,9 @@ export default function EntityUserManagement() {
         setError('Usuário não está associado a uma entidade')
         return
       }
+
+      // Armazenar o papel do usuário atual
+      setCurrentUserRole(profileData.entity_role)
 
       // Buscar informações da entidade
       const { data: entityData } = await supabase
@@ -224,6 +241,125 @@ export default function EntityUserManagement() {
       setError('Erro ao fazer upload do logo')
     } finally {
       setUploadingLogo(false)
+    }
+  }
+
+  const openEditModal = (user: EntityUser) => {
+    setSelectedUser(user)
+    setFormData({
+      full_name: user.full_name || "",
+      email: user.email || "",
+      password: "", // Não preencher senha ao editar
+      entity_role: user.entity_role,
+      phone: user.phone || "",
+      position: user.position || ""
+    })
+    setShowEditModal(true)
+  }
+
+  const openDeleteModal = (user: EntityUser) => {
+    setSelectedUser(user)
+    setShowDeleteModal(true)
+  }
+
+  const updateUser = async () => {
+    if (!selectedUser?.id || !entityInfo?.id) return
+
+    try {
+      setError('')
+      setIsUpdatingUser(true)
+
+      // Validações básicas
+      if (!formData.full_name.trim()) {
+        setError('Nome completo é obrigatório')
+        return
+      }
+
+      console.log('🔧 [updateUser] Atualizando usuário...')
+      
+      const updateData: any = {
+        full_name: formData.full_name.trim(),
+        entity_role: formData.entity_role,
+        phone: formData.phone?.trim() || null,
+        position: formData.position?.trim() || null,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', selectedUser.id)
+
+      if (updateError) {
+        throw new Error(updateError.message)
+      }
+
+      console.log('✅ [updateUser] Usuário atualizado')
+      
+      setSuccess(`Usuário ${formData.full_name} atualizado com sucesso!`)
+      setShowEditModal(false)
+      setSelectedUser(null)
+      
+      // Limpar formulário
+      setFormData({
+        full_name: "",
+        email: "",
+        password: "",
+        entity_role: "user",
+        phone: "",
+        position: ""
+      })
+
+      // Recarregar lista
+      await fetchEntityUsers()
+
+    } catch (err) {
+      console.error('Erro ao atualizar usuário:', err)
+      setError(err instanceof Error ? err.message : 'Erro interno do servidor')
+    } finally {
+      setIsUpdatingUser(false)
+    }
+  }
+
+  const deleteUser = async () => {
+    if (!selectedUser?.id) return
+
+    try {
+      setError('')
+      setIsDeletingUser(true)
+
+      console.log('🗑️ [deleteUser] Excluindo usuário...')
+
+      // Verificar se não está tentando excluir a si mesmo
+      if (selectedUser.id === user?.id) {
+        setError('Você não pode excluir sua própria conta')
+        return
+      }
+
+      // Excluir usuário do profiles
+      const { error: deleteError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', selectedUser.id)
+
+      if (deleteError) {
+        throw new Error(deleteError.message)
+      }
+
+      console.log('✅ [deleteUser] Usuário excluído')
+      
+      setSuccess(`Usuário ${selectedUser.full_name} excluído com sucesso!`)
+      setShowDeleteModal(false)
+      setSelectedUser(null)
+
+      // Recarregar lista
+      await fetchEntityUsers()
+
+    } catch (err) {
+      console.error('Erro ao excluir usuário:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao excluir usuário')
+    } finally {
+      setIsDeletingUser(false)
     }
   }
 
@@ -477,29 +613,53 @@ export default function EntityUserManagement() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
+              {filteredUsers.map((entityUser) => (
+                <div key={entityUser.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-4">
                     <Avatar>
-                      <AvatarFallback>{getInitials(user.full_name || 'U')}</AvatarFallback>
+                      <AvatarFallback>{getInitials(entityUser.full_name || 'U')}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="font-medium text-gray-900">{user.full_name}</h3>
-                      <p className="text-sm text-gray-600">{user.email}</p>
-                      {user.position && (
-                        <p className="text-xs text-gray-500">{user.position}</p>
+                      <h3 className="font-medium text-gray-900">{entityUser.full_name}</h3>
+                      <p className="text-sm text-gray-600">{entityUser.email}</p>
+                      {entityUser.position && (
+                        <p className="text-xs text-gray-500">{entityUser.position}</p>
                       )}
                       <div className="flex items-center space-x-2 mt-1">
-                        <Badge className={roleColors[user.entity_role]}>
-                          {roleLabels[user.entity_role]}
+                        <Badge className={roleColors[entityUser.entity_role]}>
+                          {roleLabels[entityUser.entity_role]}
                         </Badge>
-                        <Badge className={statusColors[user.status]}>
-                          {user.status === 'active' ? 'Ativo' :
-                            user.status === 'inactive' ? 'Inativo' : 'Suspenso'}
+                        <Badge className={statusColors[entityUser.status]}>
+                          {entityUser.status === 'active' ? 'Ativo' :
+                            entityUser.status === 'inactive' ? 'Inativo' : 'Suspenso'}
                         </Badge>
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Botões de ação - apenas para admins */}
+                  {currentUserRole === 'admin' && entityUser.id !== user?.id && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditModal(entityUser)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => openDeleteModal(entityUser)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               ))}
             </div>
@@ -623,6 +783,158 @@ export default function EntityUserManagement() {
                   <>
                     <Upload className="h-4 w-4 mr-2" />
                     Salvar Logo
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edição */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit_full_name">Nome Completo *</Label>
+              <Input
+                id="edit_full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="Ex: João Silva"
+                disabled={isUpdatingUser}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_email">Email</Label>
+              <Input
+                id="edit_email"
+                type="email"
+                value={formData.email}
+                disabled
+                className="bg-gray-100"
+              />
+              <p className="text-xs text-gray-500 mt-1">O email não pode ser alterado</p>
+            </div>
+            <div>
+              <Label htmlFor="edit_role">Função *</Label>
+              <Select
+                value={formData.entity_role}
+                onValueChange={(value: 'user' | 'admin' | 'manager' | 'viewer') =>
+                  setFormData({ ...formData, entity_role: value })
+                }
+                disabled={isUpdatingUser}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="manager">Gerente</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit_phone">Telefone</Label>
+              <Input
+                id="edit_phone"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="Ex: (11) 99999-9999"
+                disabled={isUpdatingUser}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit_position">Cargo</Label>
+              <Input
+                id="edit_position"
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                placeholder="Ex: Analista, Gerente"
+                disabled={isUpdatingUser}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowEditModal(false)
+                  setSelectedUser(null)
+                }}
+                disabled={isUpdatingUser}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={updateUser}
+                disabled={!formData.full_name || isUpdatingUser}
+              >
+                {isUpdatingUser ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar Alterações'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Você está prestes a excluir o usuário <strong>{selectedUser?.full_name}</strong>.
+                Todos os dados associados a este usuário serão removidos permanentemente.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setSelectedUser(null)
+                }}
+                disabled={isDeletingUser}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={deleteUser}
+                disabled={isDeletingUser}
+              >
+                {isDeletingUser ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir Usuário
                   </>
                 )}
               </Button>

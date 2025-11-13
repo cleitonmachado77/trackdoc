@@ -87,8 +87,13 @@ export default function DocumentTypeManagement({
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // USAR PROPS DIRETAMENTE - SEM ESTADO LOCAL
-  const documentTypes = initialDocumentTypes
+  // Estado local para gerenciar os tipos de documentos
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
+
+  // Atualizar quando initialDocumentTypes mudar
+  React.useEffect(() => {
+    setDocumentTypes(initialDocumentTypes)
+  }, [initialDocumentTypes])
 
   /* --------- DERIVADOS --------- */
   const filteredTypes = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -123,6 +128,17 @@ export default function DocumentTypeManagement({
         : await createDocumentType(typeData as Omit<DocumentType, "id">)
 
       if (result.success) {
+        // Atualizar estado local imediatamente
+        if (isEditing) {
+          // Atualizar tipo existente
+          setDocumentTypes(prev => prev.map(t => 
+            t.id === typeData.id ? { ...t, ...result.data } : t
+          ))
+        } else {
+          // Adicionar novo tipo
+          setDocumentTypes(prev => [...prev, result.data])
+        }
+        
         // Fechar modal
         setShowTypeModal(false)
         setSelectedType(null)
@@ -131,9 +147,6 @@ export default function DocumentTypeManagement({
           title: isEditing ? "Tipo atualizado" : "Tipo criado",
           description: `O tipo foi ${isEditing ? 'atualizado' : 'criado'} com sucesso.`,
         })
-        
-        // Recarregar dados automaticamente
-        router.refresh()
       } else {
         toast({
           title: "Erro",
@@ -177,11 +190,13 @@ export default function DocumentTypeManagement({
       setTypeToDelete(null)
       
       if (result.success) {
+        // Remover do estado local imediatamente
+        setDocumentTypes(prev => prev.filter(t => t.id !== typeToDeleteRef.id))
+        
         toast({
           title: "Tipo excluído",
           description: `O tipo "${typeToDeleteRef.name}" foi excluído com sucesso.`,
         })
-        router.refresh()
       } else {
         toast({
           title: "Erro ao excluir",

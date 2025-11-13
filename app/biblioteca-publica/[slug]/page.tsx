@@ -61,6 +61,7 @@ export default function BibliotecaPublicaPage() {
   const [rotation, setRotation] = useState(0)
   const [searchTerm, setSearchTerm] = useState("")
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
 
   useEffect(() => {
     if (slug) {
@@ -220,11 +221,17 @@ export default function BibliotecaPublicaPage() {
     )
   }
 
-  // Filtrar itens pela pesquisa
-  const filteredItems = items.filter(item =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filtrar itens pela pesquisa e categoria
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesCategory = !selectedCategoryId || 
+      item.category_id === selectedCategoryId ||
+      (selectedCategoryId === "uncategorized" && !item.category_id)
+    
+    return matchesSearch && matchesCategory
+  })
 
   // Agrupar por categoria
   const groupedItems: Record<string, { category: Category | null; items: LibraryItem[] }> = {}
@@ -240,7 +247,7 @@ export default function BibliotecaPublicaPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="border-b bg-white shadow-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-6">
@@ -280,37 +287,78 @@ export default function BibliotecaPublicaPage() {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="flex-1 container mx-auto px-4 py-12">
         {/* Barra de Pesquisa e Filtros */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Pesquisar documentos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12 text-base"
-            />
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Input
+                type="text"
+                placeholder="Pesquisar documentos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-12 text-base"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === "list" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("list")}
+                className={`h-12 w-12 ${viewMode === "list" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+                title="Visualização em lista"
+              >
+                <List className="h-5 w-5" />
+              </Button>
+              <Button
+                variant={viewMode === "grid" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("grid")}
+                className={`h-12 w-12 ${viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+                title="Visualização em grade"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("list")}
-              className="h-12 w-12"
-            >
-              <List className="h-5 w-5" />
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("grid")}
-              className="h-12 w-12"
-            >
-              <LayoutGrid className="h-5 w-5" />
-            </Button>
-          </div>
+
+          {/* Filtro de Categorias */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedCategoryId === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategoryId(null)}
+                className={selectedCategoryId === null ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+              >
+                Todas
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategoryId === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategoryId(category.id)}
+                  className={`flex items-center gap-2 ${selectedCategoryId === category.id ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: category.color || "#3b82f6" }}
+                  />
+                  {category.name}
+                </Button>
+              ))}
+              <Button
+                variant={selectedCategoryId === "uncategorized" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategoryId("uncategorized")}
+                className={selectedCategoryId === "uncategorized" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+              >
+                Sem Categoria
+              </Button>
+            </div>
+          )}
         </div>
 
         {filteredItems.length === 0 ? (
@@ -498,8 +546,8 @@ export default function BibliotecaPublicaPage() {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t bg-white mt-16">
+      {/* Footer - Fixado na parte inferior */}
+      <div className="border-t bg-white mt-auto">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">

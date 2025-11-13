@@ -29,22 +29,32 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
     // Evitar recarregamento se já foi carregado (exceto quando forçado)
     if (!forceRefresh && hasLoadedProfile.current && profile) {
+      console.log('⏭️ [ProfileContext] Perfil já carregado, pulando...')
       return
     }
 
     try {
       setLoading(true)
+      console.log('📡 [ProfileContext] Buscando perfil da API...')
       
-      const response = await fetch('/api/profile', {
-        cache: 'no-store', // Garantir que sempre busca dados frescos
+      // Adicionar timestamp para evitar cache do navegador
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/profile?t=${timestamp}`, {
+        cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       })
       const result = await response.json()
 
       if (response.ok && result.success) {
-        console.log('✅ [ProfileContext] Perfil atualizado:', result.profile)
+        console.log('✅ [ProfileContext] Perfil carregado com sucesso:', {
+          id: result.profile.id,
+          full_name: result.profile.full_name,
+          avatar_url: result.profile.avatar_url ? 'Presente' : 'Ausente'
+        })
         setProfile(result.profile)
         setError(null)
         hasLoadedProfile.current = true
@@ -52,16 +62,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         throw new Error(result.error || 'Erro ao carregar perfil')
       }
     } catch (err) {
-      console.error('❌ [ProfileContext] Erro:', err)
+      console.error('❌ [ProfileContext] Erro ao carregar perfil:', err)
       
-      // Usar perfil básico em caso de erro
-      setProfile({
+      // Usar perfil básico em caso de erro (sem avatar)
+      const fallbackProfile = {
         id: user.id,
         email: user.email,
         full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+        avatar_url: user.user_metadata?.avatar_url || null,
         role: 'user',
         status: 'active'
-      })
+      }
+      console.log('⚠️ [ProfileContext] Usando perfil fallback:', fallbackProfile)
+      setProfile(fallbackProfile)
       hasLoadedProfile.current = true
     } finally {
       setLoading(false)
@@ -75,12 +88,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       return
     }
     
-    // Só carregar perfil se não tiver sido carregado ainda
-    if (user && !profile && !loading) {
+    // Carregar perfil quando o usuário mudar (novo login)
+    if (user && !profile) {
+      console.log('🔄 [ProfileContext] Novo usuário detectado, carregando perfil...')
+      hasLoadedProfile.current = false // Reset para permitir novo carregamento
       loadProfile()
     } else if (!user) {
+      console.log('👋 [ProfileContext] Usuário deslogado, limpando perfil...')
       setProfile(null)
       setLoading(false)
+      hasLoadedProfile.current = false
     }
   }, [user?.id, authLoading])
 

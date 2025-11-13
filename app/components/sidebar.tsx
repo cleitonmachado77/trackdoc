@@ -56,16 +56,27 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
 
   // ✅ Perfil com fallback imediato - não espera carregamento
   const displayProfile = useMemo(() => {
-    if (profile) return profile
+    if (profile) {
+      console.log('👤 [Sidebar] Usando perfil do contexto:', {
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url ? 'Presente' : 'Ausente'
+      })
+      return profile
+    }
     
     // Fallback imediato com dados do user
     if (user) {
-      return {
+      const fallback = {
         full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
         email: user.email,
         avatar_url: user.user_metadata?.avatar_url || null,
         role: 'user'
       }
+      console.log('👤 [Sidebar] Usando fallback do user:', {
+        full_name: fallback.full_name,
+        avatar_url: fallback.avatar_url ? 'Presente' : 'Ausente'
+      })
+      return fallback
     }
     
     return null

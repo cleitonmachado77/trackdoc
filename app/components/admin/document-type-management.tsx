@@ -96,7 +96,12 @@ export default function DocumentTypeManagement({
   }, [initialDocumentTypes])
 
   /* --------- DERIVADOS --------- */
-  const filteredTypes = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredTypes = React.useMemo(() => {
+    const filtered = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
+    console.log("🔍 [FILTER] documentTypes:", documentTypes.length, "tipos")
+    console.log("🔍 [FILTER] filteredTypes:", filtered.length, "tipos")
+    return filtered
+  }, [documentTypes, searchTerm])
 
   const stats = {
     total: documentTypes.length,
@@ -127,16 +132,32 @@ export default function DocumentTypeManagement({
         ? await updateDocumentType(typeData.id!, typeData)
         : await createDocumentType(typeData as Omit<DocumentType, "id">)
 
-      if (result.success) {
+      console.log("💾 [SAVE] Resultado:", result)
+      console.log("💾 [SAVE] result.success:", result.success)
+      console.log("💾 [SAVE] result.data:", result.data)
+      
+      if (result.success && result.data) {
+        console.log("💾 [SAVE] Atualizando estado local...")
+        
         // Atualizar estado local imediatamente
         if (isEditing) {
+          console.log("💾 [SAVE] Editando tipo existente")
           // Atualizar tipo existente
-          setDocumentTypes(prev => prev.map(t => 
-            t.id === typeData.id ? { ...t, ...result.data } : t
-          ))
+          setDocumentTypes(prev => {
+            const updated = prev.map(t => 
+              t.id === typeData.id ? { ...t, ...result.data } : t
+            )
+            console.log("💾 [SAVE] Estado atualizado (edição):", updated)
+            return updated
+          })
         } else {
+          console.log("💾 [SAVE] Adicionando novo tipo")
           // Adicionar novo tipo
-          setDocumentTypes(prev => [...prev, result.data])
+          setDocumentTypes(prev => {
+            const updated = [...prev, result.data]
+            console.log("💾 [SAVE] Estado atualizado (novo):", updated)
+            return updated
+          })
         }
         
         // Fechar modal
@@ -148,6 +169,7 @@ export default function DocumentTypeManagement({
           description: `O tipo foi ${isEditing ? 'atualizado' : 'criado'} com sucesso.`,
         })
       } else {
+        console.error("💾 [SAVE] Erro ou sem dados:", result)
         toast({
           title: "Erro",
           description: result.error || "Erro ao salvar tipo de documento",
@@ -189,15 +211,27 @@ export default function DocumentTypeManagement({
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
       
+      console.log("🗑️ [DELETE] Resultado:", result)
+      console.log("🗑️ [DELETE] result.success:", result.success)
+      console.log("🗑️ [DELETE] ID a remover:", typeToDeleteRef.id)
+      
       if (result.success) {
+        console.log("🗑️ [DELETE] Removendo do estado local...")
         // Remover do estado local imediatamente
-        setDocumentTypes(prev => prev.filter(t => t.id !== typeToDeleteRef.id))
+        setDocumentTypes(prev => {
+          const updated = prev.filter(t => t.id !== typeToDeleteRef.id)
+          console.log("🗑️ [DELETE] Estado antes:", prev.length, "tipos")
+          console.log("🗑️ [DELETE] Estado depois:", updated.length, "tipos")
+          console.log("🗑️ [DELETE] Estado atualizado:", updated)
+          return updated
+        })
         
         toast({
           title: "Tipo excluído",
           description: `O tipo "${typeToDeleteRef.name}" foi excluído com sucesso.`,
         })
       } else {
+        console.error("🗑️ [DELETE] Erro:", result.error)
         toast({
           title: "Erro ao excluir",
           description: result.error || "Erro ao excluir tipo de documento",

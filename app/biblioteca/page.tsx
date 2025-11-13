@@ -36,7 +36,8 @@ import {
   Upload,
   Search,
   FolderOpen,
-  Layers
+  Layers,
+  Loader2
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -99,22 +100,11 @@ export default function BibliotecaPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
 
-  // Form state
-  const [formData, setFormData] = useState({
-    source: "existing", // "existing" ou "new"
-    documentId: "",
-    title: "",
-    description: "",
-    categoryId: "",
-    isActive: true,
-  })
-  
-  // Bulk add state
+  // Simplified state
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
-  const [bulkCategoryId, setBulkCategoryId] = useState("")
-  
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState("")
   const [uploading, setUploading] = useState(false)
+  const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 
   useEffect(() => {
     loadUserEntity()
@@ -230,83 +220,73 @@ export default function BibliotecaPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!entityId) return
+  const handleAddDocuments = async () => {
+    if (!entityId || selectedDocuments.length === 0) {
+      toast({
+        title: "Atenção",
+        description: "Selecione pelo menos um documento",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       setUploading(true)
       const { data: { user } } = await supabase.auth.getUser()
-      
-      let insertData: any = {
+
+      // Buscar dados dos documentos selecionados
+      const { data: docs, error: docsError } = await supabase
+        .from("documents")
+        .select("*")
+        .in("id", selectedDocuments)
+
+      if (docsError) {
+        console.error("Erro ao buscar documentos:", docsError)
+        throw docsError
+      }
+
+      if (!docs || docs.length === 0) {
+        throw new Error("Nenhum documento encontrado")
+      }
+
+      // Preparar dados para inserção usando título e descrição originais
+      const insertData = docs.map(doc => ({
         entity_id: entityId,
-        title: formData.title,
-        description: formData.description,
-        category_id: formData.categoryId || null,
-        is_active: formData.isActive,
+        document_id: doc.id,
+        title: doc.title,
+        description: doc.description,
+        file_path: doc.file_path,
+        file_name: doc.file_name,
+        file_size: doc.file_size,
+        file_type: doc.file_type,
+        category_id: selectedCategoryId || null,
+        is_active: true,
         created_by: user?.id,
-      }
-
-      if (formData.source === "existing" && formData.documentId) {
-        // Buscar dados do documento existente
-        const { data: doc } = await supabase
-          .from("documents")
-          .select("*")
-          .eq("id", formData.documentId)
-          .single()
-
-        if (doc) {
-          insertData = {
-            ...insertData,
-            document_id: doc.id,
-            title: formData.title || doc.title,
-            description: formData.description || doc.description,
-            file_path: doc.file_path,
-            file_name: doc.file_name,
-            file_size: doc.file_size,
-            file_type: doc.file_type,
-          }
-        }
-      } else if (formData.source === "new" && uploadedFile) {
-        // Upload do novo arquivo
-        const fileExt = uploadedFile.name.split('.').pop()
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-        const filePath = `${entityId}/${fileName}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(filePath, uploadedFile)
-
-        if (uploadError) throw uploadError
-
-        insertData = {
-          ...insertData,
-          file_path: filePath,
-          file_name: uploadedFile.name,
-          file_size: uploadedFile.size,
-          file_type: uploadedFile.type,
-        }
-      }
+      }))
 
       const { error } = await supabase
         .from("public_library")
         .insert(insertData)
 
-      if (error) throw error
+      if (error) {
+        console.error("Erro ao inserir na biblioteca:", error)
+        throw error
+      }
 
       toast({
         title: "Sucesso",
-        description: "Item adicionado à biblioteca pública",
+        description: `${selectedDocuments.length} documento(s) adicionado(s) à biblioteca`,
       })
 
-      setIsDialogOpen(false)
-      resetForm()
+      setShowDocumentSelector(false)
+      setSelectedDocuments([])
+      setSelectedCategoryId("")
       loadLibraryItems()
     } catch (error: any) {
-      console.error("Erro ao adicionar item:", error)
+      console.error("Erro ao adicionar documentos:", error)
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível adicionar o item",
+        description: error.message || "Não foi possível adicionar os documentos",
         variant: "destructive",
       })
     } finally {
@@ -377,95 +357,6 @@ export default function BibliotecaPage() {
     })
   }
 
-  const handleBulkAdd = async () => {
-    if (!entityId || selectedDocuments.length === 0) {
-      toast({
-        title: "Atenção",
-        description: "Selecione pelo menos um documento",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      setUploading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-
-      // Buscar dados dos documentos selecionados
-      const { data: docs, error: docsError } = await supabase
-        .from("documents")
-        .select("*")
-        .in("id", selectedDocuments)
-
-      if (docsError) {
-        console.error("Erro ao buscar documentos:", docsError)
-        throw docsError
-      }
-
-      if (!docs || docs.length === 0) {
-        throw new Error("Nenhum documento encontrado")
-      }
-
-      // Preparar dados para inserção
-      const insertData = docs.map(doc => ({
-        entity_id: entityId,
-        document_id: doc.id,
-        title: doc.title,
-        description: doc.description,
-        file_path: doc.file_path,
-        file_name: doc.file_name,
-        file_size: doc.file_size,
-        file_type: doc.file_type,
-        category_id: bulkCategoryId || null,
-        is_active: true,
-        created_by: user?.id,
-      }))
-
-      console.log("Inserindo documentos:", insertData)
-
-      const { error } = await supabase
-        .from("public_library")
-        .insert(insertData)
-
-      if (error) {
-        console.error("Erro ao inserir na biblioteca:", error)
-        throw error
-      }
-
-      toast({
-        title: "Sucesso",
-        description: `${selectedDocuments.length} documento(s) adicionado(s) à biblioteca`,
-      })
-
-      setIsBulkDialogOpen(false)
-      setSelectedDocuments([])
-      setBulkCategoryId("")
-      loadLibraryItems()
-    } catch (error: any) {
-      console.error("Erro ao adicionar documentos:", error)
-      toast({
-        title: "Erro",
-        description: error.message || "Não foi possível adicionar os documentos",
-        variant: "destructive",
-      })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const resetForm = () => {
-    setFormData({
-      source: "existing",
-      documentId: "",
-      title: "",
-      description: "",
-      categoryId: "",
-      isActive: true,
-    })
-    setUploadedFile(null)
-    setSearchTerm("")
-  }
-
   const filteredDocuments = documents.filter(doc =>
     doc.title.toLowerCase().includes(searchTerm.toLowerCase())
   )
@@ -501,169 +392,29 @@ export default function BibliotecaPage() {
 
         <TabsContent value="documents" className="space-y-4">
           <div className="flex gap-2">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={showDocumentSelector} onOpenChange={setShowDocumentSelector}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Documento
+                  Adicionar Documentos
                 </Button>
               </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Adicionar à Biblioteca Pública</DialogTitle>
+              <DialogTitle>Adicionar Documentos à Biblioteca</DialogTitle>
               <DialogDescription>
-                Selecione um documento existente ou adicione informações de um novo
+                Selecione os documentos que deseja disponibilizar publicamente
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Fonte do Documento</Label>
-                <div className="flex gap-4">
-                  <Button
-                    type="button"
-                    variant={formData.source === "existing" ? "default" : "outline"}
-                    onClick={() => setFormData({ ...formData, source: "existing" })}
-                  >
-                    Documento Existente
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={formData.source === "new" ? "default" : "outline"}
-                    onClick={() => setFormData({ ...formData, source: "new" })}
-                  >
-                    Novo Documento
-                  </Button>
-                </div>
-              </div>
-
-              {formData.source === "existing" && (
-                <div className="space-y-2">
-                  <Label htmlFor="document">Selecionar Documento</Label>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Buscar documento..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <div className="border rounded-md max-h-48 overflow-y-auto">
-                      {filteredDocuments.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className={`p-3 cursor-pointer hover:bg-accent ${
-                            formData.documentId === doc.id ? "bg-accent" : ""
-                          }`}
-                          onClick={() => {
-                            setFormData({
-                              ...formData,
-                              documentId: doc.id,
-                              title: doc.title,
-                              description: doc.description || "",
-                            })
-                          }}
-                        >
-                          <div className="font-medium">{doc.title}</div>
-                          {doc.description && (
-                            <div className="text-sm text-muted-foreground">
-                              {doc.description}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {formData.source === "new" && (
-                <div className="space-y-2">
-                  <Label htmlFor="file">Upload de Arquivo</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary transition-colors">
-                    <input
-                      id="file"
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          setUploadedFile(file)
-                          if (!formData.title) {
-                            setFormData({
-                              ...formData,
-                              title: file.name.replace(/\.[^/.]+$/, "")
-                            })
-                          }
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor="file"
-                      className="cursor-pointer flex flex-col items-center gap-2"
-                    >
-                      <Upload className="h-10 w-10 text-muted-foreground" />
-                      {uploadedFile ? (
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-primary">
-                            {uploadedFile.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              setUploadedFile(null)
-                            }}
-                          >
-                            Remover arquivo
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium">
-                            Clique para selecionar um arquivo
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            PDF, DOC, XLS, PPT, TXT, JPG, PNG (máx. 50MB)
-                          </p>
-                        </div>
-                      )}
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.categoryId || "none"}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value === "none" ? "" : value })}
+                <Label>Categoria (opcional)</Label>
+                <Select 
+                  value={selectedCategoryId || "none"} 
+                  onValueChange={(value) => setSelectedCategoryId(value === "none" ? "" : value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria (opcional)" />
+                    <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem categoria</SelectItem>
@@ -682,159 +433,103 @@ export default function BibliotecaPage() {
                 </Select>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-                />
-                <Label htmlFor="isActive">Ativo na biblioteca</Label>
-              </div>
-
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={uploading || (formData.source === "new" && !uploadedFile)}>
-                  {uploading ? (
-                    <>
-                      <Upload className="h-4 w-4 mr-2 animate-spin" />
-                      Enviando...
-                    </>
-                  ) : (
-                    "Adicionar"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-          </Dialog>
-
-          <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Layers className="h-4 w-4 mr-2" />
-                Adicionar Múltiplos
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Adicionar Múltiplos Documentos</DialogTitle>
-                <DialogDescription>
-                  Selecione vários documentos para adicionar à biblioteca de uma vez
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Categoria (opcional)</Label>
-                  <Select 
-                    value={bulkCategoryId || "none"} 
-                    onValueChange={(value) => setBulkCategoryId(value === "none" ? "" : value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sem categoria</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: cat.color || "#3b82f6" }}
-                            />
-                            {cat.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Buscar documentos</Label>
+              <div className="space-y-2">
+                <Label>Buscar documentos</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Buscar..."
+                    placeholder="Buscar por título..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
                   />
                 </div>
+              </div>
 
-                <div className="border rounded-lg max-h-96 overflow-y-auto">
-                  {filteredDocuments.length === 0 ? (
-                    <div className="p-8 text-center text-muted-foreground">
-                      Nenhum documento encontrado
-                    </div>
-                  ) : (
-                    <div className="divide-y">
-                      {filteredDocuments.map((doc) => {
-                        const isInLibrary = items.some(item => item.document_id === doc.id)
-                        const isSelected = selectedDocuments.includes(doc.id)
-                        
-                        return (
-                          <div
-                            key={doc.id}
-                            className={`p-3 flex items-center gap-3 hover:bg-accent ${
-                              isInLibrary ? "opacity-50" : ""
-                            }`}
-                          >
-                            <Checkbox
-                              checked={isSelected}
-                              disabled={isInLibrary}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedDocuments([...selectedDocuments, doc.id])
-                                } else {
-                                  setSelectedDocuments(selectedDocuments.filter(id => id !== doc.id))
-                                }
-                              }}
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium">{doc.title}</div>
-                              {doc.description && (
-                                <div className="text-sm text-muted-foreground">
-                                  {doc.description}
-                                </div>
-                              )}
-                              {isInLibrary && (
-                                <Badge variant="secondary" className="mt-1">
-                                  Já na biblioteca
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">
-                    {selectedDocuments.length} documento(s) selecionado(s)
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setIsBulkDialogOpen(false)
-                        setSelectedDocuments([])
-                        setBulkCategoryId("")
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={handleBulkAdd}
-                      disabled={uploading || selectedDocuments.length === 0}
-                    >
-                      {uploading ? "Adicionando..." : `Adicionar ${selectedDocuments.length}`}
-                    </Button>
+              <div className="border rounded-lg max-h-96 overflow-y-auto">
+                {filteredDocuments.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Nenhum documento encontrado</p>
                   </div>
+                ) : (
+                  <div className="divide-y">
+                    {filteredDocuments.map((doc) => {
+                      const isInLibrary = items.some(item => item.document_id === doc.id)
+                      const isSelected = selectedDocuments.includes(doc.id)
+                      
+                      return (
+                        <div
+                          key={doc.id}
+                          className={`p-3 flex items-center gap-3 hover:bg-accent transition-colors ${
+                            isInLibrary ? "opacity-50" : ""
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            disabled={isInLibrary}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedDocuments([...selectedDocuments, doc.id])
+                              } else {
+                                setSelectedDocuments(selectedDocuments.filter(id => id !== doc.id))
+                              }
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium">{doc.title}</div>
+                            {doc.description && (
+                              <div className="text-sm text-muted-foreground line-clamp-2">
+                                {doc.description}
+                              </div>
+                            )}
+                            {isInLibrary && (
+                              <Badge variant="secondary" className="mt-1">
+                                Já na biblioteca
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  {selectedDocuments.length} documento(s) selecionado(s)
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowDocumentSelector(false)
+                      setSelectedDocuments([])
+                      setSelectedCategoryId("")
+                      setSearchTerm("")
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleAddDocuments}
+                    disabled={uploading || selectedDocuments.length === 0}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adicionando...
+                      </>
+                    ) : (
+                      `Adicionar ${selectedDocuments.length > 0 ? selectedDocuments.length : ''}`
+                    )}
+                  </Button>
                 </div>
               </div>
-            </DialogContent>
+            </div>
+          </DialogContent>
           </Dialog>
         </div>
 

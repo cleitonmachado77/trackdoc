@@ -462,7 +462,15 @@ export default function UserManagement() {
       </Card>
 
       {/* Modal de Edição de Usuário */}
-      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+      <Dialog 
+        open={showUserModal} 
+        onOpenChange={(open) => {
+          setShowUserModal(open)
+          if (!open) {
+            setSelectedUser(null)
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
@@ -596,7 +604,15 @@ export default function UserManagement() {
       </Dialog>
 
       {/* Confirmação de Exclusão */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog 
+        open={showDeleteConfirm} 
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open)
+          if (!open) {
+            setUserToDelete(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Suspender Usuário</AlertDialogTitle>

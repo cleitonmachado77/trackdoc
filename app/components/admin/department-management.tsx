@@ -379,7 +379,15 @@ export default function DepartmentManagement() {
       )}
 
       {/* Modal de formulário */}
-      <Dialog open={showDepartmentModal} onOpenChange={setShowDepartmentModal}>
+      <Dialog 
+        open={showDepartmentModal} 
+        onOpenChange={(open) => {
+          setShowDepartmentModal(open)
+          if (!open) {
+            setSelectedDepartment(null)
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -401,7 +409,15 @@ export default function DepartmentManagement() {
       </Dialog>
 
       {/* Dialog de confirmação para exclusão */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog 
+        open={showDeleteConfirm} 
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open)
+          if (!open) {
+            setDepartmentToDelete(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>

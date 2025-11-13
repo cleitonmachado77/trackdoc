@@ -389,7 +389,15 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
       )}
 
       {/* AlertDialog para confirmação de exclusão */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog 
+        open={showDeleteConfirm} 
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open)
+          if (!open) {
+            setCategoryToDelete(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>

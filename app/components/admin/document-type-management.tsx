@@ -281,7 +281,15 @@ export default function DocumentTypeManagement({
                   <List className="h-4 w-4" />
                 </Button>
               </div>
-              <Dialog open={showTypeModal} onOpenChange={setShowTypeModal}>
+              <Dialog 
+                open={showTypeModal} 
+                onOpenChange={(open) => {
+                  setShowTypeModal(open)
+                  if (!open) {
+                    setSelectedType(null)
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
                   <Button onClick={() => setSelectedType(null)} disabled={isSaving || isDeleting}>
                     {isSaving ? (
@@ -471,7 +479,15 @@ export default function DocumentTypeManagement({
         </Card>
       )}
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog 
+        open={showDeleteConfirm} 
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open)
+          if (!open) {
+            setTypeToDelete(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>

@@ -344,7 +344,15 @@ export function DepartmentEmployeesModal({
       </DialogContent>
 
       {/* Dialog de confirmação para remover funcionário */}
-      <AlertDialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+      <AlertDialog 
+        open={showRemoveConfirm} 
+        onOpenChange={(open) => {
+          setShowRemoveConfirm(open)
+          if (!open) {
+            setEmployeeToRemove(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover funcionário do departamento?</AlertDialogTitle>
@@ -368,7 +376,15 @@ export function DepartmentEmployeesModal({
       </AlertDialog>
 
       {/* Dialog de confirmação para atribuir gerente */}
-      <AlertDialog open={showManagerConfirm} onOpenChange={setShowManagerConfirm}>
+      <AlertDialog 
+        open={showManagerConfirm} 
+        onOpenChange={(open) => {
+          setShowManagerConfirm(open)
+          if (!open) {
+            setEmployeeToMakeManager(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Designar novo gerente?</AlertDialogTitle>

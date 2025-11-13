@@ -279,7 +279,15 @@ export default function CategoryManagement() {
                 </Button>
               </div>
             </div>
-            <Dialog open={showCategoryModal} onOpenChange={setShowCategoryModal}>
+            <Dialog 
+              open={showCategoryModal} 
+              onOpenChange={(open) => {
+                setShowCategoryModal(open)
+                if (!open) {
+                  setSelectedCategory(null)
+                }
+              }}
+            >
               <DialogTrigger asChild>
                 <Button onClick={() => setSelectedCategory(null)} disabled={isSubmitting || isDeleting}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -478,7 +486,15 @@ export default function CategoryManagement() {
       )}
 
       {/* AlertDialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog 
+        open={showDeleteConfirm} 
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open)
+          if (!open) {
+            setCategoryToDelete(null)
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>

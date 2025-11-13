@@ -386,6 +386,7 @@ export default function DepartmentManagement() {
             </DialogTitle>
           </DialogHeader>
           <DepartmentForm
+            key={selectedDepartment?.id || 'new'}
             department={selectedDepartment}
             users={users}
             usersLoading={usersLoading}
@@ -798,9 +799,11 @@ function DepartmentForm({
 
   const handleInputChange = useCallback((field: keyof DepartmentFormData) => 
     (value: string | boolean) => {
+      const newValue = field === 'status' ? (value ? 'active' : 'inactive') : value
+      
       setFormData(prev => ({
         ...prev,
-        [field]: field === 'status' ? (value ? 'active' : 'inactive') : value
+        [field]: newValue
       }))
     }, []
   )
@@ -810,7 +813,9 @@ function DepartmentForm({
     onSave(formData)
   }, [formData, onSave])
 
-  const isFormValid = formData.name.trim() && formData.manager_id
+  const isFormValid = useMemo(() => {
+    return !!(formData.name.trim() && formData.manager_id)
+  }, [formData.name, formData.manager_id])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -851,7 +856,8 @@ function DepartmentForm({
       <div className="space-y-2">
         <Label htmlFor="manager">Gerente *</Label>
         <Select 
-          value={formData.manager_id} 
+          key={`manager-${department?.id || 'new'}`}
+          value={formData.manager_id || undefined} 
           onValueChange={handleInputChange('manager_id')}
           disabled={usersLoading}
         >
@@ -896,8 +902,15 @@ function DepartmentForm({
 
       <div className="flex items-center space-x-2">
         <Switch
+          key={`status-${formData.status}`}
           checked={formData.status === "active"}
-          onCheckedChange={handleInputChange('status')}
+          onCheckedChange={(checked) => {
+            // Remover foco do switch
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur()
+            }
+            handleInputChange('status')(checked)
+          }}
           disabled={isSubmitting}
         />
         <Label className="text-sm">Departamento ativo</Label>

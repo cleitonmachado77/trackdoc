@@ -133,12 +133,108 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const signIn = async (email: string, password: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // Limpar completamente qualquer sessão anterior antes de tentar login
+      console.log('🧹 [Auth] Limpando sessão anterior...')
+      await supabase.auth.signOut({ scope: 'global' })
+      
+      // Limpar storage e estado
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+      }
+      setSession(null)
+      setUser(null)
+      
+      // Aguardar um pouco para garantir que a limpeza foi concluída
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    return { error }
+      if (error) return { error }
+
+      // Verificar se o usuário está ativo
+      if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', data.user.id)
+          .single()
+
+        if (profileError) {
+          console.error('Erro ao verificar status do usuário:', profileError)
+          // Fazer logout em caso de erro
+          await supabase.auth.signOut({ scope: 'global' })
+          return { error: profileError }
+        }
+
+        if (profile?.status === 'inactive') {
+          console.log('🚫 [Auth] Usuário inativo detectado, fazendo logout...')
+          // Fazer logout completo e limpar storage
+          await supabase.auth.signOut({ scope: 'global' })
+          
+          // Limpar estado local
+          setSession(null)
+          setUser(null)
+          
+          // Limpar storage local
+          if (typeof window !== 'undefined') {
+            localStorage.clear()
+            sessionStorage.clear()
+            
+            // Limpar cookies
+            document.cookie.split(";").forEach((c) => {
+              document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+            })
+          }
+          
+          return { 
+            error: { 
+              message: 'Sua conta está inativa. Entre em contato com o administrador.' 
+            } 
+          }
+        }
+
+        if (profile?.status === 'suspended') {
+          console.log('🚫 [Auth] Usuário suspenso detectado, fazendo logout...')
+          // Fazer logout completo e limpar storage
+          await supabase.auth.signOut({ scope: 'global' })
+          
+          // Limpar estado local
+          setSession(null)
+          setUser(null)
+          
+          // Limpar storage local
+          if (typeof window !== 'undefined') {
+            localStorage.clear()
+            sessionStorage.clear()
+            
+            // Limpar cookies
+            document.cookie.split(";").forEach((c) => {
+              document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+            })
+          }
+          
+          return { 
+            error: { 
+              message: 'Sua conta está suspensa. Entre em contato com o administrador.' 
+            } 
+          }
+        }
+      }
+
+      return { error }
+    } catch (err) {
+      console.error('Erro no signIn:', err)
+      return { error: { message: 'Erro ao fazer login' } }
+    }
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {

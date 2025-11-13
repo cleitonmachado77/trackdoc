@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Building2, Plus, Users, Settings, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Building2, Plus, Users, Settings, CheckCircle, AlertCircle, Loader2, Edit, Save, X } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function EntitiesAdminPage() {
   const { user } = useAuth()
@@ -16,6 +17,8 @@ export default function EntitiesAdminPage() {
   const [userEntity, setUserEntity] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -26,6 +29,19 @@ export default function EntitiesAdminPage() {
     cnpj: "",
     phone: "",
     description: ""
+  })
+
+  const [editForm, setEditForm] = useState({
+    name: "",
+    legalName: "",
+    cnpj: "",
+    phone: "",
+    description: "",
+    email: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: ""
   })
 
   const supabase = createBrowserClient(
@@ -67,6 +83,19 @@ export default function EntitiesAdminPage() {
 
         if (!entityError) {
           setUserEntity(entity)
+          // Preencher formulário de edição com dados atuais
+          setEditForm({
+            name: entity.name || "",
+            legalName: entity.legal_name || "",
+            cnpj: entity.cnpj || "",
+            phone: entity.phone || "",
+            description: entity.description || "",
+            email: entity.email || "",
+            address: entity.address || "",
+            city: entity.city || "",
+            state: entity.state || "",
+            zipCode: entity.zip_code || ""
+          })
         }
       }
 
@@ -170,6 +199,81 @@ export default function EntitiesAdminPage() {
     }
   }
 
+  const handleEditEntity = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editForm.name.trim()) {
+      setError('Nome da entidade é obrigatório')
+      return
+    }
+
+    if (!userEntity?.id) {
+      setError('Entidade não encontrada')
+      return
+    }
+
+    setIsSaving(true)
+    setError("")
+    setSuccess("")
+
+    try {
+      const { error: updateError } = await supabase
+        .from('entities')
+        .update({
+          name: editForm.name,
+          legal_name: editForm.legalName || editForm.name,
+          cnpj: editForm.cnpj || null,
+          email: editForm.email || null,
+          phone: editForm.phone || null,
+          description: editForm.description || null,
+          address: editForm.address || null,
+          city: editForm.city || null,
+          state: editForm.state || null,
+          zip_code: editForm.zipCode || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userEntity.id)
+
+      if (updateError) {
+        setError(`Erro ao atualizar entidade: ${updateError.message}`)
+        return
+      }
+
+      setSuccess('Dados da entidade atualizados com sucesso!')
+      setIsEditing(false)
+      
+      // Recarregar dados
+      await loadUserData()
+
+    } catch (err) {
+      console.error('Erro ao atualizar entidade:', err)
+      setError('Erro interno do servidor. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    // Restaurar dados originais
+    if (userEntity) {
+      setEditForm({
+        name: userEntity.name || "",
+        legalName: userEntity.legal_name || "",
+        cnpj: userEntity.cnpj || "",
+        phone: userEntity.phone || "",
+        description: userEntity.description || "",
+        email: userEntity.email || "",
+        address: userEntity.address || "",
+        city: userEntity.city || "",
+        state: userEntity.state || "",
+        zipCode: userEntity.zip_code || ""
+      })
+    }
+    setIsEditing(false)
+    setError("")
+    setSuccess("")
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -217,70 +321,270 @@ export default function EntitiesAdminPage() {
         </CardContent>
       </Card>
 
+      {/* Mensagens de feedback */}
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert className="border-green-200 bg-green-50 mb-6">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700">{success}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Se usuário já tem entidade */}
       {userEntity ? (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-green-600" />
-              Sua Entidade
-            </CardTitle>
-            <CardDescription>
-              Você é o administrador desta entidade
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-green-600" />
+                  Sua Entidade
+                </CardTitle>
+                <CardDescription>
+                  Você é o administrador desta entidade
+                </CardDescription>
+              </div>
+              {!isEditing && (
+                <Button onClick={() => setIsEditing(true)} variant="outline">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Dados
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Nome da Entidade</Label>
-                  <p className="text-xl font-semibold">{userEntity.name}</p>
+            {!isEditing ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Nome da Entidade</Label>
+                      <p className="text-xl font-semibold">{userEntity.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Razão Social</Label>
+                      <p className="text-lg">{userEntity.legal_name || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">CNPJ</Label>
+                      <p className="text-lg">{userEntity.cnpj || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Email</Label>
+                      <p className="text-lg">{userEntity.email || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Telefone</Label>
+                      <p className="text-lg">{userEntity.phone || 'Não informado'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Endereço</Label>
+                      <p className="text-lg">{userEntity.address || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Cidade</Label>
+                      <p className="text-lg">{userEntity.city || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Estado</Label>
+                      <p className="text-lg">{userEntity.state || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">CEP</Label>
+                      <p className="text-lg">{userEntity.zip_code || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Status</Label>
+                      <p className="text-lg">
+                        <span className="inline-flex items-center gap-1 text-green-600">
+                          <CheckCircle className="h-4 w-4" />
+                          Ativa
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Razão Social</Label>
-                  <p className="text-lg">{userEntity.legal_name || 'Não informado'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">CNPJ</Label>
-                  <p className="text-lg">{userEntity.cnpj || 'Não informado'}</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Telefone</Label>
-                  <p className="text-lg">{userEntity.phone || 'Não informado'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <p className="text-lg">
-                    <span className="inline-flex items-center gap-1 text-green-600">
-                      <CheckCircle className="h-4 w-4" />
-                      Ativa
-                    </span>
-                  </p>
-                </div>
-                <div>
+                
+                {userEntity.description && (
+                  <div className="mt-4">
+                    <Label className="text-sm font-medium text-gray-500">Descrição</Label>
+                    <p className="text-lg mt-1">{userEntity.description}</p>
+                  </div>
+                )}
+
+                <div className="mt-4">
                   <Label className="text-sm font-medium text-gray-500">Criada em</Label>
                   <p className="text-lg">
-                    {new Date(userEntity.created_at).toLocaleDateString('pt-BR')}
+                    {new Date(userEntity.created_at).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
                   </p>
                 </div>
-              </div>
-            </div>
-            
-            <div className="mt-6 pt-6 border-t">
-              <Button variant="outline" className="mr-3">
-                <Settings className="h-4 w-4 mr-2" />
-                Configurações
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => window.location.href = '/admin/users'}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Gerenciar Usuários
-              </Button>
-            </div>
+                
+                <div className="mt-6 pt-6 border-t">
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/admin/users'}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Gerenciar Usuários
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleEditEntity} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-name">Nome da Entidade *</Label>
+                    <Input
+                      id="edit-name"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Nome da entidade"
+                      disabled={isSaving}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-legalName">Razão Social</Label>
+                    <Input
+                      id="edit-legalName"
+                      value={editForm.legalName}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, legalName: e.target.value }))}
+                      placeholder="Razão social completa"
+                      disabled={isSaving}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-cnpj">CNPJ</Label>
+                    <Input
+                      id="edit-cnpj"
+                      value={editForm.cnpj}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, cnpj: e.target.value }))}
+                      placeholder="00.000.000/0000-00"
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-phone">Telefone</Label>
+                    <Input
+                      id="edit-phone"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="(11) 99999-9999"
+                      disabled={isSaving}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="contato@empresa.com"
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-address">Endereço</Label>
+                  <Input
+                    id="edit-address"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="Rua, número, complemento"
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="edit-city">Cidade</Label>
+                    <Input
+                      id="edit-city"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="São Paulo"
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-state">Estado</Label>
+                    <Input
+                      id="edit-state"
+                      value={editForm.state}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, state: e.target.value }))}
+                      placeholder="SP"
+                      maxLength={2}
+                      disabled={isSaving}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-zipCode">CEP</Label>
+                    <Input
+                      id="edit-zipCode"
+                      value={editForm.zipCode}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, zipCode: e.target.value }))}
+                      placeholder="00000-000"
+                      disabled={isSaving}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Descrição</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editForm.description}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Breve descrição da entidade"
+                    rows={3}
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Salvar Alterações
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       ) : (

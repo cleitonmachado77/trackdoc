@@ -43,10 +43,10 @@ export function useAuditLogger() {
             action: entry.action,
             user_id: user.id,
             entity_id: entityId,
-            resource_type: entry.resource_type,
-            resource_id: entry.resource_id,
-            details: entry.details || {},
-            severity: entry.severity || 'info',
+            table_name: entry.resource_type,
+            record_id: entry.resource_id,
+            new_values: entry.details || {},
+            old_values: null,
             ip_address: ipAddress,
             user_agent: navigator.userAgent,
             created_at: new Date().toISOString()
@@ -54,15 +54,16 @@ export function useAuditLogger() {
         
         console.log('Log de auditoria registrado:', entry.action)
       } catch (auditError) {
-        // Se a tabela não existir, registrar no console para desenvolvimento
-        console.log('Log de auditoria (tabela não encontrada):', {
+        // Se houver erro, registrar no console para desenvolvimento
+        console.log('Log de auditoria (erro ao salvar):', {
           action: entry.action,
           user: user.email,
           entity: entityId,
           resource: `${entry.resource_type}:${entry.resource_id}`,
           details: entry.details,
           severity: entry.severity || 'info',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          error: auditError
         })
       }
     } catch (error) {

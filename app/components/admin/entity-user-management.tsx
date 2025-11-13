@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -49,6 +49,8 @@ interface EntityUser {
   created_at: string
   phone?: string | null
   position?: string | null
+  updated_at?: string | null
+  avatar_url?: string | null
 }
 
 const getInitials = (fullName: string) => {
@@ -68,7 +70,7 @@ const roleColors = {
 
 const statusColors = {
   active: "bg-green-100 text-green-800",
-  inactive: "bg-blue-100 text-blue-800",
+  inactive: "bg-orange-100 text-orange-800",
   suspended: "bg-yellow-100 text-yellow-800",
 }
 
@@ -86,6 +88,7 @@ export default function EntityUserManagement() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showStatusModal, setShowStatusModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<EntityUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -152,7 +155,7 @@ export default function EntityUserManagement() {
       // Buscar usuários da entidade
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, entity_role, status, created_at, phone, position')
+        .select('id, full_name, email, entity_role, status, created_at, phone, position, avatar_url, updated_at')
         .eq('entity_id', profileData.entity_id)
         .order('created_at', { ascending: false })
 
@@ -262,6 +265,11 @@ export default function EntityUserManagement() {
     setShowDeleteModal(true)
   }
 
+  const openStatusModal = (user: EntityUser) => {
+    setSelectedUser(user)
+    setShowStatusModal(true)
+  }
+
   const updateUser = async () => {
     if (!selectedUser?.id || !entityInfo?.id) return
 
@@ -321,19 +329,74 @@ export default function EntityUserManagement() {
     }
   }
 
-  const deleteUser = async () => {
+  const toggleUserStatus = async () => {
     if (!selectedUser?.id) return
 
     try {
       setError('')
       setIsDeletingUser(true)
 
-      console.log('🗑️ [deleteUser] Excluindo usuário...')
+      // Verificar se não está tentando inativar a si mesmo
+      if (selectedUser.id === user?.id) {
+        setError('Você não pode alterar o status da sua própria conta')
+        return
+      }
+
+      const newStatus = selectedUser.status === 'active' ? 'inactive' : 'active'
+
+      // Atualizar status do usuário
+      // O campo updated_at será atualizado automaticamente pelo trigger
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          status: newStatus
+        })
+        .eq('id', selectedUser.id)
+
+      if (updateError) {
+        throw new Error(updateError.message)
+      }
+
+      const action = newStatus === 'inactive' ? 'inativado' : 'ativado'
+      setSuccess(`Usuário ${selectedUser.full_name} ${action} com sucesso!`)
+      setShowStatusModal(false)
+      setSelectedUser(null)
+
+      // Recarregar lista
+      await fetchEntityUsers()
+
+    } catch (err) {
+      console.error('Erro ao alterar status do usuário:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao alterar status do usuário')
+    } finally {
+      setIsDeletingUser(false)
+    }
+  }
+
+  const deleteUserPermanently = async () => {
+    if (!selectedUser?.id) return
+
+    try {
+      setError('')
+      setIsDeletingUser(true)
+
+      console.log('🗑️ [deleteUser] Excluindo usuário permanentemente...')
 
       // Verificar se não está tentando excluir a si mesmo
       if (selectedUser.id === user?.id) {
         setError('Você não pode excluir sua própria conta')
         return
+      }
+
+      // Verificar se passou 7 dias desde a última atualização (inativação)
+      if (selectedUser.status === 'inactive' && selectedUser.updated_at) {
+        const updatedDate = new Date(selectedUser.updated_at)
+        const daysSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24))
+        
+        if (daysSinceUpdate < 7) {
+          setError(`Este usuário só poderá ser excluído após ${7 - daysSinceUpdate} dia(s)`)
+          return
+        }
       }
 
       // Excluir usuário do profiles
@@ -346,9 +409,9 @@ export default function EntityUserManagement() {
         throw new Error(deleteError.message)
       }
 
-      console.log('✅ [deleteUser] Usuário excluído')
+      console.log('✅ [deleteUser] Usuário excluído permanentemente')
       
-      setSuccess(`Usuário ${selectedUser.full_name} excluído com sucesso!`)
+      setSuccess(`Usuário ${selectedUser.full_name} excluído permanentemente!`)
       setShowDeleteModal(false)
       setSelectedUser(null)
 
@@ -361,6 +424,24 @@ export default function EntityUserManagement() {
     } finally {
       setIsDeletingUser(false)
     }
+  }
+
+  const canDeleteUser = (user: EntityUser): boolean => {
+    if (user.status !== 'inactive' || !user.updated_at) return false
+    
+    const updatedDate = new Date(user.updated_at)
+    const daysSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    return daysSinceUpdate >= 7
+  }
+
+  const getDaysUntilDeletion = (user: EntityUser): number => {
+    if (!user.updated_at) return 0
+    
+    const updatedDate = new Date(user.updated_at)
+    const daysSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    return Math.max(0, 7 - daysSinceUpdate)
   }
 
   const createUser = async () => {
@@ -616,7 +697,8 @@ export default function EntityUserManagement() {
               {filteredUsers.map((entityUser) => (
                 <div key={entityUser.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex items-center space-x-4">
-                    <Avatar>
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={entityUser.avatar_url || undefined} alt={entityUser.full_name || 'Avatar'} />
                       <AvatarFallback>{getInitials(entityUser.full_name || 'U')}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -630,8 +712,16 @@ export default function EntityUserManagement() {
                           {roleLabels[entityUser.entity_role]}
                         </Badge>
                         <Badge className={statusColors[entityUser.status]}>
-                          {entityUser.status === 'active' ? 'Ativo' :
-                            entityUser.status === 'inactive' ? 'Inativo' : 'Suspenso'}
+                          {entityUser.status === 'active' ? (
+                            'Ativo'
+                          ) : entityUser.status === 'inactive' ? (
+                            <span className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Inativo
+                            </span>
+                          ) : (
+                            'Suspenso'
+                          )}
                         </Badge>
                       </div>
                     </div>
@@ -651,12 +741,35 @@ export default function EntityUserManagement() {
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => openDeleteModal(entityUser)}
-                          className="text-red-600"
+                          onClick={() => openStatusModal(entityUser)}
+                          className={entityUser.status === 'active' ? 'text-orange-600' : 'text-green-600'}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
+                          {entityUser.status === 'active' ? (
+                            <>
+                              <X className="h-4 w-4 mr-2" />
+                              Inativar
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Ativar
+                            </>
+                          )}
                         </DropdownMenuItem>
+                        {canDeleteUser(entityUser) && (
+                          <DropdownMenuItem 
+                            onClick={() => openDeleteModal(entityUser)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir Permanentemente
+                          </DropdownMenuItem>
+                        )}
+                        {entityUser.status === 'inactive' && !canDeleteUser(entityUser) && (
+                          <DropdownMenuItem disabled className="text-gray-400 text-xs">
+                            Exclusão disponível em {getDaysUntilDeletion(entityUser)} dia(s)
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
@@ -892,11 +1005,89 @@ export default function EntityUserManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Confirmação de Exclusão */}
+      {/* Modal de Confirmação de Mudança de Status */}
+      <Dialog open={showStatusModal} onOpenChange={setShowStatusModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedUser?.status === 'active' ? 'Inativar Usuário' : 'Ativar Usuário'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedUser?.status === 'active' 
+                ? 'O usuário não poderá mais acessar a plataforma.'
+                : 'O usuário poderá acessar a plataforma novamente.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert className={selectedUser?.status === 'active' ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}>
+              <AlertCircle className={`h-4 w-4 ${selectedUser?.status === 'active' ? 'text-orange-600' : 'text-green-600'}`} />
+              <AlertDescription className={selectedUser?.status === 'active' ? 'text-orange-700' : 'text-green-700'}>
+                {selectedUser?.status === 'active' ? (
+                  <>
+                    Você está prestes a <strong>inativar</strong> o usuário <strong>{selectedUser?.full_name}</strong>.
+                    <br /><br />
+                    • O usuário não poderá fazer login
+                    <br />
+                    • Todas as ações na plataforma serão bloqueadas
+                    <br />
+                    • Após 7 dias, será possível excluir permanentemente
+                  </>
+                ) : (
+                  <>
+                    Você está prestes a <strong>ativar</strong> o usuário <strong>{selectedUser?.full_name}</strong>.
+                    <br /><br />
+                    • O usuário poderá fazer login novamente
+                    <br />
+                    • Todas as permissões serão restauradas
+                  </>
+                )}
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowStatusModal(false)
+                  setSelectedUser(null)
+                }}
+                disabled={isDeletingUser}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant={selectedUser?.status === 'active' ? 'default' : 'default'}
+                className={selectedUser?.status === 'active' ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}
+                onClick={toggleUserStatus}
+                disabled={isDeletingUser}
+              >
+                {isDeletingUser ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : selectedUser?.status === 'active' ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Inativar Usuário
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Ativar Usuário
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Exclusão Permanente */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogTitle>Confirmar Exclusão Permanente</DialogTitle>
             <DialogDescription>
               Esta ação não pode ser desfeita.
             </DialogDescription>
@@ -905,8 +1096,13 @@ export default function EntityUserManagement() {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Você está prestes a excluir o usuário <strong>{selectedUser?.full_name}</strong>.
-                Todos os dados associados a este usuário serão removidos permanentemente.
+                Você está prestes a <strong>excluir permanentemente</strong> o usuário <strong>{selectedUser?.full_name}</strong>.
+                <br /><br />
+                • Todos os dados serão removidos permanentemente
+                <br />
+                • Esta ação não pode ser desfeita
+                <br />
+                • O usuário não poderá ser recuperado
               </AlertDescription>
             </Alert>
             
@@ -923,7 +1119,7 @@ export default function EntityUserManagement() {
               </Button>
               <Button
                 variant="destructive"
-                onClick={deleteUser}
+                onClick={deleteUserPermanently}
                 disabled={isDeletingUser}
               >
                 {isDeletingUser ? (
@@ -934,7 +1130,7 @@ export default function EntityUserManagement() {
                 ) : (
                   <>
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir Usuário
+                    Excluir Permanentemente
                   </>
                 )}
               </Button>

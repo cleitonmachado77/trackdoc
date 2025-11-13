@@ -61,21 +61,29 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       } else {
         throw new Error(result.error || 'Erro ao carregar perfil')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ [ProfileContext] Erro ao carregar perfil:', err)
       
-      // Usar perfil básico em caso de erro (sem avatar)
-      const fallbackProfile = {
-        id: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-        avatar_url: user.user_metadata?.avatar_url || null,
-        role: 'user',
-        status: 'active'
+      // Se for erro de autenticação, não usar fallback
+      if (err.message?.includes('Usuário não autenticado') || err.message?.includes('Auth session missing')) {
+        console.log('🚫 [ProfileContext] Erro de autenticação, limpando perfil...')
+        setProfile(null)
+        hasLoadedProfile.current = false
+        setError('Sessão expirada')
+      } else {
+        // Usar perfil básico apenas para outros erros (sem usar user_metadata antigo)
+        const fallbackProfile = {
+          id: user.id,
+          email: user.email,
+          full_name: user.email?.split('@')[0] || 'Usuário',
+          avatar_url: null,
+          role: 'user',
+          status: 'active'
+        }
+        console.log('⚠️ [ProfileContext] Usando perfil fallback mínimo:', fallbackProfile)
+        setProfile(fallbackProfile)
+        hasLoadedProfile.current = true
       }
-      console.log('⚠️ [ProfileContext] Usando perfil fallback:', fallbackProfile)
-      setProfile(fallbackProfile)
-      hasLoadedProfile.current = true
     } finally {
       setLoading(false)
     }
@@ -89,10 +97,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     }
     
     // Carregar perfil quando o usuário mudar (novo login)
-    if (user && !profile) {
-      console.log('🔄 [ProfileContext] Novo usuário detectado, carregando perfil...')
-      hasLoadedProfile.current = false // Reset para permitir novo carregamento
-      loadProfile()
+    if (user) {
+      // Se o ID do usuário mudou, limpar perfil anterior
+      if (profile && profile.id !== user.id) {
+        console.log('🔄 [ProfileContext] Usuário diferente detectado, limpando perfil anterior...')
+        setProfile(null)
+        hasLoadedProfile.current = false
+      }
+      
+      if (!profile || profile.id !== user.id) {
+        console.log('🔄 [ProfileContext] Carregando perfil do novo usuário...')
+        hasLoadedProfile.current = false // Reset para permitir novo carregamento
+        loadProfile()
+      }
     } else if (!user) {
       console.log('👋 [ProfileContext] Usuário deslogado, limpando perfil...')
       setProfile(null)

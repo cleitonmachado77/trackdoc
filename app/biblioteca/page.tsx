@@ -168,25 +168,11 @@ export default function BibliotecaPage() {
     try {
       console.log('📚 [BIBLIOTECA] Carregando documentos para entity_id:', entityId)
       
-      // Debug: buscar todos os documentos para ver o que está sendo filtrado
-      const { data: allDocs } = await supabase
-        .from("documents")
-        .select("id, title, status")
-        .eq("entity_id", entityId)
-      
-      console.log('🔍 [BIBLIOTECA DEBUG] Total de documentos na entidade:', allDocs?.length || 0)
-      console.log('🔍 [BIBLIOTECA DEBUG] Status dos documentos:', 
-        allDocs?.reduce((acc: any, doc: any) => {
-          acc[doc.status] = (acc[doc.status] || 0) + 1
-          return acc
-        }, {})
-      )
-      
       const { data, error } = await supabase
         .from("documents")
         .select("id, title, description, file_name, file_type, status")
         .eq("entity_id", entityId)
-        .eq("status", "approved")
+        .in("status", ["approved", "draft", "pending_approval"])
         .order("title")
 
       if (error) {
@@ -194,7 +180,7 @@ export default function BibliotecaPage() {
         throw error
       }
       
-      console.log('✅ [BIBLIOTECA] Documentos aprovados carregados:', data?.length || 0)
+      console.log('✅ [BIBLIOTECA] Documentos carregados:', data?.length || 0)
       
       setDocuments(data || [])
     } catch (error) {
@@ -464,6 +450,22 @@ export default function BibliotecaPage() {
                       const isInLibrary = items.some(item => item.document_id === doc.id)
                       const isSelected = selectedDocuments.includes(doc.id)
                       
+                      const statusColors: Record<string, string> = {
+                        approved: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+                        draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+                        pending_approval: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+                        rejected: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+                        archived: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      }
+                      
+                      const statusLabels: Record<string, string> = {
+                        approved: "Aprovado",
+                        draft: "Rascunho",
+                        pending_approval: "Pendente",
+                        rejected: "Rejeitado",
+                        archived: "Arquivado"
+                      }
+                      
                       return (
                         <div
                           key={doc.id}
@@ -483,7 +485,17 @@ export default function BibliotecaPage() {
                             }}
                           />
                           <div className="flex-1">
-                            <div className="font-medium">{doc.title}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium">{doc.title}</div>
+                              {(doc as any).status && (
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-xs ${statusColors[(doc as any).status] || ""}`}
+                                >
+                                  {statusLabels[(doc as any).status] || (doc as any).status}
+                                </Badge>
+                              )}
+                            </div>
                             {doc.description && (
                               <div className="text-sm text-muted-foreground line-clamp-2">
                                 {doc.description}

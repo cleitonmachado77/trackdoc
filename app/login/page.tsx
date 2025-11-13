@@ -85,7 +85,9 @@ export default function LoginPage() {
         
         // Redirecionar diretamente para o dashboard após login bem-sucedido
         console.log('Login bem-sucedido, redirecionando para dashboard...')
-        router.push("/")
+        
+        // Forçar reload completo da página para limpar qualquer cache
+        window.location.href = "/"
       }
     } catch (err) {
       setError("Erro interno do servidor. Tente novamente.")

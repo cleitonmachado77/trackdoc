@@ -153,6 +153,10 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
           <Switch
             checked={retentionEnabled}
             onCheckedChange={(checked) => {
+              // Remover foco do switch
+              if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur()
+              }
               setRetentionEnabled(checked)
               if (!checked) {
                 setFormData((prev) => ({ ...prev, retentionPeriod: null }))
@@ -195,7 +199,13 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
       <div className="flex items-center space-x-2">
         <Switch
           checked={formData.approvalRequired || false}
-          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, approvalRequired: checked }))}
+          onCheckedChange={(checked) => {
+            // Remover foco do switch
+            if (document.activeElement instanceof HTMLElement) {
+              document.activeElement.blur()
+            }
+            setFormData((prev) => ({ ...prev, approvalRequired: checked }))
+          }}
         />
         <Label>Aprovação obrigatória</Label>
       </div>

@@ -124,6 +124,9 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
     try {
       setLoading(true)
 
+      // Buscar informações de autenticação do usuário
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+
       // Primeiro buscar o perfil
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -132,6 +135,11 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
         .single()
 
       if (profileError) throw profileError
+
+      // Atualizar last_login com o dado do auth se disponível
+      if (authUser?.last_sign_in_at) {
+        profileData.last_login = authUser.last_sign_in_at
+      }
 
       // Depois buscar a entidade se existir
       let entityData = null

@@ -89,11 +89,18 @@ export default function DocumentTypeManagement({
 
   // Estado local para gerenciar os tipos de documentos
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
+  const [renderKey, setRenderKey] = useState(0)
 
   // Atualizar quando initialDocumentTypes mudar
   React.useEffect(() => {
+    console.log("🔄 [EFFECT] initialDocumentTypes mudou:", initialDocumentTypes.length)
     setDocumentTypes(initialDocumentTypes)
   }, [initialDocumentTypes])
+
+  // Log do render
+  console.log("🎨 [RENDER] Componente renderizando...")
+  console.log("🎨 [RENDER] documentTypes:", documentTypes.length)
+  console.log("🎨 [RENDER] renderKey:", renderKey)
 
   /* --------- DERIVADOS --------- */
   const filteredTypes = React.useMemo(() => {
@@ -155,10 +162,16 @@ export default function DocumentTypeManagement({
           // Adicionar novo tipo
           setDocumentTypes(prev => {
             const updated = [...prev, result.data]
+            console.log("💾 [SAVE] Estado antes:", prev.length, "tipos")
+            console.log("💾 [SAVE] Estado depois:", updated.length, "tipos")
             console.log("💾 [SAVE] Estado atualizado (novo):", updated)
             return updated
           })
         }
+        
+        // Forçar re-render
+        setRenderKey(prev => prev + 1)
+        console.log("💾 [SAVE] Re-render forçado")
         
         // Fechar modal
         setShowTypeModal(false)
@@ -222,9 +235,15 @@ export default function DocumentTypeManagement({
           const updated = prev.filter(t => t.id !== typeToDeleteRef.id)
           console.log("🗑️ [DELETE] Estado antes:", prev.length, "tipos")
           console.log("🗑️ [DELETE] Estado depois:", updated.length, "tipos")
+          console.log("🗑️ [DELETE] IDs antes:", prev.map(t => t.id))
+          console.log("🗑️ [DELETE] IDs depois:", updated.map(t => t.id))
           console.log("🗑️ [DELETE] Estado atualizado:", updated)
           return updated
         })
+        
+        // Forçar re-render
+        setRenderKey(prev => prev + 1)
+        console.log("🗑️ [DELETE] Re-render forçado")
         
         toast({
           title: "Tipo excluído",
@@ -356,9 +375,9 @@ export default function DocumentTypeManagement({
 
       {viewMode === "grid" ? (
         /* Document Types Grid */
-        <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6" key={`grid-${renderKey}`}>
           {filteredTypes.map((type) => (
-            <Card key={type.id}>
+            <Card key={`${type.id}-${renderKey}`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -447,7 +466,7 @@ export default function DocumentTypeManagement({
           <CardContent className="p-0">
             <div className="space-y-0">
               {filteredTypes.map((type, index) => (
-                <div key={type.id} className={`p-4 ${index !== filteredTypes.length - 1 ? "border-b" : ""}`}>
+                <div key={`${type.id}-${renderKey}`} className={`p-4 ${index !== filteredTypes.length - 1 ? "border-b" : ""}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
                       <div

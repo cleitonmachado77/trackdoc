@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import { useProfile } from "@/app/components/profile-context"
 import { useToast } from "@/hooks/use-toast"
 import { createBrowserClient } from "@supabase/ssr"
 import { Button } from "@/components/ui/button"
@@ -81,6 +82,7 @@ interface MinhaContaPageProps {
 
 export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
   const { user } = useAuth()
+  const { refreshProfile } = useProfile()
   const { toast } = useToast()
 
   // Estados para perfil
@@ -208,6 +210,9 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
 
       setProfile({ ...profile!, ...editedProfile })
       setEditing(false)
+
+      // Atualizar o contexto global do perfil para refletir na sidebar
+      await refreshProfile()
 
       toast({
         title: "Perfil atualizado",
@@ -337,6 +342,9 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
       setProfile({ ...profile!, avatar_url: publicUrl })
       setAvatarPreview(null)
 
+      // Atualizar o contexto global do perfil para refletir na sidebar
+      await refreshProfile()
+
       toast({
         title: "Foto atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso.",
@@ -386,6 +394,9 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
 
       // Atualizar estado local
       setProfile({ ...profile, avatar_url: null })
+
+      // Atualizar o contexto global do perfil para refletir na sidebar
+      await refreshProfile()
 
       toast({
         title: "Foto removida",

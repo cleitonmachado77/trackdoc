@@ -28,16 +28,7 @@ import {
   Palette,
 } from "lucide-react"
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+
 
 // 🎨 Opções de cores baseadas no novo design
 const colorOptions = [
@@ -130,59 +121,50 @@ export default function CategoryManagement() {
   }
 
   const handleDeleteCategory = async () => {
+    console.log('[DEBUG] handleDeleteCategory iniciado', { categoryToDelete })
     if (!categoryToDelete) return
     
     // Verificar se há documentos vinculados ANTES de tentar excluir
     if (categoryToDelete.document_count && categoryToDelete.document_count > 0) {
-      // Fechar o modal primeiro
+      console.log('[DEBUG] Categoria tem documentos vinculados, fechando modal')
       setShowDeleteConfirm(false)
-      
-      // Aguardar um momento para o modal fechar
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
+      setCategoryToDelete(null)
+      console.log('[DEBUG] Mostrando toast de erro')
       toast({
         title: "Não é possível excluir",
         description: `Esta categoria possui ${categoryToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir a categoria.`,
         variant: "destructive",
       })
-      
-      // Limpar o estado
-      setCategoryToDelete(null)
+      console.log('[DEBUG] handleDeleteCategory finalizado (com documentos)')
       return
     }
     
+    console.log('[DEBUG] Iniciando exclusão')
     setIsDeleting(true)
     try {
+      console.log('[DEBUG] Chamando deleteCategory')
       await deleteCategory(categoryToDelete.id)
-      
-      // Fechar o modal primeiro
+      console.log('[DEBUG] deleteCategory concluído, fechando modal')
       setShowDeleteConfirm(false)
       setCategoryToDelete(null)
-      
-      // Aguardar um momento
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
+      console.log('[DEBUG] Mostrando toast de sucesso')
       toast({
         title: "Categoria excluída",
         description: "A categoria foi excluída com sucesso.",
       })
+      console.log('[DEBUG] handleDeleteCategory finalizado (sucesso)')
     } catch (error) {
-      // Fechar o modal primeiro
+      console.log('[DEBUG] Erro ao excluir:', error)
       setShowDeleteConfirm(false)
       setCategoryToDelete(null)
-      
-      // Aguardar um momento
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir a categoria.",
         variant: "destructive",
       })
+      console.log('[DEBUG] handleDeleteCategory finalizado (erro)')
     } finally {
+      console.log('[DEBUG] Resetando isDeleting')
       setIsDeleting(false)
     }
   }
@@ -507,68 +489,71 @@ export default function CategoryManagement() {
         </div>
       )}
 
-      {/* AlertDialog */}
-      <AlertDialog 
-        open={showDeleteConfirm} 
-        onOpenChange={(open) => {
-          setShowDeleteConfirm(open)
-          if (!open) {
-            setCategoryToDelete(null)
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 
-                ? "Não é possível excluir esta categoria" 
-                : "Tem certeza que deseja excluir esta categoria?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? (
-                <>
-                  A categoria <span className="font-semibold">{categoryToDelete?.name}</span> possui{" "}
-                  <span className="font-semibold text-red-600">{categoryToDelete.document_count} documento(s) vinculado(s)</span>.
-                  <br /><br />
-                  Para excluir esta categoria, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ela.
-                </>
-              ) : (
-                <>
-                  Esta ação não pode ser desfeita. Isso removerá permanentemente a categoria{" "}
-                  <span className="font-semibold">{categoryToDelete?.name}</span> e todos os seus dados associados.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              disabled={isDeleting}
-              onClick={() => {
-                setShowDeleteConfirm(false)
-                setCategoryToDelete(null)
-              }}
-            >
-              {categoryToDelete?.document_count && categoryToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
-            </AlertDialogCancel>
-            {(!categoryToDelete?.document_count || categoryToDelete.document_count === 0) && (
-              <AlertDialogAction 
-                onClick={handleDeleteCategory} 
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {isDeleting ? (
+      {/* Dialog de Confirmação */}
+      {showDeleteConfirm && categoryToDelete && (
+        <Dialog 
+          open={showDeleteConfirm} 
+          onOpenChange={(open) => {
+            if (!open && !isDeleting) {
+              setShowDeleteConfirm(false)
+              setCategoryToDelete(null)
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {categoryToDelete.document_count && categoryToDelete.document_count > 0 
+                  ? "Não é possível excluir esta categoria" 
+                  : "Tem certeza que deseja excluir esta categoria?"}
+              </DialogTitle>
+              <DialogDescription>
+                {categoryToDelete.document_count && categoryToDelete.document_count > 0 ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Excluindo...
+                    A categoria <span className="font-semibold">{categoryToDelete.name}</span> possui{" "}
+                    <span className="font-semibold text-red-600">{categoryToDelete.document_count} documento(s) vinculado(s)</span>.
+                    <br /><br />
+                    Para excluir esta categoria, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ela.
                   </>
                 ) : (
-                  'Excluir'
+                  <>
+                    Esta ação não pode ser desfeita. Isso removerá permanentemente a categoria{" "}
+                    <span className="font-semibold">{categoryToDelete.name}</span> e todos os seus dados associados.
+                  </>
                 )}
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setCategoryToDelete(null)
+                }}
+                disabled={isDeleting}
+              >
+                {categoryToDelete.document_count && categoryToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
+              </Button>
+              {(!categoryToDelete.document_count || categoryToDelete.document_count === 0) && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteCategory}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Excluindo...
+                    </>
+                  ) : (
+                    'Excluir'
+                  )}
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

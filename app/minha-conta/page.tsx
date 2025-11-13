@@ -455,6 +455,65 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
     }
   }
 
+  const getUserRoleDescription = () => {
+    // Priorizar entity_role se existir
+    if (profile?.entity_role === 'admin') {
+      return {
+        badge: <Badge className="bg-blue-100 text-blue-800 border-blue-200">Administrador da Entidade</Badge>,
+        description: 'Você tem permissões administrativas completas na sua entidade'
+      }
+    }
+    
+    if (profile?.entity_role === 'manager') {
+      return {
+        badge: <Badge className="bg-orange-100 text-orange-800 border-orange-200">Gerente</Badge>,
+        description: 'Você pode gerenciar documentos e usuários do seu departamento'
+      }
+    }
+    
+    if (profile?.entity_role === 'user') {
+      return {
+        badge: <Badge className="bg-gray-100 text-gray-800 border-gray-200">Usuário</Badge>,
+        description: 'Você pode visualizar e gerenciar seus próprios documentos'
+      }
+    }
+
+    // Fallback para role do sistema
+    if (profile?.role === 'super_admin') {
+      return {
+        badge: <Badge className="bg-purple-100 text-purple-800 border-purple-200">Super Administrador</Badge>,
+        description: 'Você tem acesso total ao sistema'
+      }
+    }
+
+    if (profile?.role === 'admin') {
+      return {
+        badge: <Badge className="bg-blue-100 text-blue-800 border-blue-200">Administrador</Badge>,
+        description: 'Você tem permissões administrativas no sistema'
+      }
+    }
+
+    // Verificar registration_type como último recurso
+    if (profile?.registration_type === 'entity_admin') {
+      return {
+        badge: <Badge className="bg-blue-100 text-blue-800 border-blue-200">Administrador da Entidade</Badge>,
+        description: 'Você criou e administra esta entidade'
+      }
+    }
+
+    if (profile?.registration_type === 'individual') {
+      return {
+        badge: <Badge className="bg-green-100 text-green-800 border-green-200">Usuário Individual</Badge>,
+        description: 'Você usa o sistema de forma independente'
+      }
+    }
+
+    return {
+      badge: <Badge variant="outline">Usuário</Badge>,
+      description: 'Acesso padrão ao sistema'
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -480,20 +539,21 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6 space-y-4">
-        <Button
-          variant="outline"
-          onClick={onBack || (() => window.location.href = '/?view=admin')}
-          className="flex items-center gap-2"
-        >
-          Voltar ao Início
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
-          <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
+    <div className="w-full h-full overflow-auto bg-gray-50">
+      <div className="container mx-auto p-6">
+        <div className="mb-6 space-y-4">
+          <Button
+            variant="outline"
+            onClick={onBack || (() => window.location.href = '/?view=admin')}
+            className="flex items-center gap-2"
+          >
+            Voltar ao Início
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
+            <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
+          </div>
         </div>
-      </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
@@ -758,15 +818,23 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Função</Label>
-                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                    <UserCheck className="h-4 w-4 text-gray-500" />
-                    {getRoleBadge(profile.role)}
+              {/* Papel do Usuário - Destaque */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="flex-1">
+                    <Label className="text-base font-semibold text-blue-900">Seu Papel no Sistema</Label>
+                    <div className="mt-2 flex items-center gap-2">
+                      {getUserRoleDescription().badge}
+                    </div>
+                    <p className="text-sm text-blue-700 mt-2">
+                      {getUserRoleDescription().description}
+                    </p>
                   </div>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Entidade</Label>
                   <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
@@ -777,7 +845,6 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
                        (profile.entity_id ? `Entidade ID: ${profile.entity_id}` : 'Usuário Individual')}
                     </span>
                   </div>
-
                 </div>
 
                 <div className="space-y-2">
@@ -785,18 +852,6 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
                   <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                     <MapPin className="h-4 w-4 text-gray-500" />
                     <span>{profile.department?.name || 'N/A'}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Tipo de Registro</Label>
-                  <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                    <UserCheck className="h-4 w-4 text-gray-500" />
-                    <Badge variant="outline">
-                      {profile.registration_type === 'individual' ? 'Individual' :
-                        profile.registration_type === 'entity_admin' ? 'Admin da Entidade' :
-                          profile.registration_type === 'entity_user' ? 'Usuário da Entidade' : 'N/A'}
-                    </Badge>
                   </div>
                 </div>
 
@@ -933,6 +988,7 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }

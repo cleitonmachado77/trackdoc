@@ -39,7 +39,8 @@ import {
   Camera,
   Upload,
   Trash2,
-  Image
+  Image,
+  ArrowLeft
 } from "lucide-react"
 
 const supabase = createBrowserClient(
@@ -564,6 +565,7 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
             onClick={onBack || (() => window.location.href = '/?view=admin')}
             className="flex items-center gap-2"
           >
+            <ArrowLeft className="h-4 w-4" />
             Voltar ao Início
           </Button>
           <div>

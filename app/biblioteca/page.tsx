@@ -379,13 +379,19 @@ export default function BibliotecaPage() {
       </div>
 
       <Tabs defaultValue="documents" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="documents">
-            <FileText className="h-4 w-4 mr-2" />
+        <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+          <TabsTrigger 
+            value="documents"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+          >
+            <FileText className="h-4 w-4" />
             Documentos
           </TabsTrigger>
-          <TabsTrigger value="categories">
-            <FolderOpen className="h-4 w-4 mr-2" />
+          <TabsTrigger 
+            value="categories"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+          >
+            <FolderOpen className="h-4 w-4" />
             Categorias
           </TabsTrigger>
         </TabsList>

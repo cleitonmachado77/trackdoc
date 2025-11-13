@@ -8,16 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+
 import { createDocumentType, updateDocumentType, deleteDocumentType } from "@/app/admin/actions"
 import DocumentTypeForm from "./document-type-form"
 import {
@@ -166,21 +157,13 @@ export default function DocumentTypeManagement({
 
     // Verificar se há documentos vinculados ANTES de tentar excluir
     if (typeToDelete.documentsCount && typeToDelete.documentsCount > 0) {
-      // Fechar o modal primeiro
       setShowDeleteConfirm(false)
-      
-      // Aguardar um momento para o modal fechar
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
+      setTypeToDelete(null)
       toast({
         title: "Não é possível excluir",
         description: `Este tipo de documento possui ${typeToDelete.documentsCount} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir o tipo.`,
         variant: "destructive",
       })
-      
-      // Limpar o estado
-      setTypeToDelete(null)
       return
     }
 
@@ -189,27 +172,17 @@ export default function DocumentTypeManagement({
     setIsDeleting(true)
     
     try {
-      // Executar exclusão no servidor
       const result = await deleteDocumentType(typeToDeleteRef.id)
-      
-      // Fechar modal primeiro
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
       
-      // Aguardar um momento
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
       if (result.success) {
-        // Mostrar o toast
         toast({
           title: "Tipo excluído",
           description: `O tipo "${typeToDeleteRef.name}" foi excluído com sucesso.`,
         })
-        
-        // Recarregar dados automaticamente
         router.refresh()
       } else {
-        // Mostrar o toast de erro
         toast({
           title: "Erro ao excluir",
           description: result.error || "Erro ao excluir tipo de documento",
@@ -217,14 +190,8 @@ export default function DocumentTypeManagement({
         })
       }
     } catch (error) {
-      // Fechar modal primeiro
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
-      
-      // Aguardar um momento
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Erro inesperado",
@@ -498,67 +465,70 @@ export default function DocumentTypeManagement({
         </Card>
       )}
 
-      <AlertDialog 
-        open={showDeleteConfirm} 
-        onOpenChange={(open) => {
-          setShowDeleteConfirm(open)
-          if (!open) {
-            setTypeToDelete(null)
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 
-                ? "Não é possível excluir este tipo de documento" 
-                : "Tem certeza que deseja excluir este tipo de documento?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 ? (
-                <>
-                  O tipo de documento <span className="font-semibold">{typeToDelete?.name}</span> possui{" "}
-                  <span className="font-semibold text-red-600">{typeToDelete.documentsCount} documento(s) vinculado(s)</span>.
-                  <br /><br />
-                  Para excluir este tipo, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ele.
-                </>
-              ) : (
-                <>
-                  Esta ação não pode ser desfeita. Isso removerá permanentemente o tipo de documento{" "}
-                  <span className="font-semibold">{typeToDelete?.name}</span> e todos os seus dados associados.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              disabled={isDeleting}
-              onClick={() => {
-                setShowDeleteConfirm(false)
-                setTypeToDelete(null)
-              }}
-            >
-              {typeToDelete?.documentsCount && typeToDelete.documentsCount > 0 ? "Fechar" : "Cancelar"}
-            </AlertDialogCancel>
-            {(!typeToDelete?.documentsCount || typeToDelete.documentsCount === 0) && (
-              <AlertDialogAction 
-                onClick={handleDeleteDocumentType}
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {isDeleting ? (
+      {showDeleteConfirm && typeToDelete && (
+        <Dialog 
+          open={showDeleteConfirm} 
+          onOpenChange={(open) => {
+            if (!open && !isDeleting) {
+              setShowDeleteConfirm(false)
+              setTypeToDelete(null)
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {typeToDelete.documentsCount && typeToDelete.documentsCount > 0 
+                  ? "Não é possível excluir este tipo de documento" 
+                  : "Tem certeza que deseja excluir este tipo de documento?"}
+              </DialogTitle>
+              <DialogDescription>
+                {typeToDelete.documentsCount && typeToDelete.documentsCount > 0 ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Excluindo...
+                    O tipo de documento <span className="font-semibold">{typeToDelete.name}</span> possui{" "}
+                    <span className="font-semibold text-red-600">{typeToDelete.documentsCount} documento(s) vinculado(s)</span>.
+                    <br /><br />
+                    Para excluir este tipo, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ele.
                   </>
                 ) : (
-                  'Excluir'
+                  <>
+                    Esta ação não pode ser desfeita. Isso removerá permanentemente o tipo de documento{" "}
+                    <span className="font-semibold">{typeToDelete.name}</span> e todos os seus dados associados.
+                  </>
                 )}
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setTypeToDelete(null)
+                }}
+                disabled={isDeleting}
+              >
+                {typeToDelete.documentsCount && typeToDelete.documentsCount > 0 ? "Fechar" : "Cancelar"}
+              </Button>
+              {(!typeToDelete.documentsCount || typeToDelete.documentsCount === 0) && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteDocumentType}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Excluindo...
+                    </>
+                  ) : (
+                    'Excluir'
+                  )}
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

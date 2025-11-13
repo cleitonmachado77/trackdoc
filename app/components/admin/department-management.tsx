@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
@@ -32,16 +32,7 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+
 
 // Definições de tipos
 interface DepartmentFormData {
@@ -175,49 +166,28 @@ export default function DepartmentManagement() {
 
     // Verificar se há documentos vinculados ANTES de tentar excluir
     if (departmentToDelete.document_count && departmentToDelete.document_count > 0) {
-      // Fechar o modal primeiro
       setShowDeleteConfirm(false)
-      
-      // Aguardar um momento para o modal fechar
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
+      setDepartmentToDelete(null)
       toast({
         title: "Não é possível excluir",
         description: `Este departamento possui ${departmentToDelete.document_count} documento(s) vinculado(s). Remova ou reatribua os documentos antes de excluir o departamento.`,
         variant: "destructive",
       })
-      
-      // Limpar o estado
-      setDepartmentToDelete(null)
       return
     }
 
     setIsDeleting(true)
     try {
       await deleteDepartment(departmentToDelete.id)
-      
-      // Fechar o modal primeiro
       setShowDeleteConfirm(false)
       setDepartmentToDelete(null)
-      
-      // Aguardar um momento
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
       toast({
         title: "Departamento excluído",
         description: "O departamento foi excluído com sucesso.",
       })
     } catch (error: unknown) {
-      // Fechar o modal primeiro
       setShowDeleteConfirm(false)
       setDepartmentToDelete(null)
-      
-      // Aguardar um momento
-      await new Promise(resolve => setTimeout(resolve, 100))
-      
-      // Mostrar o toast
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir o departamento.",
@@ -430,80 +400,77 @@ export default function DepartmentManagement() {
       </Dialog>
 
       {/* Dialog de confirmação para exclusão */}
-      <AlertDialog 
-        open={showDeleteConfirm} 
-        onOpenChange={(open) => {
-          setShowDeleteConfirm(open)
-          if (!open) {
-            setDepartmentToDelete(null)
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {departmentToDelete?.document_count && departmentToDelete.document_count > 0 
-                ? "Não é possível excluir este departamento" 
-                : "Confirmar exclusão"}
-            </AlertDialogTitle>
-            <div className="space-y-3">
-              {departmentToDelete?.document_count && departmentToDelete.document_count > 0 ? (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    O departamento <span className="font-semibold">"{departmentToDelete?.name}"</span> possui{" "}
-                    <span className="font-semibold text-red-600">{departmentToDelete.document_count} documento(s) vinculado(s)</span>.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Para excluir este departamento, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ele.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Tem certeza que deseja excluir o departamento{" "}
-                    <span className="font-semibold">"{departmentToDelete?.name || 'Desconhecido'}"</span>?
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Esta ação não pode ser desfeita e removerá permanentemente:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
-                    <li>O departamento e suas configurações</li>
-                    <li>Vínculos com funcionários</li>
-                    <li>Histórico de associações</li>
-                  </ul>
-                </>
-              )}
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel 
-              disabled={isDeleting}
-              onClick={() => {
-                setShowDeleteConfirm(false)
-                setDepartmentToDelete(null)
-              }}
-            >
-              {departmentToDelete?.document_count && departmentToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
-            </AlertDialogCancel>
-            {(!departmentToDelete?.document_count || departmentToDelete.document_count === 0) && (
-              <AlertDialogAction 
-                onClick={handleDeleteDepartment} 
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                {isDeleting ? (
+      {showDeleteConfirm && departmentToDelete && (
+        <Dialog 
+          open={showDeleteConfirm} 
+          onOpenChange={(open) => {
+            if (!open && !isDeleting) {
+              setShowDeleteConfirm(false)
+              setDepartmentToDelete(null)
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {departmentToDelete.document_count && departmentToDelete.document_count > 0 
+                  ? "Não é possível excluir este departamento" 
+                  : "Confirmar exclusão"}
+              </DialogTitle>
+              <DialogDescription>
+                {departmentToDelete.document_count && departmentToDelete.document_count > 0 ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Excluindo...
+                    O departamento <span className="font-semibold">"{departmentToDelete.name}"</span> possui{" "}
+                    <span className="font-semibold text-red-600">{departmentToDelete.document_count} documento(s) vinculado(s)</span>.
+                    <br /><br />
+                    Para excluir este departamento, você precisa primeiro remover ou reatribuir todos os documentos vinculados a ele.
                   </>
                 ) : (
-                  'Excluir departamento'
+                  <>
+                    Tem certeza que deseja excluir o departamento{" "}
+                    <span className="font-semibold">"{departmentToDelete.name || 'Desconhecido'}"</span>?
+                    <br /><br />
+                    Esta ação não pode ser desfeita e removerá permanentemente:
+                    <ul className="list-disc list-inside space-y-1 mt-2">
+                      <li>O departamento e suas configurações</li>
+                      <li>Vínculos com funcionários</li>
+                      <li>Histórico de associações</li>
+                    </ul>
+                  </>
                 )}
-              </AlertDialogAction>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDepartmentToDelete(null)
+                }}
+                disabled={isDeleting}
+              >
+                {departmentToDelete.document_count && departmentToDelete.document_count > 0 ? "Fechar" : "Cancelar"}
+              </Button>
+              {(!departmentToDelete.document_count || departmentToDelete.document_count === 0) && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteDepartment}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Excluindo...
+                    </>
+                  ) : (
+                    'Excluir departamento'
+                  )}
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

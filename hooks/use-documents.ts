@@ -91,8 +91,13 @@ export function useDocuments(filters: DocumentFilters = {}) {
     }
   }, [user?.id])
 
-  const filterDocumentsByPermissions = useCallback(async (documents: any[], userId: string): Promise<any[]> => {
+  const filterDocumentsByPermissions = useCallback(async (documents: any[], userId: string, entityId: string | null): Promise<any[]> => {
     try {
+      // Se o usuário não tem entidade, só pode ver seus próprios documentos
+      if (!entityId) {
+        return documents.filter(doc => doc.author_id === userId)
+      }
+
       // Otimização: Buscar dados do usuário em uma única query
       const [userProfileResult, userDepartmentsResult] = await Promise.all([
         supabase
@@ -113,7 +118,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
       }
       userDepartmentIds = [...new Set(userDepartmentIds)]
 
-      // Otimização: Separar documentos por tipo para reduzir queries
+      // Separar documentos por tipo
       const userDocuments = documents.filter(doc => doc.author_id === userId)
       const publicDocuments = documents.filter(doc => doc.is_public && doc.author_id !== userId)
       const privateDocuments = documents.filter(doc => !doc.is_public && doc.author_id !== userId)
@@ -123,28 +128,54 @@ export function useDocuments(filters: DocumentFilters = {}) {
         return [...userDocuments, ...publicDocuments]
       }
 
-      // Buscar permissões para todos os documentos privados de uma vez
+      // Buscar RESTRIÇÕES para documentos privados (não permissões)
+      // A lógica é: documentos da entidade são visíveis por padrão, 
+      // EXCETO se houver restrições específicas que excluam o usuário
       const privateDocIds = privateDocuments.map(doc => doc.id)
       
-      let permissionsQuery = supabase
+      // Buscar todas as permissões de leitura para esses documentos
+      const { data: allPermissions } = await supabase
         .from('document_permissions')
-        .select('document_id')
+        .select('document_id, user_id, department_id')
         .in('document_id', privateDocIds)
         .eq('permission_type', 'read')
 
-      if (userDepartmentIds.length > 0) {
-        permissionsQuery = permissionsQuery.or(`user_id.eq.${userId},department_id.in.(${userDepartmentIds.join(',')})`)
-      } else {
-        permissionsQuery = permissionsQuery.eq('user_id', userId)
+      // Criar mapa de documentos que TÊM restrições (possuem permissões específicas)
+      const docsWithRestrictions = new Set<string>()
+      const allowedRestrictedDocs = new Set<string>()
+
+      if (allPermissions && allPermissions.length > 0) {
+        // Agrupar permissões por documento
+        const permissionsByDoc = new Map<string, typeof allPermissions>()
+        allPermissions.forEach(perm => {
+          if (!permissionsByDoc.has(perm.document_id)) {
+            permissionsByDoc.set(perm.document_id, [])
+          }
+          permissionsByDoc.get(perm.document_id)!.push(perm)
+        })
+
+        // Para cada documento com permissões, verificar se o usuário tem acesso
+        permissionsByDoc.forEach((perms, docId) => {
+          docsWithRestrictions.add(docId)
+          
+          // Verificar se o usuário tem permissão direta ou por departamento
+          const hasAccess = perms.some(perm => 
+            perm.user_id === userId || 
+            (perm.department_id && userDepartmentIds.includes(perm.department_id))
+          )
+          
+          if (hasAccess) {
+            allowedRestrictedDocs.add(docId)
+          }
+        })
       }
 
-      const { data: permissions } = await permissionsQuery
-
-      // Criar set de documentos com permissão para busca rápida
-      const allowedDocIds = new Set(permissions?.map(p => p.document_id) || [])
-
-      // Filtrar documentos privados baseado nas permissões
-      const allowedPrivateDocuments = privateDocuments.filter(doc => allowedDocIds.has(doc.id))
+      // Filtrar documentos privados:
+      // - Se não tem restrições (não está em docsWithRestrictions): permitir (visível para toda entidade)
+      // - Se tem restrições: só permitir se está em allowedRestrictedDocs
+      const allowedPrivateDocuments = privateDocuments.filter(doc => 
+        !docsWithRestrictions.has(doc.id) || allowedRestrictedDocs.has(doc.id)
+      )
 
       return [...userDocuments, ...publicDocuments, ...allowedPrivateDocuments]
     } catch (error) {
@@ -223,7 +254,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
       if (error) throw error
 
       // Filtrar documentos baseado em permissões
-      const filteredData = await filterDocumentsByPermissions(data || [], user.id)
+      const filteredData = await filterDocumentsByPermissions(data || [], user.id, entityId)
 
       // Otimização: Processar documentos sem gerar URLs desnecessariamente
       // URLs serão geradas apenas quando necessário (no download)

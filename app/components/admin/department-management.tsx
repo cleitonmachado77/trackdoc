@@ -639,6 +639,14 @@ function DepartmentInfo({ department }: { department: Department }) {
 function DepartmentManagerInfo({ department }: { department: Department }) {
   const managerName = department.manager_name
   
+  console.log('🔍 [DEBUG] DepartmentManagerInfo:', {
+    departmentId: department.id,
+    departmentName: department.name,
+    manager_id: department.manager_id,
+    manager_name: managerName,
+    hasManagerName: !!managerName
+  })
+  
   if (!managerName) {
     return (
       <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -781,13 +789,27 @@ function DepartmentForm({
   // Atualizar form data quando department mudar
   useEffect(() => {
     if (department) {
+      const managerId = department.manager_id || ""
+      
+      console.log('🔍 [DEBUG] Carregando departamento:', {
+        id: department.id,
+        name: department.name,
+        manager_id: department.manager_id,
+        manager_id_processado: managerId,
+        manager_name: department.manager_name,
+        status: department.status,
+        manager_id_tipo: typeof department.manager_id,
+        manager_id_vazio: !department.manager_id
+      })
+      
       setFormData({
         name: department.name || "",
         description: department.description || "",
-        manager_id: department.manager_id || "",
+        manager_id: managerId,
         status: department.status || "active",
       })
     } else {
+      console.log('🔍 [DEBUG] Criando novo departamento')
       setFormData({
         name: "",
         description: "",
@@ -797,16 +819,20 @@ function DepartmentForm({
     }
   }, [department])
 
-  const handleInputChange = useCallback((field: keyof DepartmentFormData) => 
-    (value: string | boolean) => {
-      const newValue = field === 'status' ? (value ? 'active' : 'inactive') : value
-      
-      setFormData(prev => ({
+  const handleInputChange = useCallback((field: keyof DepartmentFormData, value: string | boolean) => {
+    const newValue = field === 'status' ? (value ? 'active' : 'inactive') : value
+    
+    console.log('🔍 [DEBUG] Atualizando campo:', { field, value, newValue })
+    
+    setFormData(prev => {
+      const updated = {
         ...prev,
         [field]: newValue
-      }))
-    }, []
-  )
+      }
+      console.log('🔍 [DEBUG] FormData atualizado:', updated)
+      return updated
+    })
+  }, [])
 
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -814,7 +840,7 @@ function DepartmentForm({
   }, [formData, onSave])
 
   const isFormValid = useMemo(() => {
-    return !!(formData.name.trim() && formData.manager_id)
+    return !!(formData.name.trim() && formData.manager_id && formData.manager_id.trim() !== '')
   }, [formData.name, formData.manager_id])
 
   return (
@@ -824,7 +850,7 @@ function DepartmentForm({
         <Input
           id="name"
           value={formData.name}
-          onChange={(e) => handleInputChange('name')(e.target.value)}
+          onChange={(e) => handleInputChange('name', e.target.value)}
           placeholder="Ex: Tecnologia da Informação"
           required
           maxLength={100}
@@ -841,7 +867,7 @@ function DepartmentForm({
         <Textarea
           id="description"
           value={formData.description}
-          onChange={(e) => handleInputChange('description')(e.target.value)}
+          onChange={(e) => handleInputChange('description', e.target.value)}
           placeholder="Descreva as responsabilidades e função do departamento"
           rows={3}
           maxLength={500}
@@ -856,9 +882,14 @@ function DepartmentForm({
       <div className="space-y-2">
         <Label htmlFor="manager">Gerente *</Label>
         <Select 
-          key={`manager-${department?.id || 'new'}`}
-          value={formData.manager_id || undefined} 
-          onValueChange={handleInputChange('manager_id')}
+          value={formData.manager_id && formData.manager_id.trim() !== '' ? formData.manager_id : undefined} 
+          onValueChange={(value) => {
+            console.log('🔍 [DEBUG] Select onValueChange:', { value, tipo: typeof value, vazio: !value || value.trim() === '' })
+            // Ignorar valores vazios ou inválidos
+            if (value && value.trim() !== '' && value !== 'loading' && value !== 'no-users') {
+              handleInputChange('manager_id', value)
+            }
+          }}
           disabled={usersLoading}
         >
           <SelectTrigger>
@@ -889,7 +920,7 @@ function DepartmentForm({
           </SelectContent>
         </Select>
         
-        {!formData.manager_id && (
+        {(!formData.manager_id || formData.manager_id.trim() === '') && (
           <div className="flex items-start space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-amber-800">
@@ -902,18 +933,14 @@ function DepartmentForm({
 
       <div className="flex items-center space-x-2">
         <Switch
-          key={`status-${formData.status}`}
+          id="department-status"
           checked={formData.status === "active"}
-          onCheckedChange={(checked) => {
-            // Remover foco do switch
-            if (document.activeElement instanceof HTMLElement) {
-              document.activeElement.blur()
-            }
-            handleInputChange('status')(checked)
-          }}
+          onCheckedChange={(checked) => handleInputChange('status', checked)}
           disabled={isSubmitting}
         />
-        <Label className="text-sm">Departamento ativo</Label>
+        <Label htmlFor="department-status" className="text-sm cursor-pointer">
+          Departamento ativo
+        </Label>
       </div>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">

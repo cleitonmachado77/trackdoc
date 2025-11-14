@@ -638,10 +638,18 @@ function CategoryForm({ category, onSave, onCancel, isSubmitting }: {
       </div>
       <div className="flex items-center space-x-2">
         <Switch
+          id="category-status"
           checked={formData.status === "active"}
-          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))}
+          onCheckedChange={(checked) => {
+            setFormData((prev) => ({ ...prev, status: checked ? "active" : "inactive" }))
+            // Remover foco para forçar atualização visual
+            setTimeout(() => {
+              const element = document.getElementById('category-status')
+              if (element) element.blur()
+            }, 0)
+          }}
         />
-        <Label>Categoria ativa</Label>
+        <Label htmlFor="category-status" className="cursor-pointer">Categoria ativa</Label>
       </div>
       <div className="flex justify-end space-x-2 pt-4 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>

@@ -116,6 +116,17 @@ export function useDepartments() {
 
       if (error) throw error
 
+      console.log('🔍 [DEBUG] Departamentos retornados do Supabase:', data?.length || 0)
+      if (data && data.length > 0) {
+        console.log('🔍 [DEBUG] Primeiro departamento (raw):', {
+          id: data[0].id,
+          name: data[0].name,
+          manager_id: data[0].manager_id,
+          manager: data[0].manager,
+          status: data[0].status
+        })
+      }
+
 
 
       // Buscar contagem de documentos e usuários para cada departamento
@@ -137,13 +148,50 @@ export function useDepartments() {
             console.warn(`Erro ao contar usuários do departamento ${dept.name}:`, userError)
           }
 
+          // Verificar se o manager_id existe mas o manager_name não foi carregado
+          let managerName = dept.manager?.full_name || ''
+          
+          if (dept.manager_id && !managerName) {
+            console.warn('⚠️ [AVISO] Departamento tem manager_id mas manager_name não foi carregado:', {
+              departmentId: dept.id,
+              departmentName: dept.name,
+              manager_id: dept.manager_id,
+              manager: dept.manager
+            })
+            
+            // Tentar buscar o nome do gerente diretamente
+            try {
+              const { data: managerData } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', dept.manager_id)
+                .single()
+              
+              if (managerData?.full_name) {
+                managerName = managerData.full_name
+                console.log('✅ [SUCESSO] Nome do gerente carregado diretamente:', managerName)
+              }
+            } catch (managerError) {
+              console.error('❌ [ERRO] Não foi possível carregar o nome do gerente:', managerError)
+            }
+          }
 
-          return {
+          const departmentData = {
             ...dept,
-            manager_name: dept.manager?.full_name || '',
+            manager_name: managerName,
             document_count: docCount || 0,
             user_count: userCount || 0
           }
+
+          console.log('🔍 [DEBUG] Departamento carregado:', {
+            id: dept.id,
+            name: dept.name,
+            manager_id: dept.manager_id,
+            manager_name: departmentData.manager_name,
+            status: dept.status
+          })
+
+          return departmentData
         })
       )
 

@@ -1433,7 +1433,15 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                 <CardContent>
                   {sentApprovals && sentApprovals.length > 0 ? (
                     <div className="space-y-3">
-                      {sentApprovals.slice(0, 5).map((approval) => (
+                      {sentApprovals.slice(0, 5).map((approval) => {
+                        // Debug: verificar dados da aprovação
+                        console.log('📋 [SENT_APPROVAL_DISPLAY]', {
+                          title: approval.document_title,
+                          status: approval.status,
+                          approved_at: approval.approved_at
+                        })
+                        
+                        return (
                         <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
                           <div className="flex-1">
                             <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
@@ -1443,7 +1451,15 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                                   approval.status === 'rejected' ? 'Rejeitado' : approval.status}
                             </p>
                             <p className="text-sm text-gray-500">
-                              Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
+                              {approval.status === 'pending' ? (
+                                <>Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
+                              ) : approval.status === 'approved' ? (
+                                <>Aprovado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
+                              ) : approval.status === 'rejected' ? (
+                                <>Rejeitado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
+                              ) : (
+                                <>Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
+                              )}
                             </p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1485,7 +1501,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                             </Button>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">

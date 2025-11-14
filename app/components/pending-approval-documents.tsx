@@ -51,6 +51,40 @@ export default function PendingApprovalDocuments() {
   useEffect(() => {
     if (user?.id) {
       fetchPendingApprovals()
+      
+      // Configurar realtime subscription para atualização automática
+      const channel = supabase
+        .channel('approval_requests_changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escutar INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'approval_requests',
+            filter: `approver_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('🔄 [REALTIME] Mudança detectada em approval_requests:', payload)
+            // Recarregar aprovações quando houver mudanças
+            fetchPendingApprovals()
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 [REALTIME] Status da conexão:', status)
+        })
+
+      // Polling como fallback (verificar a cada 10 segundos)
+      const pollingInterval = setInterval(() => {
+        console.log('🔄 [POLLING] Verificando atualizações...')
+        fetchPendingApprovals()
+      }, 10000) // 10 segundos
+
+      // Cleanup: remover subscription e polling quando componente desmontar
+      return () => {
+        console.log('🔌 [REALTIME] Desconectando subscription')
+        supabase.removeChannel(channel)
+        clearInterval(pollingInterval)
+      }
     }
   }, [user?.id])
 
@@ -125,16 +159,31 @@ export default function PendingApprovalDocuments() {
       setIsProcessing(true)
       
       // 1. Atualizar workflow de aprovação
-      const { error: workflowError } = await supabase
+      const now = new Date().toISOString()
+      console.log('📝 [APPROVAL] Atualizando approval_request:', {
+        id: selectedDocument.id,
+        status: approved ? 'approved' : 'rejected',
+        approved_at: now,
+        comments: comments || undefined
+      })
+      
+      const { data: updatedApproval, error: workflowError } = await supabase
         .from('approval_requests')
         .update({ 
           status: approved ? 'approved' : 'rejected',
           comments: comments || undefined,
-          approved_at: new Date().toISOString()
+          approved_at: now,
+          updated_at: now
         })
         .eq('id', selectedDocument.id)
+        .select()
 
-      if (workflowError) throw workflowError
+      if (workflowError) {
+        console.error('❌ [APPROVAL] Erro ao atualizar:', workflowError)
+        throw workflowError
+      }
+      
+      console.log('✅ [APPROVAL] Aprovação atualizada:', updatedApproval)
 
       // 2. Verificar se é o último aprovador
       const { data: remainingWorkflows, error: remainingError } = await supabase
@@ -154,21 +203,8 @@ export default function PendingApprovalDocuments() {
           .eq('id', selectedDocument.document_id)
       }
 
-      // 4. Criar notificação para o autor do documento
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          title: approved ? 'Documento aprovado' : 'Documento rejeitado',
-          message: `Seu documento "${selectedDocument.document.title}" foi ${approved ? 'aprovado' : 'rejeitado'}${comments ? ` com comentários: ${comments}` : ''}.`,
-          type: approved ? 'success' : 'error',
-          priority: 'high',
-          recipients: [user?.email || ''],
-          channels: ['email'],
-          status: 'sent',
-          created_by: user?.id
-        })
-
-      if (notificationError) throw notificationError
+      // Nota: A notificação será criada automaticamente pelo trigger do banco de dados
+      // (trigger_notify_approval_processed)
 
       toast({
         title: approved ? "Documento aprovado!" : "Documento rejeitado!",

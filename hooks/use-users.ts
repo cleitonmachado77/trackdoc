@@ -37,6 +37,7 @@ export function useUsers() {
       let query = supabase
         .from('profiles')
         .select('*')
+        .eq('status', 'active') // Filtrar apenas usuários ativos
         .order('full_name', { ascending: true })
 
       // Buscar o profile do usuário para obter entity_id

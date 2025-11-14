@@ -65,40 +65,28 @@ export default function DocumentApprovalRequest({
 
       if (workflowError) throw workflowError
 
-      // 3. Buscar informações do aprovador
-      const { data: approverData, error: approverError } = await supabase
+      // 3. Buscar informações do aprovador para o toast
+      const { data: approverData } = await supabase
         .from('profiles')
-        .select('id, email, full_name')
+        .select('full_name')
         .eq('id', selectedApprover)
         .single()
 
-      if (approverError) throw approverError
-      if (!approverData) throw new Error('Dados do aprovador não encontrados')
-
-      // 4. Criar notificação para o aprovador
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          title: 'Documento pendente de aprovação',
-          message: `O documento "${documentTitle}" foi enviado para sua aprovação.`,
-          type: 'warning',
-          priority: 'high',
-          recipients: [approverData.email],
-          channels: ['email'],
-          status: 'pending',
-          total_recipients: 1,
-          created_by: user?.id // Usar o ID do usuário atual como criador
-        })
-
-      if (notificationError) throw notificationError
+      // Nota: A notificação será criada automaticamente pelo trigger do banco de dados
+      // (trigger_notify_approval_request)
 
       toast({
         title: "Aprovação solicitada!",
-        description: `Documento enviado para aprovação de ${approverData.full_name}.`,
+        description: `Documento enviado para aprovação de ${approverData?.full_name || 'aprovador'}.`,
       })
 
       // Limpar seleção
       setSelectedApprover("")
+      
+      // Disparar evento global para atualizar outras páginas
+      window.dispatchEvent(new CustomEvent('approval-requested', { 
+        detail: { documentId, approverId: selectedApprover } 
+      }))
       
       // Chamar callback de sucesso
       onSuccess?.()

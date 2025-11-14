@@ -150,14 +150,19 @@ export default function ApprovalDetailsModal({
                             <strong>Aprovador:</strong> {workflow.profiles?.[0]?.full_name || 'N/A'}
                           </span>
                         </div>
-                        {workflow.approved_at && (
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              <strong>Decidido em:</strong> {formatDate(workflow.approved_at)}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          <span>
+                            <strong>
+                              {workflow.status === 'approved' ? 'Aprovado em:' : 
+                               workflow.status === 'rejected' ? 'Rejeitado em:' : 
+                               'Criado em:'}
+                            </strong>{' '}
+                            {workflow.approved_at ? formatDate(workflow.approved_at) : 
+                             workflow.created_at ? formatDate(workflow.created_at) : 
+                             'Data não disponível'}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Comentários */}

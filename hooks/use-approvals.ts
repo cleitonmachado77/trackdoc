@@ -43,6 +43,53 @@ export function useApprovals() {
     }
 
     fetchApprovals()
+    
+    // Configurar realtime subscription para atualização automática
+    const channel = supabase
+      .channel('approvals_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escutar INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'approval_requests'
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Mudança detectada em approval_requests:', payload)
+          // Recarregar aprovações quando houver mudanças
+          fetchApprovals()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'documents',
+          filter: `author_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Mudança detectada em documents:', payload)
+          // Recarregar aprovações quando documentos do usuário mudarem
+          fetchApprovals()
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [REALTIME] Status da conexão:', status)
+      })
+
+    // Polling como fallback (verificar a cada 10 segundos)
+    const pollingInterval = setInterval(() => {
+      console.log('🔄 [POLLING] Verificando atualizações de aprovações...')
+      fetchApprovals()
+    }, 10000) // 10 segundos
+
+    // Cleanup: remover subscription e polling quando componente desmontar
+    return () => {
+      console.log('🔌 [REALTIME] Desconectando subscription')
+      supabase.removeChannel(channel)
+      clearInterval(pollingInterval)
+    }
   }, [user])
 
   const fetchApprovals = async () => {
@@ -87,8 +134,16 @@ export function useApprovals() {
           `)
           .eq('author_id', user!.id)
           .in('status', ['pending_approval', 'approved', 'rejected'])
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false})
       ])
+
+      console.log('📊 [SENT_QUERY] Buscando documentos enviados:', {
+        userId: user!.id,
+        pendingCount: pendingResult.data?.length,
+        myCount: myResult.data?.length,
+        sentCount: sentResult.data?.length,
+        sentError: sentResult.error
+      })
 
       if (pendingResult.error) throw pendingResult.error
       if (myResult.error) throw myResult.error
@@ -181,7 +236,7 @@ export function useApprovals() {
         const approvals = doc.approval_requests || []
         const latestApproval = approvals[approvals.length - 1]
 
-        return {
+        const processedData = {
           id: doc.id,
           document_id: doc.id,
           document_title: doc.title,
@@ -195,6 +250,15 @@ export function useApprovals() {
           approved_at: latestApproval?.approved_at || '',
           step_order: approvals.length
         }
+
+        console.log('📊 [SENT_APPROVALS] Documento processado:', {
+          title: doc.title,
+          status: doc.status,
+          approved_at: latestApproval?.approved_at,
+          has_approved_at: !!latestApproval?.approved_at
+        })
+
+        return processedData
       })
 
       // Enriquecer dados em paralelo
@@ -202,6 +266,13 @@ export function useApprovals() {
         enrichApprovals(pendingResult.data || []),
         enrichApprovals(myResult.data || [])
       ])
+
+      console.log('📊 [APPROVALS_LOADED] Dados carregados:', {
+        pending: enrichedPending.length,
+        my: enrichedMy.length,
+        sent: processSentApprovals.length,
+        sentSample: processSentApprovals[0]
+      })
 
       setPendingApprovals(enrichedPending)
       setMyApprovals(enrichedMy)
@@ -275,76 +346,8 @@ export function useApprovals() {
 
       console.log('✅ [APPROVE] API route funcionou!', result)
 
-      // Buscar informações do documento e autor para a notificação
-      let documentTitle = ''
-      let authorEmail = ''
-      let approverName = ''
-
-      try {
-        // Buscar título do documento
-        const { data: docData } = await supabase
-          .from('documents')
-          .select('title, author_id')
-          .eq('id', approvalData.document_id)
-          .single()
-
-        documentTitle = docData?.title || 'Documento'
-
-        // Buscar email do autor
-        if (docData?.author_id) {
-          const { data: authorData } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('id', docData.author_id)
-            .single()
-          authorEmail = authorData?.email || ''
-        }
-
-        // Buscar nome do aprovador
-        const { data: approverData } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', user!.id)
-          .single()
-        approverName = approverData?.full_name || 'Aprovador'
-
-      } catch (e) {
-        console.warn('Erro ao buscar dados para notificação:', e)
-      }
-
-      // Criar notificação para o autor do documento
-      if (authorEmail) {
-        try {
-          const notificationTitle = approved
-            ? `Documento Aprovado: ${documentTitle}`
-            : `Documento Rejeitado: ${documentTitle}`
-
-          const notificationMessage = approved
-            ? `Seu documento "${documentTitle}" foi aprovado por ${approverName}.${comments ? `\n\nComentários: ${comments}` : ''}`
-            : `Seu documento "${documentTitle}" foi rejeitado por ${approverName}.${comments ? `\n\nComentários: ${comments}` : ''}`
-
-          const notificationType = approved ? 'success' : 'error'
-          const notificationPriority = approved ? 'medium' : 'high'
-
-          await supabase
-            .from('notifications')
-            .insert({
-              title: notificationTitle,
-              message: notificationMessage,
-              type: notificationType,
-              priority: notificationPriority,
-              recipients: [authorEmail],
-              channels: ['email'],
-              status: 'sent',
-              created_by: user!.id
-            })
-
-          console.log('Notificação enviada para:', authorEmail)
-        } catch (notificationError) {
-          console.warn('Erro ao criar notificação:', notificationError)
-          // Não falhar a aprovação se a notificação falhar
-        }
-      }
+      // Nota: A notificação será criada automaticamente pelo trigger do banco de dados
+      // (trigger_notify_approval_processed)
 
       // Verificar se é o último aprovador
       const { data: remainingapprovals, error: remainingError } = await supabase

@@ -3,24 +3,18 @@ import { createClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
-const supabaseConfig = {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-}
-
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const filePath = searchParams.get('filePath')
+    const { filePath, documentId } = await request.json()
 
     if (!filePath) {
       return NextResponse.json(
-        { error: 'Parâmetro filePath é obrigatório' },
+        { error: 'Caminho do arquivo é obrigatório' },
         { status: 400 }
       )
     }
 
-    // Usar service role key para acessar o storage
+    // Verificar se a service role key está configurada
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       return NextResponse.json(
         { error: 'Configuração de service role não encontrada' },
@@ -28,58 +22,54 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const serviceRoleSupabase = createClient(
-      supabaseConfig.url,
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
-    // Tentar baixar do bucket signed-documents primeiro, depois documents
-    let fileData: any = null
-    let downloadError: any = null
-    
-    // Primeiro tentar no bucket signed-documents
-    const signedResult = await serviceRoleSupabase.storage
-      .from('signed-documents')
-      .download(filePath)
-    
-    if (signedResult.error) {
-      console.log('📁 Arquivo não encontrado em signed-documents, tentando documents...')
-      // Fallback: tentar no bucket documents
-      const documentsResult = await serviceRoleSupabase.storage
-        .from('documents')
-        .download(filePath)
-      
-      fileData = documentsResult.data
-      downloadError = documentsResult.error
-    } else {
-      fileData = signedResult.data
-      downloadError = signedResult.error
+    // Se já é uma URL completa, retornar diretamente
+    if (filePath.startsWith('http')) {
+      return NextResponse.json({ url: filePath })
     }
 
-    if (downloadError) {
-      console.error('❌ Erro ao baixar arquivo:', downloadError)
-      return NextResponse.json(
-        { error: 'Arquivo não encontrado' },
-        { status: 404 }
-      )
+    // Lista de buckets para tentar
+    const buckets = [
+      'documents',
+      'signed-documents',
+      'document-signatures'
+    ]
+
+    // Tentar obter URL assinada de cada bucket
+    for (const bucket of buckets) {
+      try {
+        const { data, error } = await supabase
+          .storage
+          .from(bucket)
+          .createSignedUrl(filePath, 3600) // 1 hora
+
+        if (!error && data?.signedUrl) {
+          console.log(`✅ Documento encontrado no bucket: ${bucket}`)
+          return NextResponse.json({ 
+            url: data.signedUrl,
+            bucket: bucket
+          })
+        }
+      } catch (err) {
+        // Continuar tentando outros buckets
+        console.log(`⚠️ Documento não encontrado em ${bucket}`)
+      }
     }
 
-    // Converter para buffer
-    const buffer = Buffer.from(await fileData.arrayBuffer())
-
-    // Retornar o arquivo como resposta
-    return new NextResponse(buffer, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filePath.split('/').pop()}"`,
-        'Content-Length': buffer.length.toString(),
-      },
-    })
-
-  } catch (error) {
-    console.error('❌ Erro interno no download:', error)
+    // Se não encontrou em nenhum bucket, retornar erro
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Documento não encontrado em nenhum bucket' },
+      { status: 404 }
+    )
+
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar documento:', error)
+    return NextResponse.json(
+      { error: 'Erro interno do servidor', details: error.message },
       { status: 500 }
     )
   }

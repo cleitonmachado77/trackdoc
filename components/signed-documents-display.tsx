@@ -188,22 +188,64 @@ export function SignedDocumentsDisplay() {
             
             {document.status === 'completed' && document.signed_file_path && (
               <Button
-                onClick={() => {
-                  // Tentar abrir documento - tentar ambos os buckets
-                  // Assinaturas simples geralmente estão em 'documents'
-                  // Assinaturas múltiplas podem estar em 'signed-documents' ou 'documents'
-                  const fileName = document.signed_file_path
-                  
-                  // Tentar bucket 'documents' primeiro (padrão para assinaturas simples)
-                  const primaryUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/documents/${fileName}`
-                  
-                  // Abrir em nova aba
-                  const newWindow = window.open(primaryUrl, '_blank')
-                  
-                  // Se falhar (bloqueado por popup), tentar signed-documents como fallback
-                  if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                    const fallbackUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/signed-documents/${fileName}`
-                    window.open(fallbackUrl, '_blank')
+                onClick={async () => {
+                  try {
+                    const fileName = document.signed_file_path
+                    
+                    // Se já é uma URL completa, usar diretamente
+                    if (fileName.startsWith('http')) {
+                      window.open(fileName, '_blank')
+                      return
+                    }
+
+                    // Tentar obter URL assinada do Supabase via API
+                    const response = await fetch('/api/download-signed-document', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` })
+                      },
+                      body: JSON.stringify({ 
+                        filePath: fileName,
+                        documentId: document.document_id || document.id
+                      })
+                    })
+
+                    if (response.ok) {
+                      const data = await response.json()
+                      if (data.url) {
+                        window.open(data.url, '_blank')
+                        return
+                      }
+                    }
+
+                    // Fallback: tentar URLs públicas em diferentes buckets
+                    const buckets = ['documents', 'signed-documents', 'document-signatures']
+                    let opened = false
+
+                    for (const bucket of buckets) {
+                      const url = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${bucket}/${fileName}`
+                      const testWindow = window.open(url, '_blank')
+                      if (testWindow && !testWindow.closed) {
+                        opened = true
+                        break
+                      }
+                    }
+
+                    if (!opened) {
+                      toast({
+                        title: "Erro",
+                        description: "Não foi possível abrir o documento. Ele pode ter sido movido ou excluído.",
+                        variant: "destructive"
+                      })
+                    }
+                  } catch (err) {
+                    console.error('Erro ao abrir documento:', err)
+                    toast({
+                      title: "Erro",
+                      description: "Erro ao tentar abrir o documento.",
+                      variant: "destructive"
+                    })
                   }
                 }}
                 variant="outline"

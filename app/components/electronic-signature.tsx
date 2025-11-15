@@ -1373,20 +1373,48 @@ export default function ElectronicSignature() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    // Tentar abrir documento usando o bucket correto
-                                    const url = item.signature_url.startsWith('http')
-                                      ? item.signature_url
-                                      : `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${storageBucket}/${item.signature_url}`
+                                  onClick={async () => {
+                                    try {
+                                      // Se já é uma URL completa, usar diretamente
+                                      if (item.signature_url.startsWith('http')) {
+                                        window.open(item.signature_url, '_blank')
+                                        return
+                                      }
 
-                                    // Abrir em nova aba
-                                    const newWindow = window.open(url, '_blank')
+                                      // Tentar obter URL assinada do Supabase
+                                      const { data: urlData, error: urlError } = await supabase
+                                        .storage
+                                        .from(storageBucket)
+                                        .createSignedUrl(item.signature_url, 3600) // 1 hora
 
-                                    // Se falhar, tentar o bucket alternativo
-                                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                                      if (!urlError && urlData?.signedUrl) {
+                                        window.open(urlData.signedUrl, '_blank')
+                                        return
+                                      }
+
+                                      // Se falhar, tentar bucket alternativo
                                       const alternateBucket = storageBucket === 'signed-documents' ? 'documents' : 'signed-documents'
-                                      const alternateUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${alternateBucket}/${item.signature_url}`
-                                      window.open(alternateUrl, '_blank')
+                                      const { data: altUrlData, error: altUrlError } = await supabase
+                                        .storage
+                                        .from(alternateBucket)
+                                        .createSignedUrl(item.signature_url, 3600)
+
+                                      if (!altUrlError && altUrlData?.signedUrl) {
+                                        window.open(altUrlData.signedUrl, '_blank')
+                                        return
+                                      }
+
+                                      // Último recurso: tentar URL pública
+                                      const publicUrl = `https://dhdeyznmncgukexofcxy.supabase.co/storage/v1/object/public/${storageBucket}/${item.signature_url}`
+                                      window.open(publicUrl, '_blank')
+
+                                    } catch (err) {
+                                      console.error('Erro ao abrir documento:', err)
+                                      toast({
+                                        title: "Erro",
+                                        description: "Não foi possível abrir o documento. Ele pode ter sido movido ou excluído.",
+                                        variant: "destructive"
+                                      })
                                     }
                                   }}
                                   title="Visualizar documento"

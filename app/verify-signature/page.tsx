@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,10 +19,10 @@ import {
   AlertCircle,
   ArrowLeft,
   Copy,
-  ExternalLink
+  ExternalLink,
+  Users
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { createBrowserClient } from '@supabase/ssr'
+import { useSearchParams } from "next/navigation"
 
 interface SignatureVerification {
   id: string
@@ -37,38 +37,40 @@ interface SignatureVerification {
   document_url?: string
   signer_ip?: string
   signer_location?: string
+  signature_type?: 'simple' | 'multiple'
+  signers?: Array<{
+    name: string
+    email: string
+    signedAt: string
+  }>
+  total_signatures?: number
+  completed_signatures?: number
 }
 
 export default function VerifySignaturePage() {
-  const router = useRouter()
+  const searchParams = useSearchParams()
   const [signatureId, setSignatureId] = useState("")
   const [verification, setVerification] = useState<SignatureVerification | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
 
-  // Configurar Supabase
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Alert className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Erro de configuração do sistema. Tente novamente mais tarde.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
+  // Verificar se há um código na URL
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) {
+      setSignatureId(code)
+      // Auto-verificar se houver código na URL
+      setTimeout(() => {
+        handleVerifyWithCode(code)
+      }, 500)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
-  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
-
-  const handleVerify = async () => {
-    if (!signatureId.trim()) {
-      setError("Por favor, insira um ID de assinatura válido")
+  const handleVerifyWithCode = async (code: string) => {
+    if (!code.trim()) {
+      setError("Por favor, insira um código de verificação válido")
       return
     }
 
@@ -77,55 +79,51 @@ export default function VerifySignaturePage() {
     setVerification(null)
 
     try {
-      // Buscar informações da assinatura
-      const { data, error } = await supabase
-        .from('electronic_signatures')
-        .select(`
-          id,
-          document_id,
-          signer_name,
-          signer_email,
-          signed_at,
-          signature_hash,
-          status,
-          created_at,
-          documents (
-            title,
-            file_path
-          )
-        `)
-        .eq('id', signatureId.trim())
-        .single()
+      console.log('🔍 Verificando código:', code.trim())
+      
+      // Chamar a API de verificação
+      const response = await fetch('/api/verify-signature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ verificationCode: code.trim() }),
+      })
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          setError("Assinatura não encontrada. Verifique o ID e tente novamente.")
-        } else {
-          setError("Erro ao verificar assinatura: " + error.message)
-        }
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ Erro na resposta da API:', errorText)
+        setError(`Erro ao verificar assinatura: ${response.status} ${response.statusText}`)
         return
       }
 
-      if (!data) {
-        setError("Assinatura não encontrada")
+      const result = await response.json()
+      console.log('📊 Resultado da API:', result)
+
+      if (!result.success) {
+        setError(result.error || "Código de verificação não encontrado ou inválido")
         return
       }
 
-      // Simular verificação de hash (em produção, isso seria mais complexo)
-      const isValid = data.signature_hash && data.signature_hash.length > 0
-      const isExpired = new Date(data.signed_at) < new Date(Date.now() - 365 * 24 * 60 * 60 * 1000) // 1 ano
+      // Mapear resultado da API para o formato esperado
+      const signature = result.signature
+      const isExpired = new Date(signature.timestamp) < new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
 
       const verificationResult: SignatureVerification = {
-        id: data.id,
-        document_title: data.documents?.title || 'Documento não encontrado',
-        document_id: data.document_id,
-        signer_name: data.signer_name,
-        signer_email: data.signer_email,
-        signed_at: data.signed_at,
-        signature_hash: data.signature_hash,
-        status: isExpired ? 'expired' : (isValid ? 'valid' : 'invalid'),
+        id: signature.id,
+        document_title: signature.documentTitle || signature.documentName || 'Documento não encontrado',
+        document_id: signature.documentId,
+        signer_name: signature.specificSigner?.name || signature.userName || 'Usuário não encontrado',
+        signer_email: signature.specificSigner?.email || signature.userEmail || 'Email não encontrado',
+        signed_at: signature.specificSigner?.timestamp || signature.timestamp,
+        signature_hash: signature.hash,
+        status: isExpired ? 'expired' : (signature.status === 'completed' || signature.status === 'signed' ? 'valid' : 'invalid'),
         verification_timestamp: new Date().toISOString(),
-        document_url: data.documents?.file_path ? `/api/download-signed-document/${data.document_id}` : undefined
+        document_url: signature.documentPath ? `/api/download-signed-document/${signature.documentId}` : undefined,
+        signature_type: result.signatureType,
+        signers: signature.signers,
+        total_signatures: signature.totalSignatures,
+        completed_signatures: signature.completedSignatures
       }
 
       setVerification(verificationResult)
@@ -135,6 +133,10 @@ export default function VerifySignaturePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleVerify = () => {
+    handleVerifyWithCode(signatureId)
   }
 
   const copyToClipboard = (text: string) => {
@@ -211,24 +213,24 @@ export default function VerifySignaturePage() {
                 <span>Verificar Assinatura</span>
               </CardTitle>
               <CardDescription>
-                Digite o ID da assinatura para verificar sua autenticidade e validade
+                Digite o código de verificação da assinatura para verificar sua autenticidade e validade
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="signatureId" className="block text-sm font-medium text-gray-700 mb-2">
-                    ID da Assinatura
+                    Código de Verificação
                   </label>
                   <div className="flex space-x-2">
                     <Input
                       id="signatureId"
                       type="text"
-                      placeholder="Ex: sig_1234567890abcdef"
+                      placeholder="Ex: ABC123DEF456"
                       value={signatureId}
                       onChange={(e) => setSignatureId(e.target.value)}
                       className="flex-1"
-                      onKeyPress={(e) => e.key === 'Enter' && handleVerify()}
+                      onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
                     />
                     <Button 
                       onClick={handleVerify}
@@ -265,6 +267,12 @@ export default function VerifySignaturePage() {
                   <CardTitle className="flex items-center space-x-2">
                     <FileText className="h-5 w-5" />
                     <span>Resultado da Verificação</span>
+                    {verification.signature_type === 'multiple' && (
+                      <Badge variant="outline" className="ml-2">
+                        <Users className="h-3 w-3 mr-1" />
+                        Assinatura Múltipla
+                      </Badge>
+                    )}
                   </CardTitle>
                   {getStatusBadge(verification.status)}
                 </div>
@@ -288,12 +296,12 @@ export default function VerifySignaturePage() {
                       <div>
                         <label className="text-sm font-medium text-gray-600">ID do Documento</label>
                         <div className="flex items-center space-x-2">
-                          <p className="text-gray-900 font-mono text-sm">{verification.document_id}</p>
+                          <p className="text-gray-900 font-mono text-sm truncate">{verification.document_id}</p>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => copyToClipboard(verification.document_id)}
-                            className="h-6 w-6 p-0"
+                            className="h-6 w-6 p-0 flex-shrink-0"
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -317,8 +325,12 @@ export default function VerifySignaturePage() {
 
                   <div className="space-y-4">
                     <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-                      <User className="h-4 w-4" />
-                      <span>Signatário</span>
+                      {verification.signature_type === 'multiple' ? (
+                        <Users className="h-4 w-4" />
+                      ) : (
+                        <User className="h-4 w-4" />
+                      )}
+                      <span>{verification.signature_type === 'multiple' ? 'Signatário Principal' : 'Signatário'}</span>
                     </h3>
                     <div className="space-y-3">
                       <div>
@@ -339,6 +351,34 @@ export default function VerifySignaturePage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Lista de Signatários (para assinatura múltipla) */}
+                {verification.signature_type === 'multiple' && verification.signers && verification.signers.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
+                      <Users className="h-4 w-4" />
+                      <span>Todos os Signatários ({verification.completed_signatures}/{verification.total_signatures})</span>
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="space-y-3">
+                        {verification.signers.map((signer, index) => (
+                          <div key={index} className="flex items-center justify-between border-b border-gray-200 pb-2 last:border-0 last:pb-0">
+                            <div className="flex items-center space-x-3">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{signer.name}</p>
+                                <p className="text-xs text-gray-600">{signer.email}</p>
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatDate(signer.signedAt)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Hash da Assinatura */}
                 <div className="space-y-3">

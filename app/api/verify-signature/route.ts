@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Verificar se a service role key está configurada
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY não configurada')
       return NextResponse.json(
         { error: 'Configuração de service role não encontrada' },
         { status: 500 }
@@ -34,19 +35,26 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     )
 
+    console.log('📊 Buscando em document_signatures...')
+    
     // Buscar assinatura pelo código de verificação (simples ou múltipla individual)
     const { data: signatures, error: searchError } = await serviceRoleSupabase
       .from('document_signatures')
-      .select(`
-        *,
-        document:documents(*)
-      `)
+      .select('*')
       .eq('verification_code', verificationCode.trim())
 
     if (searchError) {
       console.error('❌ Erro ao buscar assinatura:', searchError)
+      return NextResponse.json({
+        success: false,
+        error: `Erro ao buscar assinatura: ${searchError.message}`
+      }, { status: 500 })
     }
 
+    console.log(`✅ Encontradas ${signatures?.length || 0} assinaturas em document_signatures`)
+
+    console.log('📊 Buscando em multi_signature_requests...')
+    
     // Buscar assinatura múltipla pelo código de verificação no metadata
     const { data: multiSignatures, error: multiSearchError } = await serviceRoleSupabase
       .from('multi_signature_requests')
@@ -58,6 +66,8 @@ export async function POST(request: NextRequest) {
 
     if (multiSearchError) {
       console.error('❌ Erro ao buscar assinatura múltipla:', multiSearchError)
+    } else {
+      console.log(`✅ Encontradas ${multiSignatures?.length || 0} assinaturas múltiplas completadas`)
     }
 
     // Verificar se encontrou alguma assinatura
@@ -113,14 +123,36 @@ export async function POST(request: NextRequest) {
       }
 
       // Buscar informações do usuário
-      const { data: userData, error: userError } = await serviceRoleSupabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('id', signature.user_id)
-        .single()
+      let userData = null
+      let documentData = null
+      
+      if (signature.user_id) {
+        const { data: user, error: userError } = await serviceRoleSupabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', signature.user_id)
+          .single()
 
-      if (userError) {
-        console.warn('⚠️ Erro ao buscar dados do usuário:', userError)
+        if (userError) {
+          console.warn('⚠️ Erro ao buscar dados do usuário:', userError)
+        } else {
+          userData = user
+        }
+      }
+
+      // Buscar informações do documento
+      if (signature.document_id) {
+        const { data: doc, error: docError } = await serviceRoleSupabase
+          .from('documents')
+          .select('title, file_path')
+          .eq('id', signature.document_id)
+          .single()
+
+        if (docError) {
+          console.warn('⚠️ Erro ao buscar dados do documento:', docError)
+        } else {
+          documentData = doc
+        }
       }
 
       // Retornar dados da assinatura verificada
@@ -134,10 +166,10 @@ export async function POST(request: NextRequest) {
           userEmail: userData?.email || 'Email não encontrado',
           timestamp: signature.created_at,
           documentId: signature.document_id || signature.arqsign_document_id,
-          hash: signature.signature_hash,
+          hash: signature.signature_hash || signature.document_hash,
           verificationCode: signature.verification_code,
-          documentTitle: signature.title || signature.document?.title || 'Documento não encontrado',
-          documentPath: signature.document?.file_path || null,
+          documentTitle: signature.title || documentData?.title || 'Documento não encontrado',
+          documentPath: documentData?.file_path || null,
           status: signature.status,
           signatureUrl: signature.signature_url,
           isMultipleSignature: isMultipleSignature

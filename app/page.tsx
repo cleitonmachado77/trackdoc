@@ -169,9 +169,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
   const { departments } = useDepartments()
   const { categories } = useCategories()
   const { documentTypes, refetch: refetchDocumentTypes } = useDocumentTypes()
-  const { stats: entityStats, loading: entityStatsLoading, refreshStats: refreshEntityStats } = useEntityStats()
+  const { stats: entityStats, loading: entityStatsLoading } = useEntityStats()
   const { stats: notificationStats } = useNotifications()
-  const { signatures, documents: signatureDocuments, loading: signatureLoading } = useElectronicSignatures()
+  const { signatures, documents: signatureDocuments, loading: signatureLoading, loadSignatures } = useElectronicSignatures()
   const searchParams = useSearchParams()
 
   // Loading state otimizado
@@ -271,6 +271,13 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       localStorage.removeItem('redirectToDepartments')
     }
   }, [])
+
+  // Carregar assinaturas eletrônicas do usuário
+  useEffect(() => {
+    if (user) {
+      loadSignatures()
+    }
+  }, [user, loadSignatures])
 
   // Dados reais calculados a partir das informações do sistema
   const filteredDocuments = documents.filter((doc) => {
@@ -407,9 +414,29 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     const approvedByMe = myApprovals?.filter(a => a.status === 'approved').length || 0
     const rejectedByMe = myApprovals?.filter(a => a.status === 'rejected').length || 0
 
+    // Debug: Log de aprovações (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development' && myApprovals) {
+      console.log('📊 [DASHBOARD] Estatísticas de Aprovações:', {
+        total: totalApprovals,
+        pending: pendingApprovalsCount,
+        approved: approvedByMe,
+        rejected: rejectedByMe,
+        myApprovals: myApprovals.map(a => ({ id: a.id, status: a.status }))
+      })
+    }
+
     // Estatísticas de usuários
     const totalUsers = entityStats?.total_users || 0
     const activeUsers = entityStats?.active_users || 0
+
+    // Debug: Log de usuários (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development' && entityStats) {
+      console.log('📊 [DASHBOARD] Estatísticas de Usuários:', {
+        total: totalUsers,
+        active: activeUsers,
+        entityStats
+      })
+    }
 
     // Estatísticas de notificações
     const totalNotifications = notificationStats?.total_sent || 0
@@ -625,21 +652,12 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
     return (
       <div className="space-y-6">
-        {/* Header com Refresh */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-trackdoc-black">Dashboard</h1>
             <p className="text-trackdoc-gray mt-1">Visão geral do sistema</p>
           </div>
-          <Button
-            onClick={refreshEntityStats}
-            variant="outline"
-            size="sm"
-            disabled={entityStatsLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${entityStatsLoading ? 'animate-spin' : ''}`} />
-            Atualizar Dados
-          </Button>
         </div>
 
         {/* KPIs Principais */}

@@ -69,6 +69,13 @@ export default function BibliotecaPublicaPage() {
     }
   }, [slug])
 
+  // Atualizar título da aba quando a entidade for carregada
+  useEffect(() => {
+    if (entity) {
+      document.title = `Biblioteca Pública | ${entity.name}`
+    }
+  }, [entity])
+
   const loadLibrary = async () => {
     try {
       setLoading(true)

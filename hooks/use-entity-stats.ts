@@ -76,7 +76,7 @@ export function useEntityStats() {
         pendingDocumentsResult,
         approvedDocumentsResult,
         totalUsersResult,
-        activeUsersResult,
+        allProfilesResult,
         categoryStatsResult,
         typeStatsResult,
         recentActivityResult
@@ -86,7 +86,7 @@ export function useEntityStats() {
         supabase.from('documents').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'pending'),
         supabase.from('documents').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'approved'),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('entity_id', entityId),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('entity_id', entityId).eq('status', 'active'),
+        supabase.from('profiles').select('id, status').eq('entity_id', entityId),
         supabase.from('documents').select('category_id, categories!documents_category_id_fkey(name, color)').eq('entity_id', entityId).not('category_id', 'is', null),
         supabase.from('documents').select('document_type_id, document_types!documents_document_type_id_fkey(name, color)').eq('entity_id', entityId).not('document_type_id', 'is', null),
         supabase.from('audit_logs').select('id, action, created_at, profiles!audit_logs_user_id_fkey(full_name)').eq('entity_id', entityId).order('created_at', { ascending: false }).limit(10)
@@ -103,13 +103,21 @@ export function useEntityStats() {
         console.warn('Alguns erros ao buscar estatísticas:', errors)
       }
 
+      // Calcular usuários ativos (com fallback robusto)
+      // Se a coluna status existir, filtrar por 'active', senão considerar todos os usuários
+      const activeUsersCount = allProfilesResult.data
+        ? allProfilesResult.data.filter((profile: any) => 
+            !profile.status || profile.status === 'active'
+          ).length
+        : totalUsersResult.count || 0
+
       const basicStats = {
         total_documents: totalDocumentsResult.count || 0,
         draft_documents: draftDocumentsResult.count || 0,
         pending_documents: pendingDocumentsResult.count || 0,
         approved_documents: approvedDocumentsResult.count || 0,
         total_users: totalUsersResult.count || 0,
-        active_users: activeUsersResult.count || 0
+        active_users: activeUsersCount
       }
 
       // Processar estatísticas por categoria (otimizado)

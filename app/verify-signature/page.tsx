@@ -177,7 +177,7 @@ export default function VerifySignaturePage() {
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
-                onClick={() => window.location.href = 'https://www.trackdoc.app.br/'}
+                onClick={() => window.location.href = 'https://www.trackdoc.com.br/'}
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="h-4 w-4" />

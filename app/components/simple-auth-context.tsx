@@ -240,17 +240,56 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
   const signUp = async (email: string, password: string, fullName: string) => {
     if (!supabase) return { error: { message: 'Supabase não inicializado' } }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    })
+    try {
+      // Verificar se o email já existe antes de tentar criar
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', email.toLowerCase().trim())
+        .limit(1)
 
-    return { error }
+      if (checkError) {
+        console.error('Erro ao verificar email:', checkError)
+        // Continuar mesmo com erro na verificação
+      }
+
+      if (existingUsers && existingUsers.length > 0) {
+        return { 
+          error: { 
+            message: 'Este email já está cadastrado. Faça login ou use outro email.' 
+          } 
+        }
+      }
+
+      // Criar usuário
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          },
+        },
+      })
+
+      // Tratar erros específicos
+      if (error) {
+        if (error.message.includes("already registered") || 
+            error.message.includes("User already registered") ||
+            error.message.includes("duplicate key")) {
+          return { 
+            error: { 
+              message: 'Este email já está cadastrado. Faça login ou use outro email.' 
+            } 
+          }
+        }
+      }
+
+      return { error }
+    } catch (err) {
+      console.error('Erro no signUp:', err)
+      return { error: { message: 'Erro ao criar conta. Tente novamente.' } }
+    }
   }
 
   const signOut = async () => {

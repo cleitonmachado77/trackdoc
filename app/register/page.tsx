@@ -101,7 +101,25 @@ export default function RegisterPageSimple() {
     setSuccess("")
 
     try {
-      // Criar usuário individual simples
+      // 1. Verificar se o email já existe no sistema
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', formData.email.toLowerCase().trim())
+        .limit(1)
+
+      if (checkError) {
+        console.error('Erro ao verificar email:', checkError)
+        // Continuar mesmo com erro na verificação
+      }
+
+      if (existingUsers && existingUsers.length > 0) {
+        setError("Este email já está cadastrado. Faça login ou use outro email.")
+        setIsLoading(false)
+        return
+      }
+
+      // 2. Criar usuário individual simples
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -117,8 +135,15 @@ export default function RegisterPageSimple() {
       })
 
       if (signUpError) {
-        if (signUpError.message.includes("already registered")) {
+        // Tratar diferentes tipos de erro
+        if (signUpError.message.includes("already registered") || 
+            signUpError.message.includes("User already registered") ||
+            signUpError.message.includes("duplicate key")) {
           setError("Este email já está cadastrado. Faça login ou use outro email.")
+        } else if (signUpError.message.includes("Email rate limit exceeded")) {
+          setError("Muitas tentativas de registro. Aguarde alguns minutos e tente novamente.")
+        } else if (signUpError.message.includes("Invalid email")) {
+          setError("Email inválido. Verifique o endereço de email e tente novamente.")
         } else {
           setError(signUpError.message)
         }

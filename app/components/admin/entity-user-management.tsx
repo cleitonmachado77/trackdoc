@@ -45,7 +45,7 @@ interface EntityUser {
   full_name: string | null
   email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended'
+  status: 'active' | 'inactive' | 'suspended' | 'pending_confirmation'
   created_at: string
   phone?: string | null
   position?: string | null
@@ -68,10 +68,11 @@ const roleColors = {
   viewer: "bg-gray-100 text-gray-800",
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   active: "bg-green-100 text-green-800",
   inactive: "bg-orange-100 text-orange-800",
   suspended: "bg-yellow-100 text-yellow-800",
+  pending_confirmation: "bg-blue-100 text-blue-800",
 }
 
 const roleLabels = {
@@ -711,7 +712,7 @@ export default function EntityUserManagement() {
                         <Badge className={roleColors[entityUser.entity_role]}>
                           {roleLabels[entityUser.entity_role]}
                         </Badge>
-                        <Badge className={statusColors[entityUser.status]}>
+                        <Badge className={statusColors[entityUser.status] || "bg-gray-100 text-gray-800"}>
                           {entityUser.status === 'active' ? (
                             'Ativo'
                           ) : entityUser.status === 'inactive' ? (
@@ -719,8 +720,21 @@ export default function EntityUserManagement() {
                               <AlertCircle className="h-3 w-3" />
                               Inativo
                             </span>
+                          ) : entityUser.status === 'pending_confirmation' ? (
+                            <span className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Confirmação Pendente
+                            </span>
+                          ) : entityUser.status === 'suspended' ? (
+                            <span className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Suspenso
+                            </span>
                           ) : (
-                            'Suspenso'
+                            <span className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {entityUser.status}
+                            </span>
                           )}
                         </Badge>
                       </div>

@@ -33,23 +33,44 @@ export default function ConfirmEmailPage() {
         // Se há token no hash (fluxo implicit do Supabase)
         if (window.location.hash) {
           console.log('🔧 [ConfirmEmail] Hash detectado, processando token...')
+          setStatus('loading')
+          setMessage('Processando confirmação de email...')
           
           // O Supabase vai processar o hash automaticamente
-          // Aguardar um pouco para o Supabase processar
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          // Aguardar mais tempo para o Supabase processar (2 segundos)
+          await new Promise(resolve => setTimeout(resolve, 2000))
           
-          // Verificar se há sessão
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          // Tentar obter sessão múltiplas vezes
+          let session = null
+          let attempts = 0
+          const maxAttempts = 5
           
-          if (session?.user && !sessionError) {
+          while (!session && attempts < maxAttempts) {
+            const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
+            
+            if (currentSession && !sessionError) {
+              session = currentSession
+              break
+            }
+            
+            attempts++
+            console.log(`🔧 [ConfirmEmail] Tentativa ${attempts}/${maxAttempts} - Aguardando sessão...`)
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+          
+          if (session?.user) {
             console.log('✅ [ConfirmEmail] Sessão encontrada:', session.user.email)
             
             // Verificar se é usuário de entidade
-            const isEntityUser = session.user.user_metadata?.registration_type === 'entity_user'
+            const isEntityUser = session.user.user_metadata?.registration_type === 'entity_user' || typeParam === 'entity_user'
+            
+            console.log('🔧 [ConfirmEmail] Tipo de usuário:', { isEntityUser, metadata: session.user.user_metadata })
             
             if (isEntityUser) {
               // Ativar usuário de entidade
               try {
+                setMessage('Ativando sua conta...')
+                
                 const response = await fetch('/api/activate-entity-user', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -69,9 +90,17 @@ export default function ConfirmEmailPage() {
                     router.push('/login?confirmed=true')
                   }, 3000)
                   return
+                } else {
+                  console.error('❌ [ConfirmEmail] Falha na ativação:', result)
+                  setStatus('error')
+                  setMessage('Erro ao ativar conta. Tente fazer login - sua conta pode já estar ativa.')
+                  return
                 }
               } catch (err) {
                 console.error('❌ [ConfirmEmail] Erro ao ativar:', err)
+                setStatus('error')
+                setMessage('Erro ao ativar conta. Tente fazer login.')
+                return
               }
             }
             
@@ -82,6 +111,11 @@ export default function ConfirmEmailPage() {
             setTimeout(() => {
               router.push('/login?confirmed=true')
             }, 3000)
+            return
+          } else {
+            console.error('❌ [ConfirmEmail] Não foi possível obter sessão após', maxAttempts, 'tentativas')
+            setStatus('error')
+            setMessage('Erro ao processar confirmação. Tente fazer login - sua conta pode já estar ativa.')
             return
           }
         }

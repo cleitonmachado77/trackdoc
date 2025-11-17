@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2, AlertCircle, CheckCircle } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import { createBrowserClient } from '@supabase/ssr'
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -87,6 +88,44 @@ export default function LoginPage() {
           setError(error.message)
         }
       } else {
+        // Verificar se o usuário tem status pending_confirmation
+        const supabase = createBrowserClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+        
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile?.status === 'pending_confirmation') {
+            // Fazer logout imediatamente
+            await supabase.auth.signOut()
+            setError("Seu cadastro está aguardando confirmação de email. Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.")
+            setIsLoading(false)
+            return
+          }
+          
+          if (profile?.status === 'inactive') {
+            await supabase.auth.signOut()
+            setError("Sua conta está inativa. Entre em contato com o administrador.")
+            setIsLoading(false)
+            return
+          }
+          
+          if (profile?.status === 'suspended') {
+            await supabase.auth.signOut()
+            setError("Sua conta está suspensa. Entre em contato com o administrador.")
+            setIsLoading(false)
+            return
+          }
+        }
+        
         setSuccess("Login realizado com sucesso!")
         
         // Redirecionar diretamente para o dashboard após login bem-sucedido

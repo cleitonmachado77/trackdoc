@@ -499,7 +499,7 @@ export default function EntityUserManagement() {
 
       console.log('✅ [createUser] Usuário criado:', result)
       
-      setSuccess(`Usuário ${formData.full_name} criado com sucesso! Já pode fazer login.`)
+      setSuccess(`Usuário ${formData.full_name} criado com sucesso! Um email de confirmação foi enviado para ${formData.email}. O usuário poderá fazer login após confirmar o email.`)
       setShowCreateModal(false)
       
       // Limpar formulário

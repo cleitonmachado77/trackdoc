@@ -211,8 +211,14 @@ export default function ConfirmEmailPage() {
             }, 3000)
           }
         } else {
-          setStatus('error')
-          setMessage('Link de confirmação inválido ou expirado.')
+          // Se chegou aqui sem confirmed=true, pode ser que o hash já foi processado
+          // Não mostrar erro, apenas redirecionar para login
+          console.log('⚠️ [ConfirmEmail] Sem parâmetro confirmed, redirecionando para login')
+          setStatus('success')
+          setMessage('Redirecionando para login...')
+          setTimeout(() => {
+            router.push('/login')
+          }, 1000)
         }
         
       } catch (error) {

@@ -26,8 +26,67 @@ export default function ConfirmEmailPage() {
         const confirmed = searchParams.get('confirmed')
         const activated = searchParams.get('activated')
         const errorFromUrl = searchParams.get('error')
+        const typeParam = searchParams.get('type')
         
-        if (errorFromUrl) {
+        console.log('🔧 [ConfirmEmail] Parâmetros:', { confirmed, activated, errorFromUrl, typeParam })
+        
+        // Se há token no hash (fluxo implicit do Supabase)
+        if (window.location.hash) {
+          console.log('🔧 [ConfirmEmail] Hash detectado, processando token...')
+          
+          // O Supabase vai processar o hash automaticamente
+          // Aguardar um pouco para o Supabase processar
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // Verificar se há sessão
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+          
+          if (session?.user && !sessionError) {
+            console.log('✅ [ConfirmEmail] Sessão encontrada:', session.user.email)
+            
+            // Verificar se é usuário de entidade
+            const isEntityUser = session.user.user_metadata?.registration_type === 'entity_user'
+            
+            if (isEntityUser) {
+              // Ativar usuário de entidade
+              try {
+                const response = await fetch('/api/activate-entity-user', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ user_id: session.user.id })
+                })
+                
+                const result = await response.json()
+                console.log('🔧 [ConfirmEmail] Resultado da ativação:', result)
+                
+                if (response.ok && (result.success || result.already_active)) {
+                  setStatus('success')
+                  setMessage('Email confirmado com sucesso! Você já pode fazer login.')
+                  
+                  // Fazer logout e redirecionar
+                  await supabase.auth.signOut()
+                  setTimeout(() => {
+                    router.push('/login?confirmed=true')
+                  }, 3000)
+                  return
+                }
+              } catch (err) {
+                console.error('❌ [ConfirmEmail] Erro ao ativar:', err)
+              }
+            }
+            
+            // Fallback - redirecionar para login
+            setStatus('success')
+            setMessage('Email confirmado! Faça login para acessar sua conta.')
+            await supabase.auth.signOut()
+            setTimeout(() => {
+              router.push('/login?confirmed=true')
+            }, 3000)
+            return
+          }
+        }
+        
+        if (errorFromUrl && errorFromUrl !== 'no_code') {
           setStatus('error')
           setMessage('Erro ao confirmar email. Tente fazer login ou entre em contato com o suporte.')
           return

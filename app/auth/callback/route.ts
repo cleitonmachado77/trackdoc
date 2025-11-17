@@ -191,6 +191,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fallback - redirecionar para confirmação com erro
-  return NextResponse.redirect(`${baseUrl}/confirm-email?error=no_code`)
+  // Fallback - Se não há code mas pode ter token no hash (fluxo implicit)
+  // Redirecionar para página de confirmação que vai processar o hash
+  console.log('⚠️ [Callback] Sem code, redirecionando para processamento de hash')
+  return NextResponse.redirect(`${baseUrl}/confirm-email?type=${type || 'unknown'}`)
 }

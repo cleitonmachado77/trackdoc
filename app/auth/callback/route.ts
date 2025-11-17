@@ -62,41 +62,59 @@ export async function GET(request: NextRequest) {
         try {
           // Verificar se é usuário de entidade
           const isEntityUser = type === 'entity_user' || data.user.user_metadata?.registration_type === 'entity_user'
-          const apiUrl = process.env.NODE_ENV === 'production' 
-            ? `${baseUrl}/api/${isEntityUser ? 'activate-entity-user' : 'activate-user'}`
-            : `http://localhost:3000/api/${isEntityUser ? 'activate-entity-user' : 'activate-user'}`
-            
-          console.log('🔧 [Callback] Chamando API de ativação:', apiUrl, 'isEntityUser:', isEntityUser)
           
+          console.log('🔧 [Callback] Tipo de usuário:', { isEntityUser, type, metadata: data.user.user_metadata })
+          
+          // Ativar usuário de entidade
+          if (isEntityUser) {
+            const apiUrl = process.env.NODE_ENV === 'production' 
+              ? `${baseUrl}/api/activate-entity-user`
+              : `http://localhost:3000/api/activate-entity-user`
+              
+            console.log('🔧 [Callback] Ativando usuário de entidade:', apiUrl)
+            
+            const activateResponse = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: data.user.id })
+            })
+            
+            if (activateResponse.ok) {
+              const result = await activateResponse.json()
+              console.log('✅ [Callback] Usuário de entidade ativado:', result)
+              
+              // Fazer logout para forçar novo login
+              await supabase.auth.signOut()
+              
+              return NextResponse.redirect(`${baseUrl}/login?confirmed=true&message=${encodeURIComponent('Email confirmado com sucesso! Você já pode fazer login.')}`)
+            } else {
+              console.log('⚠️ [Callback] Falha na ativação, redirecionando para confirmação')
+              return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&activated=false`)
+            }
+          }
+          
+          // Usuário individual - usar API antiga
+          const apiUrl = process.env.NODE_ENV === 'production' 
+            ? `${baseUrl}/api/activate-user`
+            : `http://localhost:3000/api/activate-user`
+            
           const activateResponse = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: data.user.id })
           })
           
-          console.log('🔧 [Callback] Resposta da API:', activateResponse.status)
-          
           if (activateResponse.ok) {
-            const result = await activateResponse.json()
-            console.log('✅ [Callback] Usuário ativado:', result)
-            
-            // Se é usuário de entidade, redirecionar para login
-            if (isEntityUser) {
-              return NextResponse.redirect(`${baseUrl}/login?confirmed=true&message=${encodeURIComponent('Email confirmado! Você já pode fazer login.')}`)
-            }
-            
             return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&activated=true`)
-          } else {
-            const errorResult = await activateResponse.text()
-            console.log('⚠️ [Callback] Falha na ativação:', errorResult)
           }
+          
         } catch (activateError) {
           console.error('❌ [Callback] Erro ao ativar usuário:', activateError)
         }
         
-        // Mesmo com erro na ativação, redirecionar para confirmação (sessão foi criada)
-        console.log('✅ [Callback] Sessão criada, redirecionando sem ativação')
-        return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true`)
+        // Fallback - redirecionar para confirmação
+        console.log('✅ [Callback] Redirecionando para página de confirmação')
+        return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&activated=false`)
         
       } else {
         console.error('❌ [Callback] Erro ao processar código:', error?.message || 'Erro desconhecido')

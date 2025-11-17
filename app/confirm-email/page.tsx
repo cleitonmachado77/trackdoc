@@ -42,19 +42,24 @@ export default function ConfirmEmailPage() {
             setTimeout(() => {
               router.push('/login?confirmed=true')
             }, 3000)
-          } else {
+          } else if (activated === 'false') {
             // Tentar ativar o usuário
             const { data: { session } } = await supabase.auth.getSession()
             
             if (session?.user) {
               try {
+                console.log('🔧 [ConfirmEmail] Tentando ativar usuário:', session.user.id)
+                
                 const response = await fetch('/api/activate-entity-user', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ user_id: session.user.id })
                 })
                 
-                if (response.ok) {
+                const result = await response.json()
+                console.log('🔧 [ConfirmEmail] Resposta da ativação:', result)
+                
+                if (response.ok && result.success) {
                   setStatus('success')
                   setMessage('Email confirmado com sucesso! Você já pode fazer login.')
                   
@@ -64,20 +69,39 @@ export default function ConfirmEmailPage() {
                     router.push('/login?confirmed=true')
                   }, 3000)
                 } else {
-                  setStatus('error')
-                  setMessage('Erro ao ativar conta. Tente fazer login.')
+                  // Se já está ativo, considerar sucesso
+                  if (result.already_active) {
+                    setStatus('success')
+                    setMessage('Email confirmado! Você já pode fazer login.')
+                    await supabase.auth.signOut()
+                    setTimeout(() => {
+                      router.push('/login?confirmed=true')
+                    }, 3000)
+                  } else {
+                    setStatus('error')
+                    setMessage('Erro ao ativar conta. Tente fazer login - sua conta pode já estar ativa.')
+                  }
                 }
               } catch (err) {
+                console.error('❌ [ConfirmEmail] Erro ao ativar:', err)
                 setStatus('error')
-                setMessage('Erro ao ativar conta. Tente fazer login.')
+                setMessage('Erro ao ativar conta. Tente fazer login - sua conta pode já estar ativa.')
               }
             } else {
+              // Sem sessão, mas confirmado - redirecionar para login
               setStatus('success')
-              setMessage('Email confirmado! Você já pode fazer login.')
+              setMessage('Email confirmado! Faça login para acessar sua conta.')
               setTimeout(() => {
                 router.push('/login?confirmed=true')
               }, 3000)
             }
+          } else {
+            // Sem informação de ativação - assumir sucesso e redirecionar
+            setStatus('success')
+            setMessage('Email confirmado! Você já pode fazer login.')
+            setTimeout(() => {
+              router.push('/login?confirmed=true')
+            }, 3000)
           }
         } else {
           setStatus('error')

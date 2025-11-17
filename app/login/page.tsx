@@ -31,8 +31,14 @@ export default function LoginPage() {
   // Verificar se há mensagem de sucesso na URL
   useEffect(() => {
     const message = searchParams.get('message')
+    const confirmed = searchParams.get('confirmed')
+    
     if (message === 'password_updated') {
       setSuccess("Senha redefinida com sucesso! Faça login com sua nova senha.")
+    } else if (message) {
+      setSuccess(decodeURIComponent(message))
+    } else if (confirmed === 'true') {
+      setSuccess("Email confirmado com sucesso! Você já pode fazer login.")
     }
   }, [searchParams])
 

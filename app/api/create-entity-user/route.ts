@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     
     // Verificar se email já existe
     const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const emailExists = existingUsers?.users?.some(user => 
+    const emailExists = existingUsers?.users?.some((user: any) => 
       user.email?.toLowerCase() === email.toLowerCase()
     )
     
@@ -103,47 +103,161 @@ export async function POST(request: Request) {
     
     console.log('✅ [create-entity-user] Validações passaram, criando usuário...')
     
-    // Usar função final que trabalha com triggers existentes
-    const { data: userData, error: userError } = await supabase.rpc('create_user_entity_final', {
-      p_email: email.toLowerCase().trim(),
-      p_password: password,
-      p_full_name: full_name.trim(),
-      p_entity_id: entity_id,
-      p_entity_role: entity_role,
-      p_phone: phone?.trim() || null,
-      p_position: position?.trim() || null
+    // Criar usuário com Supabase Auth (com confirmação de email)
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password: password,
+      email_confirm: false, // Requer confirmação de email
+      user_metadata: {
+        full_name: full_name.trim(),
+        entity_id: entity_id,
+        entity_role: entity_role,
+        phone: phone?.trim() || null,
+        position: position?.trim() || null,
+        registration_type: 'entity_user'
+      }
     })
     
-    if (userError) {
-      console.error('❌ [create-entity-user] Erro na função final:', userError)
+    if (authError) {
+      console.error('❌ [create-entity-user] Erro ao criar usuário no Auth:', authError)
+      
+      if (authError.message.includes('already registered') || authError.message.includes('duplicate')) {
+        return NextResponse.json(
+          { error: 'Este email já está cadastrado no sistema' },
+          { status: 400 }
+        )
+      }
+      
       return NextResponse.json(
-        { error: 'Erro interno do servidor' },
+        { error: 'Erro ao criar usuário' },
         { status: 500 }
       )
     }
     
-    if (!userData?.success) {
-      console.error('❌ [create-entity-user] Função retornou erro:', userData?.error)
-      return NextResponse.json(
-        { error: userData?.error || 'Erro desconhecido' },
-        { status: 400 }
-      )
-    }
+    const userId = authData.user.id
+    console.log('✅ [create-entity-user] Usuário criado no Auth:', userId)
     
-    const userId = userData.user_id
-    console.log('✅ [create-entity-user] Usuário criado com função final:', userId)
-    
-    return NextResponse.json({
-      success: true,
-      user: {
+    // Criar perfil do usuário (status inactive até confirmar email)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
         id: userId,
         full_name: full_name.trim(),
         email: email.toLowerCase().trim(),
+        entity_id: entity_id,
         entity_role: entity_role,
-        status: 'active'
-      },
-      message: `Usuário ${full_name} criado com sucesso!`
-    })
+        phone: phone?.trim() || null,
+        position: position?.trim() || null,
+        role: entity_role === 'admin' ? 'admin' : 'user',
+        status: 'inactive', // Inativo até confirmar email
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    
+    if (profileError) {
+      console.error('❌ [create-entity-user] Erro ao criar perfil:', profileError)
+      
+      // Tentar deletar usuário do Auth se falhar ao criar perfil
+      await supabase.auth.admin.deleteUser(userId)
+      
+      return NextResponse.json(
+        { error: 'Erro ao criar perfil do usuário' },
+        { status: 500 }
+      )
+    }
+    
+    console.log('✅ [create-entity-user] Perfil criado com sucesso')
+    
+    // Enviar email de confirmação
+    // Quando usamos admin.createUser com email_confirm: false, o Supabase NÃO envia email automaticamente
+    // Precisamos usar generateLink e então enviar o email manualmente ou usar a função de reenvio
+    try {
+      // Opção 1: Usar inviteUserByEmail (recomendado para novos usuários)
+      // Mas como já criamos o usuário, vamos deletá-lo e recriar com invite
+      
+      // Deletar o usuário que acabamos de criar
+      await supabase.auth.admin.deleteUser(userId)
+      
+      // Deletar o perfil também
+      await supabase.from('profiles').delete().eq('id', userId)
+      
+      console.log('🔄 [create-entity-user] Recriando usuário com inviteUserByEmail...')
+      
+      // Recriar usando inviteUserByEmail (isso envia o email automaticamente)
+      const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+        email.toLowerCase().trim(),
+        {
+          data: {
+            full_name: full_name.trim(),
+            entity_id: entity_id,
+            entity_role: entity_role,
+            phone: phone?.trim() || null,
+            position: position?.trim() || null,
+            registration_type: 'entity_user'
+          },
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback?type=entity_user&entity_id=${entity_id}`
+        }
+      )
+      
+      if (inviteError) {
+        console.error('❌ [create-entity-user] Erro ao enviar convite:', inviteError)
+        return NextResponse.json(
+          { error: 'Erro ao enviar email de confirmação' },
+          { status: 500 }
+        )
+      }
+      
+      const newUserId = inviteData.user.id
+      console.log('✅ [create-entity-user] Convite enviado, novo userId:', newUserId)
+      
+      // Criar perfil com o novo userId
+      const { error: newProfileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: newUserId,
+          full_name: full_name.trim(),
+          email: email.toLowerCase().trim(),
+          entity_id: entity_id,
+          entity_role: entity_role,
+          phone: phone?.trim() || null,
+          position: position?.trim() || null,
+          role: entity_role === 'admin' ? 'admin' : 'user',
+          status: 'pending_confirmation', // Aguardando confirmação de email
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      
+      if (newProfileError) {
+        console.error('❌ [create-entity-user] Erro ao criar novo perfil:', newProfileError)
+        await supabase.auth.admin.deleteUser(newUserId)
+        return NextResponse.json(
+          { error: 'Erro ao criar perfil do usuário' },
+          { status: 500 }
+        )
+      }
+      
+      console.log('✅ [create-entity-user] Email de confirmação enviado com sucesso')
+      
+      return NextResponse.json({
+        success: true,
+        user: {
+          id: newUserId,
+          full_name: full_name.trim(),
+          email: email.toLowerCase().trim(),
+          entity_role: entity_role,
+          status: 'pending_confirmation',
+          email_confirmed: false
+        },
+        message: `Usuário ${full_name} criado com sucesso! Um email de confirmação foi enviado para ${email}.`
+      })
+      
+    } catch (emailErr) {
+      console.error('❌ [create-entity-user] Erro ao processar convite:', emailErr)
+      return NextResponse.json(
+        { error: 'Erro ao enviar email de confirmação' },
+        { status: 500 }
+      )
+    }
     
   } catch (error) {
     console.error('❌ [create-entity-user] Erro geral:', error)

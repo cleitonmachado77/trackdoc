@@ -60,11 +60,13 @@ export async function GET(request: NextRequest) {
         
         // Sucesso - ativar usuário diretamente no servidor
         try {
+          // Verificar se é usuário de entidade
+          const isEntityUser = type === 'entity_user' || data.user.user_metadata?.registration_type === 'entity_user'
           const apiUrl = process.env.NODE_ENV === 'production' 
-            ? `${baseUrl}/api/activate-user`
-            : 'http://localhost:3000/api/activate-user'
+            ? `${baseUrl}/api/${isEntityUser ? 'activate-entity-user' : 'activate-user'}`
+            : `http://localhost:3000/api/${isEntityUser ? 'activate-entity-user' : 'activate-user'}`
             
-          console.log('🔧 [Callback] Chamando API de ativação:', apiUrl)
+          console.log('🔧 [Callback] Chamando API de ativação:', apiUrl, 'isEntityUser:', isEntityUser)
           
           const activateResponse = await fetch(apiUrl, {
             method: 'POST',
@@ -77,6 +79,12 @@ export async function GET(request: NextRequest) {
           if (activateResponse.ok) {
             const result = await activateResponse.json()
             console.log('✅ [Callback] Usuário ativado:', result)
+            
+            // Se é usuário de entidade, redirecionar para login
+            if (isEntityUser) {
+              return NextResponse.redirect(`${baseUrl}/login?confirmed=true&message=${encodeURIComponent('Email confirmado! Você já pode fazer login.')}`)
+            }
+            
             return NextResponse.redirect(`${baseUrl}/confirm-email?confirmed=true&activated=true`)
           } else {
             const errorResult = await activateResponse.text()

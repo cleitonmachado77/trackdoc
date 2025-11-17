@@ -16,7 +16,15 @@ export default function ConfirmEmailPage() {
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        flowType: 'implicit',
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true
+      }
+    }
   )
 
   useEffect(() => {
@@ -29,12 +37,17 @@ export default function ConfirmEmailPage() {
         const typeParam = searchParams.get('type')
         
         console.log('🔧 [ConfirmEmail] Parâmetros:', { confirmed, activated, errorFromUrl, typeParam })
+        console.log('🔧 [ConfirmEmail] URL completa:', window.location.href)
+        console.log('🔧 [ConfirmEmail] Hash:', window.location.hash)
         
         // Se há token no hash (fluxo implicit do Supabase)
-        if (window.location.hash) {
-          console.log('🔧 [ConfirmEmail] Hash detectado, processando token...')
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          console.log('🔧 [ConfirmEmail] Token detectado no hash, processando...')
           setStatus('loading')
           setMessage('Processando confirmação de email...')
+          
+          // Forçar o Supabase a processar o hash imediatamente
+          await supabase.auth.getSession()
           
           // O Supabase vai processar o hash automaticamente
           // Aguardar mais tempo para o Supabase processar (2 segundos)

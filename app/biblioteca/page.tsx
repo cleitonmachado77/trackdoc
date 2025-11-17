@@ -357,9 +357,20 @@ export default function BibliotecaPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              if (!entityId) return
+              const link = `${window.location.origin}/biblioteca-publica/${entityId}`
+              window.open(link, '_blank')
+            }}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Abrir Biblioteca
+          </Button>
           <Button variant="outline" onClick={copyPublicLink}>
-            <LinkIcon className="h-4 w-4 mr-2" />
-            Copiar Link Público
+            <Copy className="h-4 w-4 mr-2" />
+            Copiar Link
           </Button>
         </div>
       </div>

@@ -154,7 +154,9 @@ export function useDocumentTypes() {
     }
 
     // Validações específicas do tipo de documento
-    if (documentType.requiredFields.includes('file_size') && file.size === 0) {
+    // Garantir que requiredFields existe antes de usar includes
+    const requiredFields = documentType.requiredFields || []
+    if (requiredFields.includes('file_size') && file.size === 0) {
       errors.push('Arquivo não pode estar vazio')
     }
 

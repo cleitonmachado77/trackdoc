@@ -538,12 +538,15 @@ export default function DocumentList() {
                               variant={
                                 document.status === 'rejected' ? 'destructive' :
                                 document.status === 'pending_approval' ? 'secondary' :
+                                document.status === 'draft' ? 'outline' :
                                 'default'
                               }
                               className="text-xs shrink-0"
                             >
                               {document.status === 'rejected' ? 'Rejeitado' :
                                document.status === 'pending_approval' ? 'Pendente' :
+                               document.status === 'draft' ? 'Rascunho' :
+                               document.status === 'approved' && !document.approval_required ? 'Sem aprovação' :
                                'Aprovado'}
                             </Badge>
                             <DocumentVisibilityBadge

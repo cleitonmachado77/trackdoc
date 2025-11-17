@@ -310,7 +310,9 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           file_type: uploadFile.file.type,
           retention_period: retentionPeriod,
           approval_required: isApprovalRequired,
-          retention_end_date: retentionPeriod > 0 ? new Date(Date.now() + retentionPeriod * 30 * 24 * 60 * 60 * 1000).toISOString() : null
+          retention_end_date: retentionPeriod > 0 ? new Date(Date.now() + retentionPeriod * 30 * 24 * 60 * 60 * 1000).toISOString() : null,
+          // Definir status baseado se requer aprovação ou não
+          status: (isApprovalRequired ? 'pending_approval' : 'approved') as 'draft' | 'pending_approval' | 'approved' | 'rejected'
         }
 
         console.log('Dados do documento:', documentData)
@@ -610,6 +612,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                       status: 'active',
                       approval_required: data.approval_required === 'true',
                       retention_period: parseInt(data.retention_period) || 24,
+                      required_fields: ['title', 'author'], // Garantir campos obrigatórios padrão
                       entity_id: profile?.entity_id || null
                     })
                     .select()
@@ -617,15 +620,29 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                   
                   if (error) throw error
                   
+                  // Mapear para o formato esperado
+                  const mappedType = {
+                    id: newType.id,
+                    name: newType.name,
+                    description: newType.description,
+                    prefix: newType.prefix || 'DOC',
+                    color: newType.color || '#3B82F6',
+                    requiredFields: newType.required_fields || ['title', 'author'],
+                    approvalRequired: newType.approval_required || false,
+                    retentionPeriod: newType.retention_period,
+                    status: newType.status || 'active',
+                    template: newType.template,
+                  }
+                  
                   // Adicionar à lista local
-                  setDocumentTypes([...documentTypes, newType])
+                  setDocumentTypes([...documentTypes, mappedType])
                   
                   toast({
                     title: "Tipo de documento criado!",
                     description: `${newType.name} foi criado com sucesso.`,
                   })
                   
-                  return newType
+                  return mappedType
                 }}
                 createFields={[
                   { name: 'name', label: 'Nome do Tipo', type: 'text', required: true, placeholder: 'Ex: Política de Segurança' },

@@ -327,9 +327,21 @@ export default function CategoryManagement() {
         <Card>
           <CardContent className="p-0">
             {filteredCategories.length === 0 ? (
-              <div className="text-center py-8">
-                <Tag className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">Nenhuma categoria encontrada.</p>
+              <div className="text-center py-12">
+                <div className="mx-auto mb-4 p-3 w-fit rounded-full bg-gray-50">
+                  <Tag className="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma categoria encontrada</h3>
+                <p className="text-gray-500 mb-4">
+                  {searchTerm 
+                    ? "Não há categorias que correspondam aos seus critérios de busca."
+                    : "Você ainda não criou nenhuma categoria."}
+                </p>
+                <p className="text-sm text-gray-400">
+                  {searchTerm 
+                    ? "Tente ajustar os filtros ou criar uma nova categoria."
+                    : "Clique no botão 'Nova Categoria' para começar."}
+                </p>
               </div>
             ) : (
               <div className="divide-y">
@@ -400,16 +412,28 @@ export default function CategoryManagement() {
         </Card>
       ) : (
         /* Grid de Categorias */
+        filteredCategories.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="mx-auto mb-4 p-3 w-fit rounded-full bg-gray-50">
+                <Tag className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma categoria encontrada</h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm 
+                  ? "Não há categorias que correspondam aos seus critérios de busca."
+                  : "Você ainda não criou nenhuma categoria."}
+              </p>
+              <p className="text-sm text-gray-400">
+                {searchTerm 
+                  ? "Tente ajustar os filtros ou criar uma nova categoria."
+                  : "Clique no botão 'Nova Categoria' para começar."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6">
-          {filteredCategories.length === 0 ? (
-            <Card className="lg:col-span-3">
-              <CardContent className="text-center py-8">
-                <Tag className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">Nenhuma categoria encontrada.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredCategories.map((category) => (
+          {filteredCategories.map((category) => (
               <Card key={category.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -484,9 +508,9 @@ export default function CategoryManagement() {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
+          ))}
         </div>
+        )
       )}
 
       {/* Dialog de Confirmação */}

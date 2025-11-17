@@ -173,6 +173,12 @@ export default function DocumentTypeManagement({
         setRenderKey(prev => prev + 1)
         console.log("💾 [SAVE] Re-render forçado")
         
+        // Chamar callback para atualizar dados na página pai
+        if (onDataChange) {
+          console.log("💾 [SAVE] Chamando onDataChange...")
+          onDataChange()
+        }
+        
         // Fechar modal
         setShowTypeModal(false)
         setSelectedType(null)
@@ -244,6 +250,12 @@ export default function DocumentTypeManagement({
         // Forçar re-render
         setRenderKey(prev => prev + 1)
         console.log("🗑️ [DELETE] Re-render forçado")
+        
+        // Chamar callback para atualizar dados na página pai
+        if (onDataChange) {
+          console.log("🗑️ [DELETE] Chamando onDataChange...")
+          onDataChange()
+        }
         
         toast({
           title: "Tipo excluído",
@@ -381,6 +393,26 @@ export default function DocumentTypeManagement({
 
       {viewMode === "grid" ? (
         /* Document Types Grid */
+        filteredTypes.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="mx-auto mb-4 p-3 w-fit rounded-full bg-gray-50">
+                <FileText className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum tipo de documento encontrado</h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm 
+                  ? "Não há tipos de documento que correspondam aos seus critérios de busca."
+                  : "Você ainda não criou nenhum tipo de documento."}
+              </p>
+              <p className="text-sm text-gray-400">
+                {searchTerm 
+                  ? "Tente ajustar os filtros ou criar um novo tipo de documento."
+                  : "Clique no botão 'Novo Tipo' para começar."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6" key={`grid-${renderKey}`}>
           {filteredTypes.map((type) => (
             <Card key={`${type.id}-${renderKey}`}>
@@ -466,8 +498,29 @@ export default function DocumentTypeManagement({
             </Card>
           ))}
         </div>
+        )
       ) : (
         /* Document Types List */
+        filteredTypes.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <div className="mx-auto mb-4 p-3 w-fit rounded-full bg-gray-50">
+                <FileText className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum tipo de documento encontrado</h3>
+              <p className="text-gray-500 mb-4">
+                {searchTerm 
+                  ? "Não há tipos de documento que correspondam aos seus critérios de busca."
+                  : "Você ainda não criou nenhum tipo de documento."}
+              </p>
+              <p className="text-sm text-gray-400">
+                {searchTerm 
+                  ? "Tente ajustar os filtros ou criar um novo tipo de documento."
+                  : "Clique no botão 'Novo Tipo' para começar."}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
         <Card>
           <CardContent className="p-0">
             <div className="space-y-0">
@@ -537,6 +590,7 @@ export default function DocumentTypeManagement({
             </div>
           </CardContent>
         </Card>
+        )
       )}
 
       {showDeleteConfirm && typeToDelete && (

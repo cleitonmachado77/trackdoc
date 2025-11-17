@@ -336,7 +336,8 @@ export default function DocumentEditModal({
                         document.status === 'pending_approval' ? 'secondary' : 
                         document.status === 'rejected' ? 'destructive' : 'outline'}
               >
-                {document.status === 'approved' ? 'Aprovado' :
+                {document.status === 'approved' && !document.approval_required ? 'Sem aprovação' :
+                 document.status === 'approved' ? 'Aprovado' :
                  document.status === 'pending_approval' ? 'Pendente' :
                  document.status === 'rejected' ? 'Rejeitado' :
                  document.status === 'draft' ? 'Rascunho' : document.status}

@@ -179,38 +179,19 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
       if (workflowError) throw workflowError
 
-      // 3. Buscar informações do aprovador
-      const { data: approverData, error: approverError } = await supabase
+      // Nota: A notificação será criada automaticamente pelo trigger do banco de dados
+      // (trigger_notify_approval_request)
+
+      // Buscar informações do aprovador para exibir no toast
+      const { data: approverData } = await supabase
         .from('profiles')
-        .select('email, full_name')
+        .select('full_name')
         .eq('id', approverId)
         .single()
 
-      if (approverError) throw approverError
-
-      // 4. Criar notificação para o aprovador
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          title: 'Documento pendente de aprovação',
-          message: `O documento "${uploadFiles[0]?.file.name}" foi enviado para sua aprovação.`,
-          type: 'warning',
-          priority: 'high',
-          recipients: [approverData.email],
-          channels: ['email'],
-          status: 'pending',
-          total_recipients: 1,
-          created_by: user?.id
-        })
-
-      if (notificationError) {
-        console.warn('Erro ao criar notificação:', notificationError)
-        // Não falhar a aprovação se a notificação falhar
-      }
-
       toast({
         title: "Aprovação solicitada!",
-        description: `Documento enviado para aprovação de ${approverData.full_name}.`,
+        description: `Documento enviado para aprovação${approverData ? ` de ${approverData.full_name}` : ''}.`,
       })
 
     } catch (error) {
@@ -567,6 +548,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                     .insert({
                       name: data.name,
                       description: data.description || '',
+                      manager_id: data.manager_id || null,
                       status: 'active',
                       entity_id: profile?.entity_id || null
                     })
@@ -587,7 +569,14 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 }}
                 createFields={[
                   { name: 'name', label: 'Nome do Departamento', type: 'text', required: true, placeholder: 'Ex: Tecnologia da Informação' },
-                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' }
+                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' },
+                  { 
+                    name: 'manager_id', 
+                    label: 'Gerente do Departamento', 
+                    type: 'select', 
+                    placeholder: 'Selecione um gerente (opcional)',
+                    options: users.map(u => ({ value: u.id, label: u.full_name }))
+                  }
                 ]}
                 createTitle="Criar Novo Departamento"
               />
@@ -705,7 +694,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           </div>
 
           {/* Informações do tipo selecionado */}
-          {selectedDocType && (
+          {selectedDocType && (selectedDocType.approvalRequired || (selectedDocType.retentionPeriod && selectedDocType.retentionPeriod > 0)) && (
             <div className="mt-1 p-2 bg-blue-50 rounded text-xs">
               <div className="flex flex-wrap gap-2 items-center">
                 {selectedDocType.approvalRequired && (
@@ -713,16 +702,18 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                     ⚠️ Aprovação Obrigatória
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-xs">
-                  🔒 Retenção: {selectedDocType.retentionPeriod} meses
-                </Badge>
+                {selectedDocType.retentionPeriod && selectedDocType.retentionPeriod > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    🔒 Retenção: {selectedDocType.retentionPeriod} meses
+                  </Badge>
+                )}
               </div>
               {selectedDocType.approvalRequired && (
                 <p className="text-blue-700 mt-1">
                   Este tipo de documento requer aprovação antes de ser publicado.
                 </p>
               )}
-              {selectedDocType.retentionPeriod > 0 && (
+              {selectedDocType.retentionPeriod && selectedDocType.retentionPeriod > 0 && (
                 <p className="text-blue-700 mt-1">
                   Documentos deste tipo não podem ser excluídos durante o período de retenção.
                 </p>
@@ -753,15 +744,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
               </Select>
 
               {selectedApprover && (
-                <div className="mt-1 flex gap-1">
-                  <Button
-                    onClick={() => setShowApproverSelect(false)}
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs px-2"
-                  >
-                    Confirmar
-                  </Button>
+                <div className="mt-1">
                   <Button
                     onClick={() => {
                       setSelectedApprover("")

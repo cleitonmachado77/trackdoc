@@ -773,7 +773,7 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
 
                 <div className="space-y-2">
                   <Label htmlFor="company">Empresa</Label>
-                  {editing ? (
+                  {editing && !profile.entity_id ? (
                     <Input
                       id="company"
                       value={editedProfile.company || ''}
@@ -783,8 +783,18 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
                   ) : (
                     <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
                       <Building className="h-4 w-4 text-gray-500" />
-                      <span>{profile.company || 'N/A'}</span>
+                      <span>
+                        {profile.entity?.name || 
+                         profile.entity?.legal_name || 
+                         profile.company || 
+                         'N/A'}
+                      </span>
                     </div>
+                  )}
+                  {profile.entity_id && (
+                    <p className="text-xs text-muted-foreground">
+                      Nome da entidade (não editável)
+                    </p>
                   )}
                 </div>
 

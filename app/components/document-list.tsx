@@ -452,6 +452,16 @@ export default function DocumentList() {
     }
 
     if (document.status === 'pending_approval') {
+      // Se não requer aprovação, mostrar "Sem aprovação"
+      if (!document.approval_required) {
+        return (
+          <>
+            <AlertCircle className="h-3 w-3 text-gray-500" />
+            <span className="text-xs text-gray-600 font-medium">Sem aprovação</span>
+          </>
+        )
+      }
+      
       return (
         <>
           <Clock className="h-3 w-3 text-yellow-500" />
@@ -544,7 +554,9 @@ export default function DocumentList() {
                               className="text-xs shrink-0"
                             >
                               {document.status === 'rejected' ? 'Rejeitado' :
+                               document.status === 'pending_approval' && !document.approval_required ? 'Sem aprovação' :
                                document.status === 'pending_approval' ? 'Pendente' :
+                               document.status === 'draft' && !document.approval_required ? 'Sem aprovação' :
                                document.status === 'draft' ? 'Rascunho' :
                                document.status === 'approved' && !document.approval_required ? 'Sem aprovação' :
                                'Aprovado'}

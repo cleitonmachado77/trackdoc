@@ -170,7 +170,7 @@ export default function BibliotecaPage() {
       
       const { data, error } = await supabase
         .from("documents")
-        .select("id, title, description, file_name, file_type, status")
+        .select("id, title, description, file_name, file_type, status, approval_required")
         .eq("entity_id", entityId)
         .in("status", ["approved", "draft", "pending_approval"])
         .order("title")
@@ -477,6 +477,24 @@ export default function BibliotecaPage() {
                         archived: "Arquivado"
                       }
                       
+                      // Determinar o status a ser exibido
+                      const getDisplayStatus = () => {
+                        const docStatus = (doc as any).status
+                        const approvalRequired = (doc as any).approval_required
+                        
+                        // Se o documento não requer aprovação e está como draft ou pending_approval
+                        if (!approvalRequired && (docStatus === 'draft' || docStatus === 'pending_approval')) {
+                          return { label: "Sem aprovação", color: "text-gray-600 bg-gray-100" }
+                        }
+                        
+                        return { 
+                          label: statusLabels[docStatus] || docStatus,
+                          color: statusColors[docStatus] || ""
+                        }
+                      }
+                      
+                      const displayStatus = getDisplayStatus()
+                      
                       return (
                         <div
                           key={doc.id}
@@ -501,9 +519,9 @@ export default function BibliotecaPage() {
                               {(doc as any).status && (
                                 <Badge 
                                   variant="outline" 
-                                  className={`text-xs ${statusColors[(doc as any).status] || ""}`}
+                                  className={`text-xs ${displayStatus.color}`}
                                 >
-                                  {statusLabels[(doc as any).status] || (doc as any).status}
+                                  {displayStatus.label}
                                 </Badge>
                               )}
                             </div>

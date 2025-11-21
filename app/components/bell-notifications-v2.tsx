@@ -12,7 +12,8 @@ import {
   Bell, 
   CheckCircle,
   AlertCircle,
-  Workflow
+  Workflow,
+  Info
 } from "lucide-react"
 import { getSupabaseSingleton } from "@/lib/supabase-singleton"
 
@@ -22,7 +23,7 @@ interface Notification {
   id: string
   title: string
   message: string
-  type: 'assignment' | 'completion' | 'error'
+  type: 'assignment' | 'completion' | 'error' | 'warning' | 'info' | 'success'
   created_at: string
   read: boolean
 }
@@ -74,6 +75,38 @@ export default function BellNotificationsV2() {
       setIsLoading(false)
     }
   }, [user])
+
+  const markAsRead = async (notificationId: string) => {
+    if (!user) return
+
+    try {
+      const supabase = getSupabaseSingleton()
+
+      console.log('📖 [BellNotifications] Marcando notificação como lida:', notificationId)
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ status: 'read' })
+        .eq('id', notificationId)
+
+      if (error) {
+        console.error('❌ [BellNotifications] Erro ao marcar como lida:', error)
+        throw error
+      }
+
+      console.log('✅ [BellNotifications] Notificação marcada como lida')
+
+      // Remover da lista local
+      setNotifications(prev => prev.filter(n => n.id !== notificationId))
+      setUnreadCount(prev => Math.max(0, prev - 1))
+
+      // Disparar evento para atualizar outros componentes
+      window.dispatchEvent(new CustomEvent('notifications-updated'))
+
+    } catch (error) {
+      console.error('❌ [BellNotifications] Erro ao marcar como lida:', error)
+    }
+  }
 
   useEffect(() => {
     if (!loading && user) {
@@ -156,14 +189,22 @@ export default function BellNotificationsV2() {
           ) : (
             <div className="space-y-3 max-h-80 overflow-y-auto">
               {notifications.map(notification => (
-                <div key={notification.id} className="flex flex-col gap-1 rounded-md border p-2">
+                <div 
+                  key={notification.id} 
+                  className="flex flex-col gap-1 rounded-md border p-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => markAsRead(notification.id)}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      {notification.type === 'assignment' && <Workflow className="h-3 w-3" />}
-                      {notification.type === 'completion' && <CheckCircle className="h-3 w-3" />}
-                      {notification.type === 'error' && <AlertCircle className="h-3 w-3" />}
+                      {notification.type === 'assignment' && <Workflow className="h-3 w-3 text-blue-600" />}
+                      {notification.type === 'completion' && <CheckCircle className="h-3 w-3 text-green-600" />}
+                      {notification.type === 'success' && <CheckCircle className="h-3 w-3 text-green-600" />}
+                      {notification.type === 'error' && <AlertCircle className="h-3 w-3 text-red-600" />}
+                      {notification.type === 'warning' && <AlertCircle className="h-3 w-3 text-yellow-600" />}
+                      {notification.type === 'info' && <Info className="h-3 w-3 text-blue-600" />}
                       <div className="text-sm font-medium">{notification.title}</div>
                     </div>
+                    <CheckCircle className="h-3 w-3 text-gray-400 hover:text-green-600 flex-shrink-0" title="Marcar como lida" />
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {notification.message}

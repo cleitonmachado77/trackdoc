@@ -80,15 +80,25 @@ export default function LoginPage() {
       const { error } = await signIn(formData.email, formData.password)
 
       if (error) {
+        // Traduzir mensagens de erro do Supabase para português
         if (error.message.includes("Invalid login credentials")) {
-          setError("Email ou senha incorretos")
+          setError("Email ou senha incorretos. Verifique suas credenciais e tente novamente.")
         } else if (error.message.includes("Email not confirmed")) {
           setError("Email não confirmado. Verifique sua caixa de entrada e clique no link de confirmação.")
+        } else if (error.message.includes("User not found")) {
+          setError("Usuário não encontrado. Verifique se o email está correto ou crie uma nova conta.")
+        } else if (error.message.includes("Invalid email")) {
+          setError("Email inválido. Por favor, insira um endereço de email válido.")
+        } else if (error.message.includes("Email link is invalid or has expired")) {
+          setError("O link de confirmação expirou. Solicite um novo link de confirmação.")
+        } else if (error.message.includes("Too many requests")) {
+          setError("Muitas tentativas de login. Por favor, aguarde alguns minutos e tente novamente.")
         } else {
-          setError(error.message)
+          // Para qualquer outro erro, mostrar mensagem genérica em português
+          setError("Não foi possível fazer login. Verifique suas credenciais ou entre em contato com o suporte.")
         }
       } else {
-        // Verificar se o usuário tem status pending_confirmation
+        // Verificar se o usuário existe no banco de dados e seu status
         const supabase = createBrowserClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -97,30 +107,39 @@ export default function LoginPage() {
         const { data: { user } } = await supabase.auth.getUser()
         
         if (user) {
-          const { data: profile } = await supabase
+          // Verificar se o perfil existe no banco de dados
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('status')
+            .select('status, full_name')
             .eq('id', user.id)
             .single()
           
-          if (profile?.status === 'pending_confirmation') {
-            // Fazer logout imediatamente
+          // Se o perfil não existe, significa que foi excluído
+          if (profileError || !profile) {
+            await supabase.auth.signOut()
+            setError("Esta conta foi removida do sistema. Entre em contato com o administrador para mais informações.")
+            setIsLoading(false)
+            return
+          }
+          
+          // Verificar status do perfil
+          if (profile.status === 'pending_confirmation') {
             await supabase.auth.signOut()
             setError("Seu cadastro está aguardando confirmação de email. Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.")
             setIsLoading(false)
             return
           }
           
-          if (profile?.status === 'inactive') {
+          if (profile.status === 'inactive') {
             await supabase.auth.signOut()
-            setError("Sua conta está inativa. Entre em contato com o administrador.")
+            setError("Sua conta está inativa. Entre em contato com o administrador do sistema para reativá-la.")
             setIsLoading(false)
             return
           }
           
-          if (profile?.status === 'suspended') {
+          if (profile.status === 'suspended') {
             await supabase.auth.signOut()
-            setError("Sua conta está suspensa. Entre em contato com o administrador.")
+            setError("Sua conta foi suspensa. Entre em contato com o administrador do sistema para mais informações.")
             setIsLoading(false)
             return
           }
@@ -135,7 +154,8 @@ export default function LoginPage() {
         window.location.href = "/"
       }
     } catch (err) {
-      setError("Erro interno do servidor. Tente novamente.")
+      console.error('Erro no login:', err)
+      setError("Ocorreu um erro ao tentar fazer login. Por favor, tente novamente.")
     } finally {
       setIsLoading(false)
     }

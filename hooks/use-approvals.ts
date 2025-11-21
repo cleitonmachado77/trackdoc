@@ -121,6 +121,10 @@ export function useApprovals() {
             title,
             status,
             created_at,
+            author_id,
+            profiles!documents_author_id_fkey (
+              full_name
+            ),
             approval_requests (
               id,
               status,
@@ -232,34 +236,41 @@ export function useApprovals() {
       }
 
       // Processar dados enviados para aprovação (otimizado)
-      const processSentApprovals = (sentResult.data || []).map(doc => {
-        const approvals = doc.approval_requests || []
-        const latestApproval = approvals[approvals.length - 1]
+      // Filtrar apenas documentos que realmente têm solicitações de aprovação
+      const processSentApprovals = (sentResult.data || [])
+        .filter(doc => doc.approval_requests && doc.approval_requests.length > 0)
+        .map(doc => {
+          const approvals = doc.approval_requests || []
+          const latestApproval = approvals[approvals.length - 1]
+          const authorName = doc.profiles?.full_name || ''
 
-        const processedData = {
-          id: doc.id,
-          document_id: doc.id,
-          document_title: doc.title,
-          status: doc.status,
-          created_at: doc.created_at,
-          approval_requests: approvals,
-          latest_approval: latestApproval,
-          approver_id: latestApproval?.approver_id || '',
-          approver_name: latestApproval?.profiles?.[0]?.full_name || '',
-          comments: latestApproval?.comments || '',
-          approved_at: latestApproval?.approved_at || '',
-          step_order: approvals.length
-        }
+          const processedData = {
+            id: doc.id,
+            document_id: doc.id,
+            document_title: doc.title,
+            document_author_name: authorName,
+            author_name: authorName,
+            status: doc.status,
+            created_at: doc.created_at,
+            approval_requests: approvals,
+            latest_approval: latestApproval,
+            approver_id: latestApproval?.approver_id || '',
+            approver_name: latestApproval?.profiles?.[0]?.full_name || '',
+            comments: latestApproval?.comments || '',
+            approved_at: latestApproval?.approved_at || '',
+            step_order: approvals.length
+          }
 
-        console.log('📊 [SENT_APPROVALS] Documento processado:', {
-          title: doc.title,
-          status: doc.status,
-          approved_at: latestApproval?.approved_at,
-          has_approved_at: !!latestApproval?.approved_at
+          console.log('📊 [SENT_APPROVALS] Documento processado:', {
+            title: doc.title,
+            status: doc.status,
+            author_name: authorName,
+            approved_at: latestApproval?.approved_at,
+            has_approved_at: !!latestApproval?.approved_at
+          })
+
+          return processedData
         })
-
-        return processedData
-      })
 
       // Enriquecer dados em paralelo
       const [enrichedPending, enrichedMy] = await Promise.all([

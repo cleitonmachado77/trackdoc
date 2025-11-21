@@ -514,6 +514,7 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
                     name: data.name,
                     short_name: data.short_name,
                     description: data.description,
+                    manager_id: data.manager_id || null,
                     status: 'active'
                   })
                   .select()
@@ -531,7 +532,14 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               createFields={[
                 { name: 'name', label: 'Nome do Departamento', type: 'text', required: true, placeholder: 'Ex: Tecnologia da Informação' },
                 { name: 'short_name', label: 'Nome Curto', type: 'text', required: true, placeholder: 'Ex: TI' },
-                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' }
+                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' },
+                { 
+                  name: 'manager_id', 
+                  label: 'Gerente do Departamento', 
+                  type: 'select', 
+                  placeholder: 'Selecione um gerente (opcional)',
+                  options: users.map(u => ({ value: u.id, label: u.full_name }))
+                }
               ]}
               createTitle="Criar Novo Departamento"
             />

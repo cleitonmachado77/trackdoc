@@ -93,6 +93,7 @@ import MinhaContaPage from "./minha-conta/page"
 import BibliotecaPage from "./biblioteca/page"
 import { useDocuments } from "@/hooks/use-documents"
 import { useApprovals } from "@/hooks/use-approvals"
+import { useProfile } from "./components/profile-context"
 
 import { useDepartments } from "@/hooks/use-departments"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
@@ -164,8 +165,9 @@ export default DocumentManagementPlatform
 const DocumentManagementPlatformContent = memo(function DocumentManagementPlatformContent() {
   // Hooks para dados reais - otimizados para carregamento lazy
   const { user } = useAuth()
+  const { profile } = useProfile()
   const { documents, loading: documentsLoading, error: documentsError, createDocument, updateDocument, deleteDocument, changeDocumentStatus, stats: documentStats } = useDocuments()
-  const { myApprovals, sentApprovals, loading: approvalsLoading } = useApprovals()
+  const { myApprovals, sentApprovals, loading: approvalsLoading, refetch: refetchApprovals } = useApprovals()
   const { departments } = useDepartments()
   const { categories } = useCategories()
   const { documentTypes, refetch: refetchDocumentTypes } = useDocumentTypes()
@@ -1688,7 +1690,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{user?.user_metadata?.full_name || 'Usuário'}</div>
+                      <div className="text-2xl font-bold">{profile?.full_name || user?.user_metadata?.full_name || 'Usuário'}</div>
                       <p className="text-sm text-muted-foreground">perfil ativo</p>
                     </CardContent>
                   </Card>
@@ -1796,7 +1798,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-900">{user?.user_metadata?.full_name || 'Usuário'}</div>
+                        <div className="text-2xl font-bold text-gray-900">{profile?.full_name || user?.user_metadata?.full_name || 'Usuário'}</div>
                         <p className="text-sm text-gray-500">perfil ativo</p>
                       </div>
                     </div>
@@ -2120,7 +2122,10 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             </DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 max-h-[calc(90vh-120px)]">
-            <DocumentUploadWithApproval onSuccess={() => setShowUploadModal(false)} />
+            <DocumentUploadWithApproval onSuccess={() => {
+              setShowUploadModal(false)
+              refetchApprovals()
+            }} />
           </div>
         </DialogContent>
       </Dialog>

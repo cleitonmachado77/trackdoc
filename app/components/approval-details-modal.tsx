@@ -108,19 +108,32 @@ export default function ApprovalDetailsModal({
                 {getStatusBadge(approval.status)}
               </div>
               
-              <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  <span>
-                    <strong>Autor:</strong> {approval.document_author_name || 'N/A'}
-                  </span>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>
+                      <strong>Autor:</strong> {approval.document_author_name || approval.author_name || 'Não informado'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      <strong>Criado em:</strong> {formatDate(approval.created_at)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    <strong>Criado em:</strong> {formatDate(approval.created_at)}
-                  </span>
-                </div>
+                
+                {approval.approved_at && (
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-green-600" />
+                      <span>
+                        <strong>Data de Aprovação:</strong> {formatDate(approval.approved_at)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

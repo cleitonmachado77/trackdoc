@@ -29,6 +29,7 @@ import {
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useDocumentTypes } from "@/hooks/use-document-types"
+import { useUsers } from "@/hooks/use-users"
 import { InlineCreateSelect } from "./inline-create-select"
 import { useToast } from "@/hooks/use-toast"
 import { useProfile } from "./profile-context"
@@ -77,6 +78,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
   )
   const { toast } = useToast()
   const { profile } = useProfile()
+  const { users } = useUsers()
 
   const [formData, setFormData] = useState({
     number: "",
@@ -387,6 +389,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                     .insert({
                       name: data.name,
                       description: data.description || '',
+                      manager_id: data.manager_id || null,
                       status: 'active',
                       entity_id: profile?.entity_id || null
                     })
@@ -407,7 +410,14 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                 }}
                 createFields={[
                   { name: 'name', label: 'Nome do Departamento', type: 'text', required: true, placeholder: 'Ex: Tecnologia da Informação' },
-                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' }
+                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do departamento' },
+                  { 
+                    name: 'manager_id', 
+                    label: 'Gerente do Departamento', 
+                    type: 'select', 
+                    placeholder: 'Selecione um gerente (opcional)',
+                    options: users.map(u => ({ value: u.id, label: u.full_name }))
+                  }
                 ]}
                 createTitle="Criar Novo Departamento"
               />

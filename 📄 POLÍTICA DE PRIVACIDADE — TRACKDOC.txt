@@ -1,0 +1,129 @@
+📄 POLÍTICA DE PRIVACIDADE — TRACKDOC
+
+Última atualização: 21/11/2025
+Controladora: Trackdoc Tecnologia Ltda. — CNPJ 63.731.881/0001-30
+Base legal: LGPD, Marco Civil da Internet e legislação correlata
+
+1. Dados Coletados
+
+A Trackdoc coleta:
+
+Dados de Conta
+
+Nome, e-mail, empresa, CNPJ, telefone
+
+Dados de Uso e Segurança
+
+IP, dispositivo, logs de acesso, hash de arquivos
+
+trilhas de atividade em documentos
+
+Dados Financeiros
+
+meio de pagamento
+
+cobrança recorrente
+
+Conteúdo Enviado
+
+documentos, anexos, metadados
+
+assinaturas eletrônicas simples
+
+Conteúdos são sigilosos e não acessados pela Trackdoc, exceto:
+
+por ordem judicial
+
+quando autorizado pelo cliente para suporte técnico
+
+2. Finalidades do Tratamento
+
+Usamos dados para:
+
+autenticação e controle de acesso
+
+prestação do serviço contratado
+
+segurança, auditoria e prevenção a fraudes
+
+cobrança e gestão financeira
+
+cumprimento legal
+
+Dados não são vendidos.
+
+3. Base Legal
+
+Tratamento baseado em:
+
+Execução de contrato
+
+Legítimo interesse
+
+Obrigação legal
+
+Para dados armazenados pelo cliente, este é o Controlador, e a Trackdoc é Operadora.
+
+4. Compartilhamento de Dados
+
+Compartilhamos dados apenas com:
+
+provedores de nuvem e infraestrutura
+
+meios de pagamento
+
+suporte e comunicação
+
+autoridades mediante ordem legal
+
+Nunca compartilhamos documentos para fins comerciais.
+
+5. Retenção e Exclusão de Dados
+
+logs podem ser retidos entre 6 meses e 5 anos
+
+documentos podem ser excluídos após cancelamento
+
+backups podem existir temporariamente para segurança, não para uso comercial
+
+o Usuário pode solicitar exclusão de dados pessoais conforme LGPD
+
+6. Segurança da Informação
+
+A plataforma utiliza:
+
+criptografia (HTTPS/TLS)
+
+gestão de acessos e hashes
+
+auditoria e logs detalhados
+
+Nenhuma plataforma é invulnerável; o Usuário reconhece riscos inerentes.
+
+7. Direitos do Titular
+
+O titular pode solicitar:
+
+acesso
+
+correção
+
+exclusão (quando aplicável)
+
+portabilidade
+
+oposição
+
+Pedimos identificação para segurança antes de atender solicitações.
+
+8. Contato do Encarregado (DPO)
+
+O canal oficial será divulgado no painel da plataforma e canais institucionais.
+
+9. Alterações
+
+A Trackdoc pode alterar esta política mediante aviso prévio. O uso contínuo implica aceitação.
+
+10. Foro
+
+Foro da Comarca do Rio de Janeiro - RJ.

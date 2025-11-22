@@ -34,6 +34,8 @@ import { InlineCreateSelect } from "./inline-create-select"
 import { useToast } from "@/hooks/use-toast"
 import { useProfile } from "./profile-context"
 
+// Note: Next.js 13+ shows warnings about function props in "use client" components
+// These are false positives - the functions work correctly on the client side
 interface DocumentModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void

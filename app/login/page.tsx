@@ -298,12 +298,16 @@ export default function LoginPage() {
         <div className="text-center mt-8 text-sm text-gray-500">
           <p>© 2024 TrackDoc. Todos os direitos reservados.</p>
           <div className="flex justify-center space-x-4 mt-2">
-            <Button variant="link" className="px-0 text-gray-500 hover:text-gray-700">
-              Termos de Uso
-            </Button>
-            <Button variant="link" className="px-0 text-gray-500 hover:text-gray-700">
-              Política de Privacidade
-            </Button>
+            <Link href="/termos-de-uso" target="_blank">
+              <Button variant="link" className="px-0 text-gray-500 hover:text-gray-700">
+                Termos de Uso
+              </Button>
+            </Link>
+            <Link href="/politica-de-privacidade" target="_blank">
+              <Button variant="link" className="px-0 text-gray-500 hover:text-gray-700">
+                Política de Privacidade
+              </Button>
+            </Link>
             <Button variant="link" className="px-0 text-gray-500 hover:text-gray-700">
               Suporte
             </Button>

@@ -287,11 +287,11 @@ export default function RegisterPageSimple() {
                 />
                 <Label htmlFor="terms" className="text-sm font-normal">
                   Aceito os{" "}
-                  <Link href="/terms" className="text-blue-600 hover:text-blue-700">
+                  <Link href="/termos-de-uso" target="_blank" className="text-blue-600 hover:text-blue-700 underline">
                     termos de uso
                   </Link>{" "}
                   e{" "}
-                  <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
+                  <Link href="/politica-de-privacidade" target="_blank" className="text-blue-600 hover:text-blue-700 underline">
                     política de privacidade
                   </Link>
                 </Label>

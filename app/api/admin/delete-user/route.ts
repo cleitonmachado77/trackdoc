@@ -66,27 +66,34 @@ export async function POST(request: NextRequest) {
       }
     )
 
-    console.log('🗑️ [delete-user API] Excluindo usuário do auth:', user_id)
+    console.log('🗑️ [delete-user API] Realizando soft delete do usuário:', user_id)
 
-    // Excluir usuário do auth.users usando admin API
-    const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id)
+    // Soft delete: marcar usuário como excluído mantendo dados para rastreabilidade
+    const { error: softDeleteError } = await supabaseAdmin
+      .from('profiles')
+      .update({ 
+        deleted_at: new Date().toISOString(),
+        status: 'deleted'
+      })
+      .eq('id', user_id)
 
-    if (deleteError) {
-      console.error('❌ [delete-user API] Erro ao excluir usuário:', deleteError)
+    if (softDeleteError) {
+      console.error('❌ [delete-user API] Erro ao marcar usuário como excluído:', softDeleteError)
       return NextResponse.json(
         { 
-          error: 'Erro ao excluir usuário do sistema de autenticação',
-          details: deleteError.message 
+          error: 'Erro ao excluir usuário',
+          details: softDeleteError.message 
         },
         { status: 500 }
       )
     }
 
-    console.log('✅ [delete-user API] Usuário excluído com sucesso do auth')
+    console.log('✅ [delete-user API] Usuário marcado como excluído (soft delete)')
+    console.log('ℹ️ [delete-user API] Dados mantidos para rastreabilidade')
 
     return NextResponse.json({
       success: true,
-      message: 'Usuário excluído com sucesso do sistema de autenticação'
+      message: 'Usuário excluído com sucesso (dados mantidos para rastreabilidade)'
     })
 
   } catch (error) {

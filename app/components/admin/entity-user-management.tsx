@@ -45,12 +45,13 @@ interface EntityUser {
   full_name: string | null
   email: string | null
   entity_role: 'user' | 'admin' | 'manager' | 'viewer'
-  status: 'active' | 'inactive' | 'suspended' | 'pending_confirmation'
+  status: 'active' | 'inactive' | 'suspended' | 'pending_confirmation' | 'deleted'
   created_at: string
   phone?: string | null
   position?: string | null
   updated_at?: string | null
   avatar_url?: string | null
+  deleted_at?: string | null
 }
 
 const getInitials = (fullName: string) => {
@@ -121,9 +122,13 @@ export default function EntityUserManagement() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
 
   const fetchEntityUsers = async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      console.log('⚠️ [fetchEntityUsers] Sem user.id, abortando')
+      return
+    }
 
     try {
+      console.log('🔄 [fetchEntityUsers] Iniciando busca de usuários...')
       setLoading(true)
       setError('')
 
@@ -135,9 +140,12 @@ export default function EntityUserManagement() {
         .single()
 
       if (profileError || !profileData?.entity_id) {
+        console.error('❌ [fetchEntityUsers] Erro ao buscar perfil:', profileError)
         setError('Usuário não está associado a uma entidade')
         return
       }
+
+      console.log('✅ [fetchEntityUsers] Perfil encontrado:', { entity_id: profileData.entity_id, entity_role: profileData.entity_role })
 
       // Armazenar o papel do usuário atual
       setCurrentUserRole(profileData.entity_role)
@@ -153,22 +161,39 @@ export default function EntityUserManagement() {
         setEntityInfo(entityData)
       }
 
-      // Buscar usuários da entidade
+      // Buscar usuários da entidade (excluindo usuários com soft delete)
+      const timestamp = Date.now()
+      console.log(`🔍 [fetchEntityUsers] Buscando usuários ativos (timestamp: ${timestamp})...`)
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, entity_role, status, created_at, phone, position, avatar_url, updated_at')
+        .select('id, full_name, email, entity_role, status, created_at, phone, position, avatar_url, updated_at, deleted_at')
         .eq('entity_id', profileData.entity_id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ [fetchEntityUsers] Erro ao buscar usuários:', error)
+        throw error
+      }
 
+      console.log('✅ [fetchEntityUsers] Usuários carregados (excluindo soft deleted):', { 
+        count: data?.length || 0, 
+        users: data?.map(u => ({ 
+          id: u.id.substring(0, 8), 
+          name: u.full_name, 
+          status: u.status,
+          email: u.email,
+          deleted_at: u.deleted_at || 'null'
+        })) 
+      })
       setEntityUsers(data || [])
 
     } catch (err) {
-      console.error('Erro ao carregar usuários:', err)
+      console.error('❌ [fetchEntityUsers] Erro ao carregar usuários:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')
     } finally {
       setLoading(false)
+      console.log('🏁 [fetchEntityUsers] Busca finalizada')
     }
   }
 
@@ -375,17 +400,27 @@ export default function EntityUserManagement() {
   }
 
   const deleteUserPermanently = async () => {
-    if (!selectedUser?.id) return
+    if (!selectedUser?.id) {
+      console.log('⚠️ [deleteUser] Sem selectedUser.id, abortando')
+      return
+    }
 
     try {
       setError('')
       setIsDeletingUser(true)
 
-      console.log('🗑️ [deleteUser] Excluindo usuário permanentemente...')
+      console.log('🗑️ [deleteUser] Excluindo usuário permanentemente...', { 
+        userId: selectedUser.id, 
+        userName: selectedUser.full_name,
+        status: selectedUser.status,
+        updated_at: selectedUser.updated_at
+      })
 
       // Verificar se não está tentando excluir a si mesmo
       if (selectedUser.id === user?.id) {
+        console.log('⚠️ [deleteUser] Tentativa de excluir a própria conta')
         setError('Você não pode excluir sua própria conta')
+        setIsDeletingUser(false)
         return
       }
 
@@ -394,36 +429,57 @@ export default function EntityUserManagement() {
         const updatedDate = new Date(selectedUser.updated_at)
         const daysSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24))
         
+        console.log('📅 [deleteUser] Verificando período de inativação:', { daysSinceUpdate, required: 7 })
+        
         if (daysSinceUpdate < 7) {
+          console.log('⚠️ [deleteUser] Período de 7 dias não atingido')
           setError(`Este usuário só poderá ser excluído após ${7 - daysSinceUpdate} dia(s)`)
+          setIsDeletingUser(false)
           return
         }
       }
 
-      // Excluir usuário do profiles
-      const { error: deleteError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', selectedUser.id)
+      // Excluir usuário usando API admin
+      console.log('🔄 [deleteUser] Chamando API de exclusão...')
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: selectedUser.id
+        })
+      })
 
-      if (deleteError) {
-        throw new Error(deleteError.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('❌ [deleteUser] Erro na API:', result)
+        throw new Error(result.error || 'Erro ao excluir usuário')
       }
 
-      console.log('✅ [deleteUser] Usuário excluído permanentemente')
+      console.log('✅ [deleteUser] Usuário excluído com sucesso via API:', result)
       
-      setSuccess(`Usuário ${selectedUser.full_name} excluído permanentemente!`)
+      // Fechar modal e limpar seleção
+      console.log('🔄 [deleteUser] Fechando modal e limpando seleção...')
       setShowDeleteModal(false)
       setSelectedUser(null)
-
-      // Recarregar lista
+      
+      // Recarregar lista antes de mostrar mensagem de sucesso
+      console.log('🔄 [deleteUser] Recarregando lista de usuários...')
       await fetchEntityUsers()
+      console.log('✅ [deleteUser] Lista recarregada')
+      
+      // Mostrar mensagem de sucesso após recarregar
+      setSuccess(`Usuário excluído permanentemente!`)
+      console.log('✅ [deleteUser] Processo de exclusão concluído')
 
     } catch (err) {
-      console.error('Erro ao excluir usuário:', err)
+      console.error('❌ [deleteUser] Erro ao excluir usuário:', err)
       setError(err instanceof Error ? err.message : 'Erro ao excluir usuário')
     } finally {
       setIsDeletingUser(false)
+      console.log('🏁 [deleteUser] Finalizando processo')
     }
   }
 

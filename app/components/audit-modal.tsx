@@ -262,7 +262,7 @@ export default function AuditModal({ open, onOpenChange, document }: AuditModalP
                   <Badge className={document.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
                     {document.status === "approved" && !document.approval_required ? "Sem aprovação" :
                      document.status === "approved" ? "Aprovado" : 
-                     document.status === "pending" ? "Em Aprovação" : "Rascunho"}
+                     document.status === "pending" || document.status === "pending_approval" ? "Pendente Aprovação" : "Rascunho"}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">

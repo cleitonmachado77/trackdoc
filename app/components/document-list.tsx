@@ -374,7 +374,7 @@ export default function DocumentList() {
       return (
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-yellow-500" />
-          <span className="text-sm text-yellow-600 font-medium">Aguardando Aprovação</span>
+          <span className="text-sm text-yellow-600 font-medium">Pendente Aprovação</span>
         </div>
       )
     }
@@ -555,7 +555,7 @@ export default function DocumentList() {
                             >
                               {document.status === 'rejected' ? 'Rejeitado' :
                                document.status === 'pending_approval' && !document.approval_required ? 'Sem aprovação' :
-                               document.status === 'pending_approval' ? 'Pendente' :
+                               document.status === 'pending_approval' ? 'Pendente Aprovação' :
                                document.status === 'draft' && !document.approval_required ? 'Sem aprovação' :
                                document.status === 'draft' ? 'Rascunho' :
                                document.status === 'approved' && !document.approval_required ? 'Sem aprovação' :
@@ -664,7 +664,7 @@ export default function DocumentList() {
                                 {/* Para documentos em aprovação, não mostrar ações */}
                                 {document.status === 'pending_approval' && (
                                   <div className="px-2 py-1 text-xs text-muted-foreground">
-                                    Documento bloqueado durante aprovação
+                                    Documento bloqueado - Pendente aprovação
                                   </div>
                                 )}
                               </>
@@ -884,7 +884,7 @@ export default function DocumentList() {
                               )}
                               {document.status === 'pending_approval' && (
                                 <div className="px-2 py-1 text-xs text-muted-foreground">
-                                  Bloqueado em aprovação
+                                  Bloqueado - Pendente aprovação
                                 </div>
                               )}
                             </>

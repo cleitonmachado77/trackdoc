@@ -140,8 +140,8 @@ const statusColors = {
 
 const statusLabels = {
   draft: "Rascunho",
-  pending: "Em Aprovacao",
-  pending_approval: "Aguardando Aprovação",
+  pending: "Pendente Aprovação",
+  pending_approval: "Pendente Aprovação",
   approved: "Aprovado",
   rejected: "Rejeitado",
   archived: "Arquivado",
@@ -1472,7 +1472,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                           <div className="flex-1">
                             <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
                             <p className="text-sm text-gray-500">
-                              Status: {approval.status === 'pending' ? 'Aguardando Aprovação' :
+                              Status: {approval.status === 'pending' ? 'Pendente Aprovação' :
                                 approval.status === 'approved' ? 'Aprovado' :
                                   approval.status === 'rejected' ? 'Rejeitado' : approval.status}
                             </p>

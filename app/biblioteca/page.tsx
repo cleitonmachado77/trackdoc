@@ -472,7 +472,8 @@ export default function BibliotecaPage() {
                       const statusLabels: Record<string, string> = {
                         approved: "Aprovado",
                         draft: "Rascunho",
-                        pending_approval: "Pendente",
+                        pending_approval: "Pendente Aprovação",
+                        pending: "Pendente Aprovação",
                         rejected: "Rejeitado",
                         archived: "Arquivado"
                       }

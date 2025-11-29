@@ -308,7 +308,7 @@ export default function ApprovalTimeReport() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Aguardando aprovação</p>
+            <p className="text-xs text-muted-foreground">Pendente aprovação</p>
           </CardContent>
         </Card>
 

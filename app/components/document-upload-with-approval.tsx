@@ -292,8 +292,9 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
           retention_period: retentionPeriod,
           approval_required: isApprovalRequired,
           retention_end_date: retentionPeriod > 0 ? new Date(Date.now() + retentionPeriod * 30 * 24 * 60 * 60 * 1000).toISOString() : null,
-          // Definir status baseado se requer aprovação ou não
-          status: (isApprovalRequired ? 'pending_approval' : 'approved') as 'draft' | 'pending_approval' | 'approved' | 'rejected'
+          // Se requer aprovação, criar como draft e depois solicitar aprovação
+          // Se não requer aprovação, criar como approved
+          status: (isApprovalRequired ? 'draft' : 'approved') as 'draft' | 'pending_approval' | 'approved' | 'rejected'
         }
 
         console.log('Dados do documento:', documentData)

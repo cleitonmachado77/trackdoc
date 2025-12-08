@@ -338,7 +338,7 @@ export default function DocumentEditModal({
               >
                 {document.status === 'approved' && !document.approval_required ? 'Sem aprovação' :
                  document.status === 'approved' ? 'Aprovado' :
-                 document.status === 'pending_approval' ? 'Pendente Aprovação' :
+                 document.status === 'pending_approval' ? 'Em aprovação' :
                  document.status === 'rejected' ? 'Rejeitado' :
                  document.status === 'draft' ? 'Rascunho' : document.status}
               </Badge>

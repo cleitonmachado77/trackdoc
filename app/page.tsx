@@ -140,8 +140,8 @@ const statusColors = {
 
 const statusLabels = {
   draft: "Rascunho",
-  pending: "Pendente Aprovação",
-  pending_approval: "Pendente Aprovação",
+  pending: "Em aprovação",
+  pending_approval: "Em aprovação",
   approved: "Aprovado",
   rejected: "Rejeitado",
   archived: "Arquivado",
@@ -1472,17 +1472,17 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                           <div className="flex-1">
                             <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
                             <p className="text-sm text-gray-500">
-                              Status: {approval.status === 'pending' ? 'Pendente Aprovação' :
+                              Status: {(approval.status === 'pending' || approval.status === 'pending_approval') ? 'Em aprovação' :
                                 approval.status === 'approved' ? 'Aprovado' :
-                                  approval.status === 'rejected' ? 'Rejeitado' : approval.status}
+                                  approval.status === 'rejected' ? 'Rejeitado' : 'Em aprovação'}
                             </p>
                             <p className="text-sm text-gray-500">
-                              {approval.status === 'pending' ? (
+                              {(approval.status === 'pending' || approval.status === 'pending_approval') ? (
                                 <>Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
                               ) : approval.status === 'approved' ? (
                                 <>Aprovado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
                               ) : approval.status === 'rejected' ? (
-                                <>Rejeitado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
+                                <>Rejeitado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
                               ) : (
                                 <>Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
                               )}

@@ -348,8 +348,14 @@ export async function POST(request: NextRequest) {
     const metadata = await digitalSignatureService.extractPdfMetadata(pdfBuffer)
     console.log('✅ Metadados extraídos:', metadata)
 
-    // Obter informações do usuário
-    const userName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário'
+    // Obter informações do usuário da tabela profiles (nome atualizado)
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user.id)
+      .single()
+    
+    const userName = profileData?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário'
     const userEmail = user.email || 'sem-email@exemplo.com'
 
     console.log('👤 Informações do usuário:', { userName, userEmail })
@@ -877,7 +883,7 @@ export async function POST(request: NextRequest) {
               const { signedPdf, signature } = await digitalSignatureService.createSignature(
                 docPdfBuffer,
                 user.id,
-                user.user_metadata?.full_name || 'Usuário',
+                userName, // Usar o nome já buscado da tabela profiles
                 user.email || '',
                 docId,
                 signatureTemplate

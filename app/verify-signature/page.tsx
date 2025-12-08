@@ -169,7 +169,7 @@ export default function VerifySignaturePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
@@ -183,17 +183,6 @@ export default function VerifySignaturePage() {
                 <ArrowLeft className="h-4 w-4" />
                 <span>Voltar</span>
               </Button>
-              <div className="flex items-center space-x-3">
-                <img 
-                  src="/logo-horizontal-preto.png" 
-                  alt="TrackDoc" 
-                  className="h-8 w-auto"
-                />
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">Verificação de Assinaturas</h1>
-                  <p className="text-sm text-gray-600">Verifique a autenticidade de assinaturas eletrônicas</p>
-                </div>
-              </div>
             </div>
             <div className="flex items-center space-x-2">
               <Shield className="h-5 w-5 text-green-600" />
@@ -203,8 +192,14 @@ export default function VerifySignaturePage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 flex-1">
         <div className="max-w-4xl mx-auto">
+          {/* Título da Página */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900">Verificação de Assinaturas</h1>
+            <p className="text-sm text-gray-600">Verifique a autenticidade de assinaturas eletrônicas</p>
+          </div>
+
           {/* Formulário de Verificação */}
           <Card className="mb-8">
             <CardHeader>
@@ -477,6 +472,29 @@ export default function VerifySignaturePage() {
           </Card>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-white border-t mt-auto">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/logo-horizontal-preto.png" 
+                alt="TrackDoc" 
+                className="h-8 w-auto"
+              />
+            </div>
+            <div className="text-center md:text-right">
+              <p className="text-sm text-gray-600">
+                © {new Date().getFullYear()} TrackDoc. Todos os direitos reservados.
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Assinaturas eletrônicas com validade jurídica
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

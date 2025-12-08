@@ -35,6 +35,7 @@ export default function ApprovalDetailsModal({
       case 'rejected':
         return <XCircle className="h-4 w-4 text-red-600" />
       case 'pending':
+      case 'pending_approval':
         return <Clock className="h-4 w-4 text-yellow-600" />
       default:
         return <Clock className="h-4 w-4 text-gray-600" />
@@ -58,16 +59,17 @@ export default function ApprovalDetailsModal({
           </Badge>
         )
       case 'pending':
+      case 'pending_approval':
         return (
           <Badge className="bg-yellow-100 text-yellow-800">
             <Clock className="h-3 w-3 mr-1" />
-            Pendente
+            Em aprovação
           </Badge>
         )
       default:
         return (
           <Badge variant="secondary">
-            {status}
+            Em aprovação
           </Badge>
         )
     }

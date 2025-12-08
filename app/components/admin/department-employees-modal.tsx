@@ -159,9 +159,12 @@ export function DepartmentEmployeesModal({
                 Principal
               </Badge>
             )}
-            {employee.role_in_department && (
+            {employee.role_in_department && employee.role_in_department !== 'manager' && (
               <Badge variant="outline" className="text-xs">
-                {employee.role_in_department}
+                {employee.role_in_department === 'admin' ? 'Administrador' :
+                 employee.role_in_department === 'user' ? 'Usuário' :
+                 employee.role_in_department === 'viewer' ? 'Visualizador' :
+                 employee.role_in_department}
               </Badge>
             )}
           </div>
@@ -329,7 +332,11 @@ export function DepartmentEmployeesModal({
                               <p className="text-xs text-muted-foreground truncate">{employee.email}</p>
                             </div>
                             <Badge variant="outline" className="text-xs flex-shrink-0">
-                              {employee.role}
+                              {employee.role === 'manager' ? 'Gerente' : 
+                               employee.role === 'admin' ? 'Administrador' :
+                               employee.role === 'user' ? 'Usuário' :
+                               employee.role === 'viewer' ? 'Visualizador' :
+                               employee.role}
                             </Badge>
                           </div>
                         ))}

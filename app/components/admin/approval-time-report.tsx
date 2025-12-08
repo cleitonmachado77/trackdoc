@@ -308,7 +308,7 @@ export default function ApprovalTimeReport() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingCount}</div>
-            <p className="text-xs text-muted-foreground">Pendente aprovação</p>
+            <p className="text-xs text-muted-foreground">Em aprovação</p>
           </CardContent>
         </Card>
 
@@ -352,7 +352,13 @@ export default function ApprovalTimeReport() {
                     </Avatar>
                     <div>
                       <h3 className="font-medium">{approver.name}</h3>
-                      <p className="text-sm text-gray-500">{approver.role}</p>
+                      <p className="text-sm text-gray-500">
+                        {approver.role === 'manager' ? 'Gerente' : 
+                         approver.role === 'admin' ? 'Administrador' :
+                         approver.role === 'user' ? 'Usuário' :
+                         approver.role === 'viewer' ? 'Visualizador' :
+                         approver.role}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-6">

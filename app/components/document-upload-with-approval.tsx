@@ -162,7 +162,10 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
       // 1. Atualizar status do documento para pending_approval
       const { error: docError } = await supabase
         .from('documents')
-        .update({ status: 'pending_approval' })
+        .update({ 
+          status: 'pending_approval',
+          approval_required: true 
+        })
         .eq('id', documentId)
 
       if (docError) throw docError

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/hooks/use-auth-final'
 
@@ -12,7 +12,7 @@ export interface ApprovalDocument {
   document_id: string
   approver_id: string
   step_order: number
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'pending_approval' | 'approved' | 'rejected'
   comments?: string
   approved_at?: string
   created_at: string
@@ -33,66 +33,7 @@ export function useApprovals() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!user) {
-      setPendingApprovals([])
-      setMyApprovals([])
-      setSentApprovals([])
-      setLoading(false)
-      return
-    }
-
-    fetchApprovals()
-    
-    // Configurar realtime subscription para atualização automática
-    const channel = supabase
-      .channel('approvals_realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Escutar INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'approval_requests'
-        },
-        (payload) => {
-          console.log('🔄 [REALTIME] Mudança detectada em approval_requests:', payload)
-          // Recarregar aprovações quando houver mudanças
-          fetchApprovals()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'documents',
-          filter: `author_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('🔄 [REALTIME] Mudança detectada em documents:', payload)
-          // Recarregar aprovações quando documentos do usuário mudarem
-          fetchApprovals()
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 [REALTIME] Status da conexão:', status)
-      })
-
-    // Polling como fallback (verificar a cada 10 segundos)
-    const pollingInterval = setInterval(() => {
-      console.log('🔄 [POLLING] Verificando atualizações de aprovações...')
-      fetchApprovals()
-    }, 10000) // 10 segundos
-
-    // Cleanup: remover subscription e polling quando componente desmontar
-    return () => {
-      console.log('🔌 [REALTIME] Desconectando subscription')
-      supabase.removeChannel(channel)
-      clearInterval(pollingInterval)
-    }
-  }, [user])
-
-  const fetchApprovals = async () => {
+  const fetchApprovals = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -293,7 +234,63 @@ export function useApprovals() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) {
+      setPendingApprovals([])
+      setMyApprovals([])
+      setSentApprovals([])
+      setLoading(false)
+      return
+    }
+
+    fetchApprovals()
+    
+    // Configurar realtime subscription para atualização automática
+    const channel = supabase
+      .channel('approvals_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escutar INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'approval_requests',
+          filter: `approver_id=eq.${user.id}` // Apenas aprovações para este usuário
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Mudança detectada em approval_requests:', payload)
+          // Recarregar aprovações quando houver mudanças
+          fetchApprovals()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'documents',
+          filter: `author_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Mudança detectada em documents:', payload)
+          // Recarregar aprovações quando documentos do usuário mudarem
+          fetchApprovals()
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [REALTIME] Status da conexão:', status)
+      })
+
+    // Polling removido - usando apenas realtime
+    // O realtime já cobre as atualizações necessárias
+
+    // Cleanup: remover subscription quando componente desmontar
+    return () => {
+      console.log('🔌 [REALTIME] Desconectando subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [user, fetchApprovals])
 
   const createApprovalDocument = async (documentId: string, approvers: string[]) => {
     try {
@@ -316,7 +313,10 @@ export function useApprovals() {
       // Atualizar status do documento
       await supabase
         .from('documents')
-        .update({ status: 'pending_approval' })
+        .update({ 
+          status: 'pending_approval',
+          approval_required: true 
+        })
         .eq('id', documentId)
 
       await fetchApprovals()

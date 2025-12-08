@@ -57,8 +57,8 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   draft: "Rascunho",
-  pending: "Pendente Aprovação",
-  pending_approval: "Pendente Aprovação",
+  pending: "Em aprovação",
+  pending_approval: "Em aprovação",
   approved: "Aprovado",
   rejected: "Rejeitado",
 }
@@ -257,7 +257,7 @@ export default function DocumentPreviewModal({
                   <div className="flex items-center space-x-3">
                     <Clock className="h-5 w-5 text-yellow-600" />
                     <div>
-                      <p className="font-medium text-yellow-800">Pendente Aprovação</p>
+                      <p className="font-medium text-yellow-800">Em aprovação</p>
                       <p className="text-sm text-yellow-600">
                         {document.approvals} de {document.totalApprovals} aprovações recebidas
                       </p>

@@ -54,8 +54,8 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   approved: "Aprovado",
-  pending: "Pendente Aprovação",
-  pending_approval: "Pendente Aprovação",
+  pending: "Em aprovação",
+  pending_approval: "Em aprovação",
   draft: "Rascunho",
   rejected: "Rejeitado",
   active: "Ativo",

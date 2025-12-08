@@ -247,7 +247,11 @@ export default function DebugUserPermissions() {
                         </div>
                         <div className="flex gap-2">
                           <Badge variant="outline" className="text-xs">
-                            {u.entity_role}
+                            {u.entity_role === 'manager' ? 'Gerente' : 
+                             u.entity_role === 'admin' ? 'Administrador' :
+                             u.entity_role === 'user' ? 'Usuário' :
+                             u.entity_role === 'viewer' ? 'Visualizador' :
+                             u.entity_role}
                           </Badge>
                           <Badge variant={u.status === 'active' ? 'default' : 'destructive'} className="text-xs">
                             {u.status}

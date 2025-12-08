@@ -40,8 +40,10 @@ import {
   Upload,
   Trash2,
   Image,
-  ArrowLeft
+  ArrowLeft,
+  CreditCard
 } from "lucide-react"
+import { SubscriptionManager } from "@/components/subscription/SubscriptionManager"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -583,13 +585,20 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
         </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
           <TabsTrigger 
             value="profile" 
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
           >
             <User className="h-4 w-4" />
             Informações Pessoais
+          </TabsTrigger>
+          <TabsTrigger 
+            value="plan" 
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+          >
+            <CreditCard className="h-4 w-4" />
+            Plano
           </TabsTrigger>
           <TabsTrigger 
             value="security" 
@@ -910,6 +919,10 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="plan" className="space-y-6">
+          <SubscriptionManager userId={user?.id || ''} />
         </TabsContent>
 
         <TabsContent value="security" className="space-y-6">

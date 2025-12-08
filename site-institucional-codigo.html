@@ -1,0 +1,216 @@
+<!-- 
+  CÓDIGO PARA O SITE INSTITUCIONAL (trackdoc.com.br)
+  Adicione este código na página de preços (#precos)
+-->
+
+<!-- CSS (adicionar no <head> ou arquivo CSS) -->
+<style>
+.pricing-button {
+  background: #2563eb;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.pricing-button:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.pricing-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pricing-button.loading {
+  position: relative;
+}
+
+.pricing-button.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+  to { transform: rotate(360deg); }
+}
+</style>
+
+<!-- JavaScript (adicionar antes do </body>) -->
+<script>
+// Configuração
+const API_URL = 'https://www.trackdoc.app.br/api/stripe/create-checkout-public';
+
+// Função para iniciar checkout
+async function startCheckout(planType, buttonElement) {
+  // Desabilitar botão e mostrar loading
+  buttonElement.disabled = true;
+  buttonElement.classList.add('loading');
+  const originalText = buttonElement.textContent;
+  buttonElement.textContent = 'Processando...';
+  
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        planType: planType,
+        includeTrial: true, // 14 dias grátis
+      }),
+    });
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      alert('Erro: ' + data.error);
+      console.error('Erro no checkout:', data.error);
+      return;
+    }
+    
+    if (data.url) {
+      // Redirecionar para Stripe Checkout
+      window.location.href = data.url;
+    } else {
+      alert('Erro ao processar. Tente novamente.');
+    }
+  } catch (error) {
+    console.error('Erro:', error);
+    alert('Erro ao processar. Verifique sua conexão e tente novamente.');
+  } finally {
+    // Restaurar botão se não redirecionou
+    buttonElement.disabled = false;
+    buttonElement.classList.remove('loading');
+    buttonElement.textContent = originalText;
+  }
+}
+
+// Event listeners para os botões
+document.addEventListener('DOMContentLoaded', function() {
+  // Botão Plano Básico
+  const btnBasico = document.getElementById('btn-plano-basico');
+  if (btnBasico) {
+    btnBasico.addEventListener('click', function(e) {
+      e.preventDefault();
+      startCheckout('basico', this);
+    });
+  }
+  
+  // Botão Plano Profissional
+  const btnProfissional = document.getElementById('btn-plano-profissional');
+  if (btnProfissional) {
+    btnProfissional.addEventListener('click', function(e) {
+      e.preventDefault();
+      startCheckout('profissional', this);
+    });
+  }
+  
+  // Botão Plano Enterprise
+  const btnEnterprise = document.getElementById('btn-plano-enterprise');
+  if (btnEnterprise) {
+    btnEnterprise.addEventListener('click', function(e) {
+      e.preventDefault();
+      startCheckout('enterprise', this);
+    });
+  }
+});
+</script>
+
+<!-- HTML dos Botões (exemplo) -->
+<!-- Adicione IDs aos seus botões existentes ou use este HTML -->
+
+<div class="pricing-cards">
+  <!-- Plano Básico -->
+  <div class="plan-card">
+    <h3>Básico</h3>
+    <p class="price">R$ 149<span>/mês</span></p>
+    <ul class="features">
+      <li>Até 15 usuários</li>
+      <li>10 GB de armazenamento</li>
+      <li>Dashboard gerencial</li>
+      <li>Upload de documentos</li>
+      <li>Suporte por e-mail</li>
+    </ul>
+    <button 
+      id="btn-plano-basico" 
+      class="pricing-button"
+    >
+      Começar agora
+    </button>
+  </div>
+  
+  <!-- Plano Profissional (Mais Popular) -->
+  <div class="plan-card popular">
+    <div class="badge">Mais Popular</div>
+    <h3>Profissional</h3>
+    <p class="price">R$ 349<span>/mês</span></p>
+    <ul class="features">
+      <li>Até 50 usuários</li>
+      <li>50 GB de armazenamento</li>
+      <li>Tudo do Básico +</li>
+      <li>Biblioteca Pública</li>
+      <li>Assinatura eletrônica</li>
+    </ul>
+    <button 
+      id="btn-plano-profissional" 
+      class="pricing-button"
+    >
+      Começar teste grátis
+    </button>
+    <p class="trial-info">14 dias grátis, sem cartão de crédito</p>
+  </div>
+  
+  <!-- Plano Enterprise -->
+  <div class="plan-card">
+    <h3>Enterprise</h3>
+    <p class="price">R$ 599<span>/mês</span></p>
+    <ul class="features">
+      <li>Até 70 usuários</li>
+      <li>120 GB de armazenamento</li>
+      <li>Tudo do Profissional +</li>
+      <li>Assinatura múltipla</li>
+      <li>Chat nativo</li>
+      <li>Suporte dedicado</li>
+    </ul>
+    <button 
+      id="btn-plano-enterprise" 
+      class="pricing-button"
+    >
+      Começar agora
+    </button>
+  </div>
+</div>
+
+<!-- 
+  INSTRUÇÕES DE INSTALAÇÃO:
+  
+  1. Copie o CSS para seu arquivo de estilos ou adicione no <head>
+  2. Copie o JavaScript para antes do </body>
+  3. Adicione os IDs aos seus botões existentes:
+     - btn-plano-basico
+     - btn-plano-profissional
+     - btn-plano-enterprise
+  
+  OU use o HTML fornecido acima como exemplo
+  
+  IMPORTANTE:
+  - Certifique-se de que a API está rodando em trackdoc.app.br
+  - Teste primeiro em ambiente de desenvolvimento
+  - Verifique o console do navegador para erros
+-->

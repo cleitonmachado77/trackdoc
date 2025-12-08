@@ -1,28 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr'
+import type { Subscription, Plan, PlanType } from '@/types/subscription'
+import { TRIAL_PERIOD_DAYS } from '@/types/subscription'
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-export interface Subscription {
-  id: string
-  user_id: string
-  plan_id: string
-  status: 'active' | 'canceled' | 'expired' | 'trial'
-  start_date: string
-  end_date?: string
-  trial_end_date?: string
-  created_at: string
-  updated_at: string
-  plan?: {
-    id: string
-    name: string
-    price: number
-    interval: string
-    features: string[]
-  }
-}
 
 /**
  * Verifica se as tabelas necessárias existem
@@ -162,45 +145,100 @@ export async function getUserActiveSubscription(userId: string): Promise<{
 }
 
 /**
- * Cria uma subscription básica para usuários sem subscription
+ * Cria uma subscription trial de 14 dias
  */
-export async function createBasicSubscription(userId: string): Promise<{
+export async function createTrialSubscription(
+  userId: string, 
+  planType: PlanType = 'profissional'
+): Promise<{
+  success: boolean
+  subscriptionId?: string
+  error: string | null
+}> {
+  try {
+    const { data, error } = await supabase
+      .rpc('create_trial_subscription', {
+        p_user_id: userId,
+        p_plan_type: planType
+      })
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      subscriptionId: data,
+      error: null
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: `Erro ao criar trial: ${err}`
+    }
+  }
+}
+
+/**
+ * Busca todos os planos disponíveis
+ */
+export async function getAvailablePlans(): Promise<{
+  plans: Plan[]
+  error: string | null
+}> {
+  try {
+    const { data, error } = await supabase
+      .from('plans')
+      .select('*')
+      .eq('is_active', true)
+      .eq('interval', 'monthly')
+      .order('price', { ascending: true })
+
+    if (error) {
+      return {
+        plans: [],
+        error: error.message
+      }
+    }
+
+    return {
+      plans: data || [],
+      error: null
+    }
+  } catch (err) {
+    return {
+      plans: [],
+      error: `Erro ao buscar planos: ${err}`
+    }
+  }
+}
+
+/**
+ * Atualiza o uso de recursos da subscription
+ */
+export async function updateSubscriptionUsage(
+  subscriptionId: string,
+  usage: {
+    current_users?: number
+    current_storage_gb?: number
+  }
+): Promise<{
   success: boolean
   error: string | null
 }> {
   try {
-    // Verificar se existe um plano básico
-    const { data: basicPlan, error: planError } = await supabase
-      .from('plans')
-      .select('id')
-      .eq('name', 'Básico')
-      .or('name.eq.Gratuito,name.eq.Free,name.eq.Basic')
-      .limit(1)
-      .single()
-
-    if (planError || !basicPlan) {
-      return {
-        success: false,
-        error: 'Nenhum plano básico encontrado'
-      }
-    }
-
-    // Criar subscription básica
-    const { error: subscriptionError } = await supabase
+    const { error } = await supabase
       .from('subscriptions')
-      .insert({
-        user_id: userId,
-        plan_id: basicPlan.id,
-        status: 'active',
-        start_date: new Date().toISOString(),
-        is_trial: true,
-        trial_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 dias
-      })
+      .update(usage)
+      .eq('id', subscriptionId)
 
-    if (subscriptionError) {
+    if (error) {
       return {
         success: false,
-        error: `Erro ao criar subscription: ${subscriptionError.message}`
+        error: error.message
       }
     }
 
@@ -211,7 +249,44 @@ export async function createBasicSubscription(userId: string): Promise<{
   } catch (err) {
     return {
       success: false,
-      error: `Erro geral: ${err}`
+      error: `Erro ao atualizar uso: ${err}`
+    }
+  }
+}
+
+/**
+ * Cancela uma subscription
+ */
+export async function cancelSubscription(
+  subscriptionId: string
+): Promise<{
+  success: boolean
+  error: string | null
+}> {
+  try {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        status: 'canceled',
+        canceled_at: new Date().toISOString()
+      })
+      .eq('id', subscriptionId)
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+
+    return {
+      success: true,
+      error: null
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: `Erro ao cancelar subscription: ${err}`
     }
   }
 }

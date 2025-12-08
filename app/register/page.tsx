@@ -1,361 +1,341 @@
-"use client"
+'use client'
 
-// Formulário simplificado - apenas usuários individuais
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle, ArrowRight } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { createBrowserClient } from '@supabase/ssr'
-import Link from "next/link"
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
-export default function RegisterPageSimple() {
+export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
   
-  // Verificar se as variáveis de ambiente estão configuradas
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionData, setSessionData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [registering, setRegistering] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
-  if (!supabaseUrl || !supabaseAnonKey) {
+  // Estados do formulário
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  })
+
+  useEffect(() => {
+    const session = searchParams.get('session_id')
+    if (session) {
+      setSessionId(session)
+      verifySession(session)
+    } else {
+      setLoading(false)
+    }
+  }, [searchParams])
+
+  const verifySession = async (sessionId: string) => {
+    try {
+      const response = await fetch('/api/stripe/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        toast({
+          title: 'Erro',
+          description: 'Sessão de pagamento inválida ou expirada',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      setSessionData(data)
+      
+      // Preencher email e nome automaticamente
+      if (data.customer_email) {
+        setFormData(prev => ({ 
+          ...prev, 
+          email: data.customer_email,
+          fullName: data.customer_name || '',
+        }))
+      }
+    } catch (error) {
+      console.error('Erro ao verificar sessão:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao verificar pagamento',
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validações
+    if (!formData.fullName.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Nome completo é obrigatório',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: 'Erro',
+        description: 'As senhas não coincidem',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter pelo menos 6 caracteres',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setRegistering(true)
+
+      const response = await fetch('/api/auth/register-with-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          sessionId: sessionId,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        toast({
+          title: 'Erro no registro',
+          description: data.error,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      toast({
+        title: 'Conta criada com sucesso!',
+        description: `Bem-vindo ao TrackDoc! Você tem 14 dias de teste grátis.`,
+      })
+
+      // Redirecionar para login
+      setTimeout(() => {
+        router.push('/login?registered=true')
+      }, 2000)
+    } catch (error) {
+      console.error('Erro ao registrar:', error)
+      toast({
+        title: 'Erro',
+        description: 'Erro ao criar conta. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 flex items-center justify-center p-4">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Configuração Necessária</h1>
-          <p className="text-gray-600">As variáveis de ambiente do Supabase não estão configuradas.</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-lg text-gray-600">Verificando pagamento...</p>
         </div>
       </div>
     )
   }
-  
-  const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      flowType: 'implicit',
-      detectSessionInUrl: true,
-      persistSession: true,
-      autoRefreshToken: true
-    }
-  })
-  
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    acceptTerms: false,
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    if (error) setError("")
-  }
-
-  const validateForm = () => {
-    if (!formData.fullName.trim()) {
-      setError("Nome completo é obrigatório")
-      return false
-    }
-    if (!formData.email) {
-      setError("Email é obrigatório")
-      return false
-    }
-    if (!formData.email.includes("@")) {
-      setError("Email inválido")
-      return false
-    }
-    if (!formData.password) {
-      setError("Senha é obrigatória")
-      return false
-    }
-    if (formData.password.length < 6) {
-      setError("Senha deve ter pelo menos 6 caracteres")
-      return false
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError("As senhas não coincidem")
-      return false
-    }
-    if (!formData.acceptTerms) {
-      setError("Você deve aceitar os termos de uso")
-      return false
-    }
-
-    return true
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) return
-
-    setIsLoading(true)
-    setError("")
-    setSuccess("")
-
-    try {
-      // 1. Verificar se o email já existe no sistema
-      const { data: existingUsers, error: checkError } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', formData.email.toLowerCase().trim())
-        .limit(1)
-
-      if (checkError) {
-        console.error('Erro ao verificar email:', checkError)
-        // Continuar mesmo com erro na verificação
-      }
-
-      if (existingUsers && existingUsers.length > 0) {
-        setError("Este email já está cadastrado. Faça login ou use outro email.")
-        setIsLoading(false)
-        return
-      }
-
-      // 2. Criar usuário individual simples
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            role: 'user',
-            registration_type: 'individual'
-          },
-          // Configurar URL de redirecionamento correta
-          emailRedirectTo: `https://www.trackdoc.app.br/auth/callback`
-        }
-      })
-
-      if (signUpError) {
-        // Tratar diferentes tipos de erro
-        if (signUpError.message.includes("already registered") || 
-            signUpError.message.includes("User already registered") ||
-            signUpError.message.includes("duplicate key")) {
-          setError("Este email já está cadastrado. Faça login ou use outro email.")
-        } else if (signUpError.message.includes("Email rate limit exceeded")) {
-          setError("Muitas tentativas de registro. Aguarde alguns minutos e tente novamente.")
-        } else if (signUpError.message.includes("Invalid email")) {
-          setError("Email inválido. Verifique o endereço de email e tente novamente.")
-        } else {
-          setError(signUpError.message)
-        }
-        return
-      }
-
-      setSuccess("Conta criada com sucesso! Verifique seu email para confirmar o cadastro.")
-      
-      // Redirecionar para página de email enviado
-      setTimeout(() => {
-        router.push('/email-sent')
-      }, 2000)
-
-    } catch (err) {
-      console.error('Erro no registro:', err)
-      setError("Erro interno do servidor. Tente novamente.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo e Header */}
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="container max-w-md mx-auto">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <img 
-              src="/logo-vertical-preto.png" 
-              alt="TrackDoc Logo" 
-              className="h-20 w-auto object-contain"
-            />
-          </div>
+          <h1 className="text-3xl font-bold mb-2">Criar Conta</h1>
+          <p className="text-gray-600">
+            Complete seu cadastro para começar a usar o TrackDoc
+          </p>
         </div>
 
-        {/* Formulário de Registro */}
-        <Card className="shadow-lg border border-gray-200 bg-white">
-          <CardHeader className="space-y-1 pb-6">
-            <CardTitle className="text-2xl font-bold text-center text-trackdoc-black">Criar conta</CardTitle>
-            <CardDescription className="text-center text-trackdoc-gray">
-              Preencha seus dados para começar
+        {sessionData && (
+          <Alert className="mb-6 border-green-200 bg-green-50">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <AlertDescription className="text-green-800">
+              <p className="font-semibold">✓ Pagamento confirmado!</p>
+              <p className="text-sm mt-1">
+                Plano: <strong>{sessionData.plan_name}</strong> - 14 dias grátis
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!sessionId && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50">
+            <AlertCircle className="h-5 w-5 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <p className="font-semibold">Atenção</p>
+              <p className="text-sm mt-1">
+                Você está criando uma conta sem plano ativo. Escolha um plano para ter acesso completo.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dados da Conta</CardTitle>
+            <CardDescription>
+              Preencha seus dados para criar sua conta
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Nome Completo */}
+            <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nome Completo</Label>
+                <Label htmlFor="fullName">Nome Completo *</Label>
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="Digite seu nome completo"
+                  required
                   value={formData.fullName}
-                  onChange={(e) => handleInputChange("fullName", e.target.value)}
-                  className="h-11"
-                  disabled={isLoading}
+                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  placeholder="Seu nome completo"
+                  disabled={registering}
                 />
               </div>
 
-              {/* Email */}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  required
                   value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="h-11"
-                  disabled={isLoading}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="seu@email.com"
+                  disabled={!!sessionData?.customer_email || registering}
                 />
+                {sessionData?.customer_email && (
+                  <p className="text-xs text-gray-500">
+                    Email do pagamento (não pode ser alterado)
+                  </p>
+                )}
               </div>
 
-              {/* Senha */}
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">Senha *</Label>
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Digite sua senha"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
-                    className="h-11 pr-10"
-                    disabled={isLoading}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    placeholder="Mínimo 6 caracteres"
+                    disabled={registering}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
+                    disabled={registering}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
 
-              {/* Confirmar Senha */}
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword">Confirmar Senha *</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirme sua senha"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    className="h-11 pr-10"
-                    disabled={isLoading}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    placeholder="Digite a senha novamente"
+                    disabled={registering}
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    disabled={isLoading}
+                    disabled={registering}
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
 
-              {/* Termos de Uso */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={formData.acceptTerms}
-                  onCheckedChange={(checked) => handleInputChange("acceptTerms", checked as boolean)}
-                  disabled={isLoading}
-                />
-                <Label htmlFor="terms" className="text-sm font-normal">
-                  Aceito os{" "}
-                  <Link href="/termos-de-uso" target="_blank" className="text-blue-600 hover:text-blue-700 underline">
-                    termos de uso
-                  </Link>{" "}
-                  e{" "}
-                  <Link href="/politica-de-privacidade" target="_blank" className="text-blue-600 hover:text-blue-700 underline">
-                    política de privacidade
-                  </Link>
-                </Label>
-              </div>
-
-              {/* Mensagens de Erro/Sucesso */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {success && (
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-700">{success}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Botão de Registro */}
-              <Button type="submit" className="w-full h-11" disabled={isLoading}>
-                {isLoading ? (
+              <Button
+                type="submit"
+                disabled={registering}
+                className="w-full"
+              >
+                {registering ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Criando conta...
                   </>
                 ) : (
-                  <>
-                    Criar conta
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
+                  'Criar Conta'
                 )}
               </Button>
             </form>
-
-            {/* Link para Login */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Já tem uma conta?{" "}
-                <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-                  Faça login
-                </Link>
-              </p>
-            </div>
-
-            {/* Informação sobre entidades */}
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                💡 <strong>Quer criar uma entidade?</strong><br/>
-                Após fazer login, acesse o menu "Administração → Entidades" para criar e gerenciar sua organização.
-              </p>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>© 2024 TrackDoc. Todos os direitos reservados.</p>
+        {!sessionId && (
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 mb-4">
+              Ainda não escolheu um plano?
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = 'https://www.trackdoc.com.br/#precos'}
+            >
+              Ver Planos Disponíveis
+            </Button>
+          </div>
+        )}
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            Já tem uma conta?{' '}
+            <a href="/login" className="text-primary hover:underline font-semibold">
+              Fazer login
+            </a>
+          </p>
         </div>
       </div>
     </div>
   )
-} 
-
-// Desabilitar prerendering para páginas com autenticação
-export const dynamic = 'force-dynamic'
+}

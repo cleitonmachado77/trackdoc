@@ -5,10 +5,28 @@ import Stripe from 'stripe'
 import { stripeConfig, getStripeUrls } from './config'
 import type { PlanType } from '@/types/subscription'
 
-// Inicializar Stripe
-export const stripe = new Stripe(stripeConfig.secretKey, {
-  apiVersion: '2024-11-20.acacia',
-  typescript: true,
+// Inicializar Stripe de forma lazy (apenas quando necessário)
+let stripeInstance: Stripe | null = null
+
+export const getStripe = (): Stripe => {
+  if (!stripeInstance) {
+    if (!stripeConfig.secretKey) {
+      throw new Error('STRIPE_SECRET_KEY não configurada')
+    }
+    stripeInstance = new Stripe(stripeConfig.secretKey, {
+      apiVersion: '2024-11-20.acacia',
+      typescript: true,
+    })
+  }
+  return stripeInstance
+}
+
+// Manter compatibilidade com código existente
+export const stripe = new Proxy({} as Stripe, {
+  get: (target, prop) => {
+    const stripeClient = getStripe()
+    return stripeClient[prop as keyof Stripe]
+  }
 })
 
 /**

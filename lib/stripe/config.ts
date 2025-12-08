@@ -1,13 +1,19 @@
 // Configuração do Stripe
 // Instalar: npm install stripe @stripe/stripe-js
 
+// Função helper para obter variáveis de ambiente de forma segura
+const getEnvVar = (key: string, defaultValue = ''): string => {
+  if (typeof process === 'undefined') return defaultValue
+  return process.env[key] || defaultValue
+}
+
 export const stripeConfig = {
   // Chaves públicas (frontend)
-  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  publishableKey: getEnvVar('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'),
   
   // Chaves secretas (backend only)
-  secretKey: process.env.STRIPE_SECRET_KEY || '',
-  webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+  secretKey: getEnvVar('STRIPE_SECRET_KEY'),
+  webhookSecret: getEnvVar('STRIPE_WEBHOOK_SECRET'),
   
   // Configurações
   currency: 'brl',
@@ -25,7 +31,7 @@ export const validateStripeConfig = () => {
 
 // URLs de redirecionamento
 export const getStripeUrls = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const baseUrl = getEnvVar('NEXT_PUBLIC_APP_URL', 'http://localhost:3000')
   
   return {
     success: `${baseUrl}/minha-conta?tab=plano&payment=success`,

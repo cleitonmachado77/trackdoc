@@ -1,15 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import ChatSidebar from "../components/chat/chat-sidebar"
 import ChatMessages from "../components/chat/chat-messages"
 import { MessageSquare } from "lucide-react"
 import { useChat } from "../components/chat/use-chat"
+import { FeatureGate } from "@/components/subscription/FeatureGate"
+import { createClientSupabaseClient } from "@/lib/supabase/client"
 
 export default function ChatPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | undefined>(undefined)
   const { fetchConversations, markMessagesAsRead } = useChat()
+
+  useEffect(() => {
+    const getUser = async () => {
+      const supabase = createClientSupabaseClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id)
+    }
+    getUser()
+  }, [])
 
 
   const handleSelectConversation = (conversationId: string) => {
@@ -38,18 +50,24 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
-      <ChatSidebar
-        selectedConversationId={selectedConversationId}
-        onSelectConversation={handleSelectConversation}
-        onNewConversation={handleNewConversation}
-      />
-      <ChatMessages 
-        conversationId={selectedConversationId} 
-        onMarkAsRead={handleMarkAsRead}
-        onMessageSent={handleMessageSent}
-      />
-    </div>
+    <FeatureGate 
+      userId={userId} 
+      feature="chat_nativo"
+      customMessage="O Chat está disponível apenas no plano Enterprise. Faça upgrade para ter acesso a esta funcionalidade."
+    >
+      <div className="h-screen flex bg-gray-50">
+        <ChatSidebar
+          selectedConversationId={selectedConversationId}
+          onSelectConversation={handleSelectConversation}
+          onNewConversation={handleNewConversation}
+        />
+        <ChatMessages 
+          conversationId={selectedConversationId} 
+          onMarkAsRead={handleMarkAsRead}
+          onMessageSent={handleMessageSent}
+        />
+      </div>
+    </FeatureGate>
   )
 }
 

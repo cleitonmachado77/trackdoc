@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import { FeatureGate } from '@/components/subscription/FeatureGate'
 import { createBrowserClient } from '@supabase/ssr'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -65,6 +66,60 @@ export default function SystemLogs() {
   const [dateFilter, setDateFilter] = useState('today')
   const [userEntityId, setUserEntityId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Envolver todo o componente com FeatureGate
+  return (
+    <FeatureGate 
+      userId={user?.id} 
+      feature="auditoria_completa"
+      customMessage="A Auditoria Completa (Logs do Sistema) está disponível apenas no plano Enterprise. Faça upgrade para ter acesso a logs detalhados e trilhas de auditoria."
+    >
+      <SystemLogsContent 
+        user={user}
+        logs={logs}
+        setLogs={setLogs}
+        loading={loading}
+        setLoading={setLoading}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        severityFilter={severityFilter}
+        setSeverityFilter={setSeverityFilter}
+        actionFilter={actionFilter}
+        setActionFilter={setActionFilter}
+        dateFilter={dateFilter}
+        setDateFilter={setDateFilter}
+        userEntityId={userEntityId}
+        setUserEntityId={setUserEntityId}
+        error={error}
+        setError={setError}
+      />
+    </FeatureGate>
+  )
+}
+
+// Componente interno com a lógica
+function SystemLogsContent({
+  user,
+  logs,
+  setLogs,
+  loading,
+  setLoading,
+  searchTerm,
+  setSearchTerm,
+  severityFilter,
+  setSeverityFilter,
+  actionFilter,
+  setActionFilter,
+  dateFilter,
+  setDateFilter,
+  userEntityId,
+  setUserEntityId,
+  error,
+  setError
+}: any) {
+  const [_logs, _setLogs] = [logs, setLogs]
+  const [_loading, _setLoading] = [loading, setLoading]
+  const [_error, _setError] = [error, setError]
 
   useEffect(() => {
     if (user) {

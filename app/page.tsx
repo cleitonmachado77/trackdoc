@@ -85,7 +85,7 @@ import DocumentList from "./components/document-list"
 import DocumentUploadWithApproval from "./components/document-upload-with-approval"
 import EntityUserManagement from "./components/admin/entity-user-management"
 import EntityManagement from "./components/admin/entity-management"
-import ElectronicSignature from "./components/electronic-signature"
+import ElectronicSignatureProtected from "./components/electronic-signature-protected"
 import PerformanceMonitor from "./components/performance-monitor"
 
 import ChatPage from "./chat/page"
@@ -1615,7 +1615,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       case "ai-create":
         return <AIDocumentCreator />
       case "electronic-signature":
-        return <ElectronicSignature />
+        return <ElectronicSignatureProtected />
       case "notifications":
         return <UnifiedNotificationsPage />
       case "biblioteca":

@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { createBrowserClient } from "@supabase/ssr"
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import { FeatureGate } from '@/components/subscription/FeatureGate'
 import { toast } from "@/hooks/use-toast"
 
 const supabase = createBrowserClient(
@@ -257,9 +258,14 @@ export default function AuditReport() {
   })
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <FeatureGate 
+      userId={user?.id} 
+      feature="auditoria_completa"
+      customMessage="O Relatório de Auditoria Completa está disponível apenas no plano Enterprise. Faça upgrade para ter acesso a relatórios detalhados de auditoria."
+    >
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Eventos</CardTitle>
@@ -439,5 +445,6 @@ export default function AuditReport() {
         </CardContent>
       </Card>
     </div>
+    </FeatureGate>
   )
 }

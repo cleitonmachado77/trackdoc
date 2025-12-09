@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LimitAlert } from "@/components/subscription/LimitAlert"
 import {
   Upload,
   FileText,
@@ -34,6 +35,7 @@ import { useDepartments } from "@/hooks/use-departments"
 import { useDocumentTypes } from "@/hooks/use-document-types"
 import { useUsers } from "@/hooks/use-users"
 import { useToast } from "@/hooks/use-toast"
+import { useSubscription } from "@/lib/hooks/useSubscription"
 import { createBrowserClient } from "@supabase/ssr"
 import { InlineCreateSelect } from "./inline-create-select"
 
@@ -58,6 +60,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   const { user } = useAuth()
   const { createDocument } = useDocuments()
   const { toast } = useToast()
+  const { subscription, getRemainingStorage } = useSubscription(user?.id)
   const { categories: initialCategories } = useCategories()
   const { departments: initialDepartments } = useDepartments()
   const { documentTypes: initialDocumentTypes, validateFile } = useDocumentTypes()
@@ -211,6 +214,21 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
   const handleUpload = async () => {
     if (!user || uploadFiles.length === 0) return
+
+    // Verificar limite de armazenamento
+    if (subscription) {
+      const totalSizeGB = uploadFiles.reduce((sum, f) => sum + f.file.size, 0) / (1024 * 1024 * 1024)
+      const remainingStorage = getRemainingStorage()
+      
+      if (totalSizeGB > remainingStorage) {
+        toast({
+          title: "Limite de armazenamento excedido",
+          description: `Você precisa de ${totalSizeGB.toFixed(2)} GB, mas tem apenas ${remainingStorage.toFixed(2)} GB disponíveis. Exclua arquivos ou faça upgrade do plano.`,
+          variant: "destructive",
+        })
+        return
+      }
+    }
 
     // Validar campos obrigatórios
     if (!selectedCategory) {
@@ -389,6 +407,8 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
   return (
     <div className="space-y-2">
+      {/* Alerta de Limite de Armazenamento */}
+      <LimitAlert userId={user?.id} limitType="storage" showAt={[80, 90]} />
 
       {/* Área de Drop */}
       <div

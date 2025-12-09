@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LimitGuard } from "@/components/subscription/LimitGuard"
+import { LimitAlert } from "@/components/subscription/LimitAlert"
 import {
   Users,
   Plus,
@@ -662,13 +664,17 @@ export default function EntityUserManagement() {
             <p className="text-gray-600">{entityInfo.name}</p>
           </div>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Cadastrar Usuário
-        </Button>
+        <LimitGuard userId={user?.id} limitType="users" showAlert={false}>
+          <Button onClick={() => setShowCreateModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Cadastrar Usuário
+          </Button>
+        </LimitGuard>
       </div>
 
       {/* Alertas */}
+      <LimitAlert userId={user?.id} limitType="users" showAt={[80, 90]} />
+      
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />

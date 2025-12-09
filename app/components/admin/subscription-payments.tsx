@@ -208,11 +208,16 @@ export default function SubscriptionPayments() {
 
   const handleProcessPayment = async () => {
     if (!selectedSubscription) return
+    if (processingPayment) {
+      console.log('⚠️ Já está processando um pagamento')
+      return
+    }
 
     try {
       setProcessingPayment(true)
 
       console.log('🔄 Processando pagamento...')
+      console.log('Subscription ID:', selectedSubscription.id)
       console.log('Data do pagamento:', paymentDate)
       console.log('Valor:', paymentAmount)
 
@@ -222,14 +227,17 @@ export default function SubscriptionPayments() {
 
       // Atualizar subscription
       console.log('📝 Atualizando subscription:', selectedSubscription.id)
+      const updatePayload = {
+        next_billing_date: newBillingDate.toISOString(),
+        end_date: newBillingDate.toISOString(),
+        status: 'active',
+        updated_at: new Date().toISOString(),
+      }
+      console.log('📦 Payload de atualização:', updatePayload)
+
       const { data: updateData, error: updateError } = await supabase
         .from('subscriptions')
-        .update({
-          next_billing_date: newBillingDate.toISOString(),
-          end_date: newBillingDate.toISOString(),
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', selectedSubscription.id)
         .select()
 
@@ -239,6 +247,11 @@ export default function SubscriptionPayments() {
       }
 
       console.log('✅ Subscription atualizada:', updateData)
+      console.log('📅 Campos atualizados:', {
+        next_billing_date: updateData?.[0]?.next_billing_date,
+        end_date: updateData?.[0]?.end_date,
+        status: updateData?.[0]?.status
+      })
 
       // Registrar pagamento (criar tabela de pagamentos se necessário)
       console.log('💰 Registrando pagamento...')

@@ -74,11 +74,9 @@ export function FeatureGate({
                   Ver Planos
                 </Link>
               </Button>
-              <Button asChild variant="outline">
-                <Link href="/minha-conta?tab=plano">
-                  Gerenciar Assinatura
-                </Link>
-              </Button>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mt-2">
+                Entre em contato com o administrador para fazer upgrade do seu plano.
+              </p>
             </div>
           )}
         </AlertDescription>

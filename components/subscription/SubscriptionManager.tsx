@@ -11,14 +11,12 @@ import {
   Calendar, 
   Users, 
   HardDrive, 
-  CreditCard, 
   AlertCircle,
   Sparkles,
   CheckCircle2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import Link from 'next/link'
 
 interface SubscriptionManagerProps {
   userId: string
@@ -202,27 +200,11 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
             </div>
           </div>
 
-          {/* Ações */}
-          <div className="flex flex-wrap gap-3 pt-4 border-t">
-            <Button asChild variant="default" className="gap-2">
-              <Link href="/pricing">
-                <Sparkles className="h-4 w-4" />
-                Fazer Upgrade
-              </Link>
-            </Button>
-            
-            {subscription.stripe_subscription_id && (
-              <Button variant="outline" className="gap-2">
-                <CreditCard className="h-4 w-4" />
-                Gerenciar Pagamento
-              </Button>
-            )}
-            
-            {subscription.status === 'active' && (
-              <Button variant="ghost" className="text-destructive">
-                Cancelar Assinatura
-              </Button>
-            )}
+          {/* Informações */}
+          <div className="pt-4 border-t">
+            <p className="text-sm text-muted-foreground">
+              Para alterações no seu plano, entre em contato com o administrador do sistema.
+            </p>
           </div>
         </CardContent>
       </Card>

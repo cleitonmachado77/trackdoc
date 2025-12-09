@@ -1,19 +1,110 @@
 <!-- 
   CÓDIGO PARA O SITE INSTITUCIONAL (trackdoc.com.br)
-  Adicione este código na página de preços (#precos)
+  Seção de preços (#precos) - Versão sem integração de pagamento
+  Os usuários entram em contato para contratar
 -->
 
 <!-- CSS (adicionar no <head> ou arquivo CSS) -->
 <style>
+.pricing-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.plan-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.plan-card.popular {
+  border: 2px solid #8b5cf6;
+  transform: scale(1.05);
+}
+
+.plan-card.popular:hover {
+  transform: scale(1.05) translateY(-4px);
+}
+
+.badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #8b5cf6;
+  color: white;
+  padding: 4px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.plan-card h3 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.price {
+  font-size: 48px;
+  font-weight: 700;
+  color: #2563eb;
+  margin-bottom: 24px;
+}
+
+.price span {
+  font-size: 16px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px 0;
+}
+
+.features li {
+  padding: 8px 0;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.features li::before {
+  content: '✓';
+  color: #10b981;
+  font-weight: bold;
+}
+
 .pricing-button {
+  width: 100%;
   background: #2563eb;
   color: white;
-  padding: 12px 24px;
+  padding: 14px 24px;
   border-radius: 8px;
   border: none;
   font-weight: 600;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.3s;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
 }
 
 .pricing-button:hover {
@@ -21,196 +112,165 @@
   transform: translateY(-2px);
 }
 
-.pricing-button:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-  transform: none;
+.contact-info {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: #6b7280;
 }
 
-.pricing-button.loading {
-  position: relative;
+.contact-section {
+  background: #f3f4f6;
+  padding: 60px 20px;
+  text-align: center;
+  margin-top: 40px;
 }
 
-.pricing-button.loading::after {
-  content: '';
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  top: 50%;
-  left: 50%;
-  margin-left: -8px;
-  margin-top: -8px;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  border-top-color: transparent;
-  animation: spinner 0.6s linear infinite;
+.contact-section h2 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #1f2937;
 }
 
-@keyframes spinner {
-  to { transform: rotate(360deg); }
+.contact-section p {
+  color: #6b7280;
+  margin-bottom: 24px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contact-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.contact-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.contact-button.primary {
+  background: #2563eb;
+  color: white;
+}
+
+.contact-button.primary:hover {
+  background: #1d4ed8;
+}
+
+.contact-button.secondary {
+  background: white;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+}
+
+.contact-button.secondary:hover {
+  background: #eff6ff;
 }
 </style>
 
-<!-- JavaScript (adicionar antes do </body>) -->
-<script>
-// Configuração
-const API_URL = 'https://www.trackdoc.app.br/api/stripe/create-checkout-public';
-
-// Função para iniciar checkout
-async function startCheckout(planType, buttonElement) {
-  // Desabilitar botão e mostrar loading
-  buttonElement.disabled = true;
-  buttonElement.classList.add('loading');
-  const originalText = buttonElement.textContent;
-  buttonElement.textContent = 'Processando...';
-  
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        planType: planType,
-        includeTrial: true, // 14 dias grátis
-      }),
-    });
+<!-- HTML dos Cards de Preços -->
+<section id="precos">
+  <div class="pricing-cards">
+    <!-- Plano Básico -->
+    <div class="plan-card">
+      <h3>Básico</h3>
+      <p class="price">R$ 149<span>/mês</span></p>
+      <ul class="features">
+        <li>Até 15 usuários</li>
+        <li>10 GB de armazenamento</li>
+        <li>Dashboard gerencial</li>
+        <li>Upload de documentos</li>
+        <li>Solicitação de aprovações</li>
+        <li>Suporte por e-mail</li>
+      </ul>
+      <a href="#contato" class="pricing-button">
+        Solicitar Contato
+      </a>
+      <p class="contact-info">R$ 2,90 por usuário adicional</p>
+    </div>
     
-    const data = await response.json();
+    <!-- Plano Profissional (Mais Popular) -->
+    <div class="plan-card popular">
+      <div class="badge">Mais Popular</div>
+      <h3>Profissional</h3>
+      <p class="price">R$ 349<span>/mês</span></p>
+      <ul class="features">
+        <li>Até 50 usuários</li>
+        <li>50 GB de armazenamento</li>
+        <li>Tudo do Básico +</li>
+        <li>Biblioteca Pública</li>
+        <li>Assinatura eletrônica simples</li>
+      </ul>
+      <a href="#contato" class="pricing-button">
+        Solicitar Contato
+      </a>
+    </div>
     
-    if (data.error) {
-      alert('Erro: ' + data.error);
-      console.error('Erro no checkout:', data.error);
-      return;
-    }
-    
-    if (data.url) {
-      // Redirecionar para Stripe Checkout
-      window.location.href = data.url;
-    } else {
-      alert('Erro ao processar. Tente novamente.');
-    }
-  } catch (error) {
-    console.error('Erro:', error);
-    alert('Erro ao processar. Verifique sua conexão e tente novamente.');
-  } finally {
-    // Restaurar botão se não redirecionou
-    buttonElement.disabled = false;
-    buttonElement.classList.remove('loading');
-    buttonElement.textContent = originalText;
-  }
-}
-
-// Event listeners para os botões
-document.addEventListener('DOMContentLoaded', function() {
-  // Botão Plano Básico
-  const btnBasico = document.getElementById('btn-plano-basico');
-  if (btnBasico) {
-    btnBasico.addEventListener('click', function(e) {
-      e.preventDefault();
-      startCheckout('basico', this);
-    });
-  }
-  
-  // Botão Plano Profissional
-  const btnProfissional = document.getElementById('btn-plano-profissional');
-  if (btnProfissional) {
-    btnProfissional.addEventListener('click', function(e) {
-      e.preventDefault();
-      startCheckout('profissional', this);
-    });
-  }
-  
-  // Botão Plano Enterprise
-  const btnEnterprise = document.getElementById('btn-plano-enterprise');
-  if (btnEnterprise) {
-    btnEnterprise.addEventListener('click', function(e) {
-      e.preventDefault();
-      startCheckout('enterprise', this);
-    });
-  }
-});
-</script>
-
-<!-- HTML dos Botões (exemplo) -->
-<!-- Adicione IDs aos seus botões existentes ou use este HTML -->
-
-<div class="pricing-cards">
-  <!-- Plano Básico -->
-  <div class="plan-card">
-    <h3>Básico</h3>
-    <p class="price">R$ 149<span>/mês</span></p>
-    <ul class="features">
-      <li>Até 15 usuários</li>
-      <li>10 GB de armazenamento</li>
-      <li>Dashboard gerencial</li>
-      <li>Upload de documentos</li>
-      <li>Suporte por e-mail</li>
-    </ul>
-    <button 
-      id="btn-plano-basico" 
-      class="pricing-button"
-    >
-      Começar agora
-    </button>
+    <!-- Plano Enterprise -->
+    <div class="plan-card">
+      <h3>Enterprise</h3>
+      <p class="price">R$ 599<span>/mês</span></p>
+      <ul class="features">
+        <li>Até 70 usuários</li>
+        <li>120 GB de armazenamento</li>
+        <li>Tudo do Profissional +</li>
+        <li>Assinatura eletrônica múltipla</li>
+        <li>Chat nativo</li>
+        <li>Auditoria completa</li>
+        <li>Backup automático diário</li>
+        <li>Suporte técnico dedicado</li>
+      </ul>
+      <a href="#contato" class="pricing-button">
+        Solicitar Contato
+      </a>
+    </div>
   </div>
-  
-  <!-- Plano Profissional (Mais Popular) -->
-  <div class="plan-card popular">
-    <div class="badge">Mais Popular</div>
-    <h3>Profissional</h3>
-    <p class="price">R$ 349<span>/mês</span></p>
-    <ul class="features">
-      <li>Até 50 usuários</li>
-      <li>50 GB de armazenamento</li>
-      <li>Tudo do Básico +</li>
-      <li>Biblioteca Pública</li>
-      <li>Assinatura eletrônica</li>
-    </ul>
-    <button 
-      id="btn-plano-profissional" 
-      class="pricing-button"
-    >
-      Começar teste grátis
-    </button>
-    <p class="trial-info">14 dias grátis, sem cartão de crédito</p>
+</section>
+
+<!-- Seção de Contato -->
+<section id="contato" class="contact-section">
+  <h2>Interessado em um plano?</h2>
+  <p>
+    Entre em contato com nossa equipe para contratar o plano ideal para sua empresa.
+    Oferecemos condições especiais para contratações anuais.
+  </p>
+  <div class="contact-buttons">
+    <a href="mailto:contato@trackdoc.com.br" class="contact-button primary">
+      📧 Enviar Email
+    </a>
+    <a href="https://wa.me/5511999999999" class="contact-button secondary" target="_blank">
+      💬 WhatsApp
+    </a>
   </div>
-  
-  <!-- Plano Enterprise -->
-  <div class="plan-card">
-    <h3>Enterprise</h3>
-    <p class="price">R$ 599<span>/mês</span></p>
-    <ul class="features">
-      <li>Até 70 usuários</li>
-      <li>120 GB de armazenamento</li>
-      <li>Tudo do Profissional +</li>
-      <li>Assinatura múltipla</li>
-      <li>Chat nativo</li>
-      <li>Suporte dedicado</li>
-    </ul>
-    <button 
-      id="btn-plano-enterprise" 
-      class="pricing-button"
-    >
-      Começar agora
-    </button>
-  </div>
-</div>
+</section>
 
 <!-- 
   INSTRUÇÕES DE INSTALAÇÃO:
   
   1. Copie o CSS para seu arquivo de estilos ou adicione no <head>
-  2. Copie o JavaScript para antes do </body>
-  3. Adicione os IDs aos seus botões existentes:
-     - btn-plano-basico
-     - btn-plano-profissional
-     - btn-plano-enterprise
+  2. Adicione o HTML na seção de preços do seu site
+  3. Atualize o número do WhatsApp com o número correto
+  4. Atualize o email de contato se necessário
   
-  OU use o HTML fornecido acima como exemplo
+  FORMAS DE PAGAMENTO ACEITAS:
+  - Boleto bancário
+  - PIX
+  - Transferência bancária
   
-  IMPORTANTE:
-  - Certifique-se de que a API está rodando em trackdoc.app.br
-  - Teste primeiro em ambiente de desenvolvimento
-  - Verifique o console do navegador para erros
+  PROCESSO DE CONTRATAÇÃO:
+  1. Cliente entra em contato
+  2. Equipe cria a conta manualmente no painel de administração
+  3. Cliente recebe credenciais por email
+  4. Faturamento mensal ou anual conforme acordado
 -->

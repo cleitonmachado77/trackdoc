@@ -11,7 +11,6 @@ export interface Plan {
   interval: 'monthly' | 'yearly'
   features: PlanFeatures
   limits: PlanLimits
-  stripe_price_id?: string
   created_at: string
   updated_at: string
 }
@@ -53,10 +52,6 @@ export interface Subscription {
   trial_start_date?: string
   trial_end_date?: string
   canceled_at?: string
-  
-  // Stripe
-  stripe_customer_id?: string
-  stripe_subscription_id?: string
   
   // Uso
   current_users: number

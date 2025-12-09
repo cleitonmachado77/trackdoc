@@ -4,10 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Check, Crown, Star, Zap, Building, Users, FileText, HardDrive, ArrowRight } from "lucide-react"
-import { useAuth } from '@/lib/hooks/use-auth-final'
+import { Check, Crown, Star, Building, Users, FileText, HardDrive, ArrowLeft, Mail } from "lucide-react"
 import Link from "next/link"
 
 interface Plan {
@@ -15,22 +12,17 @@ interface Plan {
   name: string
   description: string
   price_monthly: number
-  price_yearly: number
   max_users: number
   max_storage_gb: number
   max_documents: number
-  trial_days: number
-  is_trial: boolean
   features: string[]
   is_active: boolean
+  type: string
 }
 
 export default function PricingPage() {
-  const { user } = useAuth()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPlans()
@@ -50,13 +42,11 @@ export default function PricingPage() {
     }
   }
 
-  const getPlanIcon = (planName: string) => {
-    switch (planName.toLowerCase()) {
-      case 'trial':
-        return <Zap className="h-6 w-6" />
-      case 'starter':
+  const getPlanIcon = (planType: string) => {
+    switch (planType.toLowerCase()) {
+      case 'basico':
         return <Star className="h-6 w-6" />
-      case 'professional':
+      case 'profissional':
         return <Crown className="h-6 w-6" />
       case 'enterprise':
         return <Building className="h-6 w-6" />
@@ -65,13 +55,11 @@ export default function PricingPage() {
     }
   }
 
-  const getPlanColor = (planName: string) => {
-    switch (planName.toLowerCase()) {
-      case 'trial':
+  const getPlanColor = (planType: string) => {
+    switch (planType.toLowerCase()) {
+      case 'basico':
         return 'bg-blue-500'
-      case 'starter':
-        return 'bg-green-500'
-      case 'professional':
+      case 'profissional':
         return 'bg-purple-500'
       case 'enterprise':
         return 'bg-orange-500'
@@ -87,16 +75,6 @@ export default function PricingPage() {
     }).format(price)
   }
 
-  const handlePlanSelect = (planId: string) => {
-    setSelectedPlan(planId)
-  }
-
-  const handleSubscribe = (planId: string) => {
-    // Implementar integração com gateway de pagamento
-    console.log('Assinando plano:', planId)
-    // Redirecionar para checkout ou processar pagamento
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center">
@@ -110,51 +88,47 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-12 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
+        <div className="mb-6">
+          <Button variant="outline" asChild>
+            <Link href="/" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Link>
+          </Button>
+        </div>
+
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Escolha o Plano Ideal para Sua Empresa
+            Nossos Planos
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Comece gratuitamente e escale conforme sua necessidade
+          <p className="text-xl text-gray-600 mb-4">
+            Escolha o plano ideal para sua empresa
           </p>
-
-          {/* Toggle Billing Cycle */}
-          <div className="flex items-center justify-center gap-4 mb-8">
-            <Label htmlFor="billing-cycle" className="text-sm font-medium">
-              Mensal
-            </Label>
-            <Switch
-              id="billing-cycle"
-              checked={billingCycle === 'yearly'}
-              onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
-            />
-            <Label htmlFor="billing-cycle" className="text-sm font-medium">
-              Anual
-              <Badge className="ml-2 bg-green-100 text-green-800">Economia de 17%</Badge>
-            </Label>
-          </div>
+          <p className="text-gray-500">
+            Para contratar um plano, entre em contato com nossa equipe
+          </p>
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
           {plans.map((plan) => (
             <Card
               key={plan.id}
               className={`relative transition-all duration-200 hover:shadow-lg ${
-                selectedPlan === plan.id ? 'ring-2 ring-blue-500 shadow-lg' : ''
-              } ${plan.name === 'Professional' ? 'border-2 border-purple-200' : ''}`}
+                plan.type === 'profissional' ? 'border-2 border-purple-200 scale-105' : ''
+              }`}
             >
-              {plan.name === 'Professional' && (
+              {plan.type === 'profissional' && (
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-purple-500 text-white">
                   Mais Popular
                 </Badge>
               )}
 
               <CardHeader className="text-center pb-4">
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${getPlanColor(plan.name)} text-white mb-4`}>
-                  {getPlanIcon(plan.name)}
+                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${getPlanColor(plan.type)} text-white mb-4 mx-auto`}>
+                  {getPlanIcon(plan.type)}
                 </div>
                 <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
                 <CardDescription className="text-gray-600">{plan.description}</CardDescription>
@@ -164,16 +138,9 @@ export default function PricingPage() {
                 {/* Price */}
                 <div className="text-center">
                   <div className="text-4xl font-bold text-gray-900">
-                    {formatPrice(billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly)}
+                    {formatPrice(plan.price_monthly)}
                   </div>
-                  <div className="text-gray-500">
-                    por {billingCycle === 'monthly' ? 'mês' : 'ano'}
-                  </div>
-                  {plan.trial_days > 0 && (
-                    <Badge className="mt-2 bg-blue-100 text-blue-800">
-                      {plan.trial_days} dias grátis
-                    </Badge>
-                  )}
+                  <div className="text-gray-500">por mês</div>
                 </div>
 
                 {/* Limits */}
@@ -193,62 +160,47 @@ export default function PricingPage() {
                 </div>
 
                 {/* Features */}
-                <div className="space-y-2">
-                  {plan.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Action Button */}
-                <div className="pt-4">
-                  {plan.is_trial ? (
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => handlePlanSelect(plan.id)}
-                    >
-                      Já tenho trial
-                    </Button>
-                  ) : (
-                    <Button
-                      className="w-full"
-                      onClick={() => handleSubscribe(plan.id)}
-                    >
-                      {user ? 'Escolher Plano' : 'Começar Agora'}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                {plan.features && plan.features.length > 0 && (
+                  <div className="space-y-2">
+                    {plan.features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
 
+        {/* Contact Section */}
+        <div className="text-center bg-white rounded-lg p-8 shadow-sm">
+          <h2 className="text-2xl font-bold mb-4">Interessado em um plano?</h2>
+          <p className="text-gray-600 mb-6">
+            Entre em contato com nossa equipe para contratar o plano ideal para sua empresa
+          </p>
+          <Button size="lg" className="gap-2" asChild>
+            <a href="mailto:contato@trackdoc.com.br">
+              <Mail className="h-4 w-4" />
+              Entrar em Contato
+            </a>
+          </Button>
+        </div>
+
         {/* FAQ Section */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto mt-12">
           <h2 className="text-3xl font-bold text-center mb-8">Perguntas Frequentes</h2>
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Posso cancelar a qualquer momento?</CardTitle>
+                <CardTitle className="text-lg">Como funciona a contratação?</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Sim! Você pode cancelar sua assinatura a qualquer momento. Não há taxas de cancelamento ou compromissos de longo prazo.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Como funciona o período de teste?</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  Você tem 7 dias de acesso completo gratuito. Após esse período, escolha um plano para continuar usando o TrackDoc.
+                  Entre em contato com nossa equipe e criaremos sua conta com o plano escolhido. 
+                  Você receberá as credenciais de acesso por email.
                 </p>
               </CardContent>
             </Card>
@@ -259,7 +211,8 @@ export default function PricingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Sim! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento. As mudanças são aplicadas imediatamente.
+                  Sim! Você pode fazer upgrade ou downgrade do seu plano a qualquer momento 
+                  entrando em contato com nossa equipe.
                 </p>
               </CardContent>
             </Card>
@@ -270,31 +223,23 @@ export default function PricingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600">
-                  Todos os planos incluem suporte por email. Planos Professional e Enterprise incluem suporte prioritário.
+                  Todos os planos incluem suporte por email. Planos Profissional e Enterprise 
+                  incluem suporte prioritário.
                 </p>
               </CardContent>
             </Card>
-          </div>
-        </div>
 
-        {/* CTA Section */}
-        <div className="text-center mt-12">
-          <h2 className="text-2xl font-bold mb-4">Pronto para começar?</h2>
-          <p className="text-gray-600 mb-6">
-            Junte-se a milhares de empresas que já confiam no TrackDoc
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" asChild>
-              <Link href="/register">
-                Criar conta gratuita
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/contact">
-                Falar com vendas
-              </Link>
-            </Button>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Qual a forma de pagamento?</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">
+                  Aceitamos boleto bancário, PIX e transferência. Entre em contato para 
+                  mais informações sobre faturamento.
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -302,6 +247,4 @@ export default function PricingPage() {
   )
 }
 
-
-// Desabilitar prerendering para páginas com autenticação
 export const dynamic = 'force-dynamic'

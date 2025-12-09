@@ -189,32 +189,42 @@ export default function SuperAdminPage() {
 
   const loadUsers = async () => {
     try {
-      // Buscar TODOS os usuários, independente de terem subscription
-      const { data, error } = await supabase
+      // Buscar TODOS os usuários
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          subscription:subscriptions!left(
-            id,
-            plan_id,
-            status,
-            start_date,
-            end_date,
-            current_users,
-            current_storage_gb,
-            plan:plans(*)
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      
-      // Garantir que subscription seja um objeto único (não array)
-      const processedData = data?.map(user => ({
+      if (profilesError) throw profilesError
+
+      // Buscar subscriptions separadamente
+      const { data: subscriptionsData, error: subsError } = await supabase
+        .from('subscriptions')
+        .select('id, user_id, plan_id, status, start_date, end_date, current_users, current_storage_gb')
+
+      if (subsError) {
+        console.warn('Erro ao buscar subscriptions:', subsError)
+      }
+
+      // Buscar plans
+      const { data: plansData, error: plansError } = await supabase
+        .from('plans')
+        .select('*')
+
+      if (plansError) {
+        console.warn('Erro ao buscar plans:', plansError)
+      }
+
+      // Criar mapas
+      const plansMap = new Map((plansData || []).map(p => [p.id, p]))
+      const subscriptionsMap = new Map(
+        (subscriptionsData || []).map(s => [s.user_id, { ...s, plan: plansMap.get(s.plan_id) }])
+      )
+
+      // Combinar dados
+      const processedData = (profilesData || []).map(user => ({
         ...user,
-        subscription: Array.isArray(user.subscription) 
-          ? user.subscription[0] 
-          : user.subscription
+        subscription: subscriptionsMap.get(user.id) || null
       }))
       
       setUsers(processedData || [])

@@ -116,6 +116,7 @@ export default function SubscriptionPayments() {
 
       // Processar dados
       const processedData: SubscriptionWithUser[] = (subscriptionsData || []).map((sub: any) => {
+        const profile = profilesMap.get(sub.user_id)
         const nextBillingDate = sub.next_billing_date || sub.end_date
         const daysRemaining = nextBillingDate 
           ? differenceInDays(new Date(nextBillingDate), new Date())

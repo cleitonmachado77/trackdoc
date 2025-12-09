@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createBrowserClient } from "@supabase/ssr"
 import { useAuth } from '@/lib/hooks/use-auth-final'
+import SubscriptionPayments from "@/app/components/admin/subscription-payments"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -682,7 +683,7 @@ export default function SuperAdminPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Visão Geral
@@ -698,6 +699,10 @@ export default function SuperAdminPage() {
             <TabsTrigger value="plans" className="gap-2">
               <CreditCard className="h-4 w-4" />
               Planos
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="gap-2">
+              <CreditCard className="h-4 w-4" />
+              Pagamentos
             </TabsTrigger>
           </TabsList>
 
@@ -1166,6 +1171,11 @@ export default function SuperAdminPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Payments Tab */}
+          <TabsContent value="payments" className="space-y-4">
+            <SubscriptionPayments />
           </TabsContent>
         </Tabs>
       </div>

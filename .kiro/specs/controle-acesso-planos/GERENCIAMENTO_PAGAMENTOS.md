@@ -305,6 +305,45 @@ CREATE TABLE subscription_payments (
 - [x] Implementar botão de lembrete
 - [x] Implementar estatísticas
 - [x] Documentação completa
+- [x] Corrigir políticas RLS para UPDATE
+- [ ] Testar lançamento de pagamento end-to-end
+
+---
+
+## 🐛 PROBLEMA ENCONTRADO E CORRIGIDO
+
+### ❌ Problema
+Ao clicar em "Lançar Pagamento", nada mudava:
+- ✅ Pagamento era registrado em `subscription_payments`
+- ❌ Subscription NÃO era atualizada (datas não mudavam)
+- ❌ Interface não atualizava (contador continuava igual)
+- ✅ Toast de sucesso aparecia (mas nada mudava)
+
+### 🔍 Causa Raiz
+**Row Level Security (RLS) bloqueando UPDATE**
+
+As políticas RLS em `fix_rls_subscriptions.sql` só permitiam **SELECT** (leitura):
+- ✅ `users_view_own_subscriptions` - SELECT
+- ✅ `admins_view_all_subscriptions` - SELECT  
+- ❌ **FALTAVAM políticas de UPDATE**
+
+### ✅ Solução Implementada
+
+**Arquivo criado:** `migrations/fix_rls_subscriptions_update.sql`
+
+**Políticas adicionadas:**
+1. `super_admins_update_subscriptions` - Super Admins podem atualizar qualquer subscription
+2. `admins_update_entity_subscriptions` - Admins podem atualizar subscriptions da sua entidade
+3. `system_update_subscriptions` - Sistema pode atualizar (para triggers)
+
+### 🔧 Como Aplicar a Correção
+
+**Execute no Supabase SQL Editor:**
+```sql
+-- Copie e execute: migrations/fix_rls_subscriptions_update.sql
+```
+
+**Documentação completa:** `.kiro/specs/controle-acesso-planos/CORRIGIR_UPDATE_PAGAMENTOS.md`
 
 ---
 

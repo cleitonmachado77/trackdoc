@@ -301,3 +301,70 @@ grep -r "add.*user" app/ --include="*.tsx" -i
 **Última atualização:** 2024-12-09  
 **Status:** 100% COMPLETO 🎉✨  
 **Implementações:** Todos os bloqueios e limites implementados com sucesso!
+
+
+---
+
+## 🐛 PROBLEMAS ENCONTRADOS E CORRIGIDOS
+
+### Problema 1: Subscription Não Criada Automaticamente ✅
+- **Sintoma:** Usuário Pedro criado sem subscription
+- **Causa:** Trigger não incluía campos obrigatórios `plan_name` e `plan_price`
+- **Solução:** `migrations/auto_create_subscription_trigger_v2.sql`
+- **Status:** ✅ Corrigido
+
+### Problema 2: Frontend Não Mostrava Subscription ✅
+- **Sintoma:** Subscription criada mas frontend mostrava erro
+- **Causa:** Função RPC desatualizada e RLS bloqueando
+- **Solução:** 
+  - `migrations/fix_rpc_get_subscription.sql`
+  - `migrations/fix_rls_subscriptions.sql`
+- **Status:** ✅ Corrigido
+
+### Problema 3: Pagamentos Não Atualizavam Subscription 🔧
+- **Sintoma:** Clicar em "Lançar Pagamento" não mudava nada
+- **Causa:** RLS bloqueando UPDATE (só tinha políticas de SELECT)
+- **Solução:** `migrations/fix_rls_subscriptions_update.sql`
+- **Status:** 🔧 Correção criada, aguardando execução
+- **Documentação:** 
+  - `.kiro/specs/controle-acesso-planos/CORRIGIR_UPDATE_PAGAMENTOS.md`
+  - `.kiro/specs/controle-acesso-planos/EXECUTAR_AGORA_CORRECAO.md`
+  - `.kiro/specs/controle-acesso-planos/RESUMO_PROBLEMA_PAGAMENTOS.md`
+
+---
+
+## 🚀 PRÓXIMA AÇÃO IMEDIATA
+
+### ⚡ EXECUTAR AGORA
+
+1. **Abrir Supabase SQL Editor**
+2. **Copiar e executar:** `migrations/fix_rls_subscriptions_update.sql`
+3. **Testar no frontend:** Lançar pagamento para Pedro
+4. **Verificar:** Contador deve mostrar "30 dias restantes"
+
+**Guia completo:** `.kiro/specs/controle-acesso-planos/EXECUTAR_AGORA_CORRECAO.md`
+
+---
+
+## 📈 PROGRESSO ATUAL
+
+### Fase 6: Gerenciamento de Pagamentos (95%)
+- ✅ Componente criado
+- ✅ Tabela criada
+- ✅ Interface implementada
+- ✅ Filtros e busca
+- ✅ Modal de pagamento
+- ✅ Cálculo de dias
+- ✅ Badges de status
+- ✅ Logs detalhados
+- 🔧 **Políticas RLS de UPDATE** (correção criada, aguardando execução)
+- ⏳ Teste end-to-end
+
+**Bloqueio atual:** Políticas RLS de UPDATE não aplicadas  
+**Tempo para resolver:** 5 minutos  
+**Impacto:** Alto (funcionalidade crítica)
+
+---
+
+**Última atualização:** 2024-12-09 18:00  
+**Status geral:** 95% completo (aguardando execução de 1 SQL)

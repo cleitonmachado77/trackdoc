@@ -188,11 +188,12 @@ export default function SuperAdminPage() {
 
   const loadUsers = async () => {
     try {
+      // Buscar TODOS os usuários, independente de terem subscription
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           *,
-          subscription:subscriptions(
+          subscription:subscriptions!left(
             id,
             plan_id,
             status,
@@ -206,7 +207,16 @@ export default function SuperAdminPage() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setUsers(data || [])
+      
+      // Garantir que subscription seja um objeto único (não array)
+      const processedData = data?.map(user => ({
+        ...user,
+        subscription: Array.isArray(user.subscription) 
+          ? user.subscription[0] 
+          : user.subscription
+      }))
+      
+      setUsers(processedData || [])
     } catch (error) {
       console.error('Erro ao carregar usuários:', error)
     }
@@ -217,9 +227,14 @@ export default function SuperAdminPage() {
       // Carregar estatísticas de documentos por usuário
       const { data: docsData, error: docsError } = await supabase
         .from('documents')
-        .select('created_by, file_size')
+        .select('created_by, file_size, created_at')
 
-      if (docsError) throw docsError
+      if (docsError) {
+        console.warn('Erro ao carregar documentos:', docsError)
+        // Não falhar se não houver documentos
+        setUserStats({})
+        return
+      }
 
       // Agregar dados por usuário
       const statsMap: Record<string, UserStats> = {}
@@ -232,17 +247,24 @@ export default function SuperAdminPage() {
             userId: doc.created_by,
             documentsCount: 0,
             storageUsedGB: 0,
-            lastActivity: null
+            lastActivity: doc.created_at
           }
         }
         
         statsMap[doc.created_by].documentsCount++
         statsMap[doc.created_by].storageUsedGB += (doc.file_size || 0) / (1024 * 1024 * 1024) // Converter para GB
+        
+        // Atualizar última atividade
+        if (doc.created_at && (!statsMap[doc.created_by].lastActivity || 
+            new Date(doc.created_at) > new Date(statsMap[doc.created_by].lastActivity!))) {
+          statsMap[doc.created_by].lastActivity = doc.created_at
+        }
       })
 
       setUserStats(statsMap)
     } catch (error) {
       console.error('Erro ao carregar estatísticas de usuários:', error)
+      setUserStats({})
     }
   }
 
@@ -524,8 +546,15 @@ export default function SuperAdminPage() {
 
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
 
-    const matchesPlan = planFilter === "all" || 
-      user.subscription?.plan?.type === planFilter
+    // Filtro de plano - incluir "sem plano"
+    let matchesPlan = false
+    if (planFilter === "all") {
+      matchesPlan = true
+    } else if (planFilter === "no_plan") {
+      matchesPlan = !user.subscription?.plan
+    } else {
+      matchesPlan = user.subscription?.plan?.type === planFilter
+    }
 
     return matchesSearch && matchesStatus && matchesPlan
   })
@@ -938,6 +967,7 @@ export default function SuperAdminPage() {
                       <SelectItem value="basico">Básico</SelectItem>
                       <SelectItem value="profissional">Profissional</SelectItem>
                       <SelectItem value="enterprise">Enterprise</SelectItem>
+                      <SelectItem value="no_plan">Sem plano</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -992,28 +1022,24 @@ export default function SuperAdminPage() {
                               </Select>
                             </TableCell>
                             <TableCell>
-                              {stats ? (
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <FileText className="h-3 w-3 text-gray-400" />
-                                    <span>{stats.documentsCount} docs</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <HardDrive className="h-3 w-3 text-gray-400" />
-                                    <span>{stats.storageUsedGB.toFixed(2)} GB</span>
-                                    {plan && (
-                                      <Badge 
-                                        variant={usagePercentage > 80 ? "destructive" : "outline"}
-                                        className="text-xs"
-                                      >
-                                        {usagePercentage}%
-                                      </Badge>
-                                    )}
-                                  </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <FileText className="h-3 w-3 text-gray-400" />
+                                  <span>{stats?.documentsCount || 0} docs</span>
                                 </div>
-                              ) : (
-                                <span className="text-xs text-gray-400">Sem dados</span>
-                              )}
+                                <div className="flex items-center gap-2 text-xs">
+                                  <HardDrive className="h-3 w-3 text-gray-400" />
+                                  <span>{stats?.storageUsedGB?.toFixed(2) || '0.00'} GB</span>
+                                  {plan && stats && (
+                                    <Badge 
+                                      variant={usagePercentage > 80 ? "destructive" : "outline"}
+                                      className="text-xs"
+                                    >
+                                      {usagePercentage}%
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Select

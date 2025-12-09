@@ -64,7 +64,7 @@ export interface Subscription {
   plan?: Plan
 }
 
-// Constantes dos planos
+// Constantes dos planos - CONFIGURAÇÃO OFICIAL
 export const PLAN_CONFIGS: Record<PlanType, Omit<Plan, 'id' | 'created_at' | 'updated_at'>> = {
   basico: {
     name: 'Básico',
@@ -76,13 +76,13 @@ export const PLAN_CONFIGS: Record<PlanType, Omit<Plan, 'id' | 'created_at' | 'up
       upload_documentos: true,
       solicitacao_aprovacoes: true,
       suporte_email: true,
-      biblioteca_publica: false,
-      assinatura_eletronica_simples: false,
-      assinatura_eletronica_multipla: false,
-      chat_nativo: false,
-      auditoria_completa: false,
-      backup_automatico_diario: false,
-      suporte_tecnico_dedicado: false,
+      biblioteca_publica: true, // ✅ HABILITADO no Básico
+      assinatura_eletronica_simples: false, // ❌ Apenas Profissional+
+      assinatura_eletronica_multipla: false, // ❌ Apenas Enterprise
+      chat_nativo: false, // ❌ Apenas Enterprise
+      auditoria_completa: false, // ❌ Apenas Enterprise
+      backup_automatico_diario: false, // ❌ Apenas Enterprise
+      suporte_tecnico_dedicado: false, // ❌ Apenas Enterprise
     },
     limits: {
       max_usuarios: 15,
@@ -102,12 +102,12 @@ export const PLAN_CONFIGS: Record<PlanType, Omit<Plan, 'id' | 'created_at' | 'up
       solicitacao_aprovacoes: true,
       suporte_email: true,
       biblioteca_publica: true,
-      assinatura_eletronica_simples: true,
-      assinatura_eletronica_multipla: false,
-      chat_nativo: false,
-      auditoria_completa: false,
-      backup_automatico_diario: false,
-      suporte_tecnico_dedicado: false,
+      assinatura_eletronica_simples: true, // ✅ HABILITADO no Profissional
+      assinatura_eletronica_multipla: false, // ❌ Apenas Enterprise
+      chat_nativo: false, // ❌ Apenas Enterprise
+      auditoria_completa: false, // ❌ Apenas Enterprise
+      backup_automatico_diario: false, // ❌ Apenas Enterprise
+      suporte_tecnico_dedicado: false, // ❌ Apenas Enterprise
     },
     limits: {
       max_usuarios: 50,
@@ -126,11 +126,11 @@ export const PLAN_CONFIGS: Record<PlanType, Omit<Plan, 'id' | 'created_at' | 'up
       suporte_email: true,
       biblioteca_publica: true,
       assinatura_eletronica_simples: true,
-      assinatura_eletronica_multipla: true,
-      chat_nativo: true,
-      auditoria_completa: true,
-      backup_automatico_diario: true,
-      suporte_tecnico_dedicado: true,
+      assinatura_eletronica_multipla: true, // ✅ Exclusivo Enterprise
+      chat_nativo: true, // ✅ Exclusivo Enterprise
+      auditoria_completa: true, // ✅ Exclusivo Enterprise
+      backup_automatico_diario: true, // ✅ Exclusivo Enterprise
+      suporte_tecnico_dedicado: true, // ✅ Exclusivo Enterprise
     },
     limits: {
       max_usuarios: 70,

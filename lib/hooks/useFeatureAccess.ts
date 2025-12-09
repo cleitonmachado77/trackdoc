@@ -1,13 +1,40 @@
 'use client'
 
 import { useSubscription } from './useSubscription'
-import type { PlanFeatures } from '@/types/subscription'
+import type { PlanFeatures, PlanType } from '@/types/subscription'
 
 interface UseFeatureAccessReturn {
   hasAccess: boolean
   loading: boolean
   reason?: 'no_subscription' | 'feature_not_included' | 'trial_expired' | 'subscription_expired'
   showUpgradePrompt: boolean
+  requiredPlan?: PlanType
+  currentPlan?: PlanType
+}
+
+/**
+ * Determina qual plano é necessário para acessar uma funcionalidade
+ */
+function getRequiredPlan(feature: keyof PlanFeatures): PlanType {
+  // Funcionalidades do Básico
+  if (['dashboard_gerencial', 'upload_documentos', 'solicitacao_aprovacoes', 
+       'suporte_email', 'biblioteca_publica'].includes(feature)) {
+    return 'basico'
+  }
+  
+  // Funcionalidades do Profissional
+  if (feature === 'assinatura_eletronica_simples') {
+    return 'profissional'
+  }
+  
+  // Funcionalidades exclusivas do Enterprise
+  if (['assinatura_eletronica_multipla', 'chat_nativo', 'auditoria_completa',
+       'backup_automatico_diario', 'suporte_tecnico_dedicado'].includes(feature)) {
+    return 'enterprise'
+  }
+  
+  // Padrão: Enterprise
+  return 'enterprise'
 }
 
 /**
@@ -58,6 +85,10 @@ export function useFeatureAccess(
     }
   }
 
+  // Obter plano atual e plano necessário
+  const currentPlan = subscription?.plan?.type
+  const requiredPlan = getRequiredPlan(feature)
+
   // Verificar se o plano inclui a funcionalidade
   const hasFeatureAccess = hasFeature(feature)
 
@@ -67,6 +98,8 @@ export function useFeatureAccess(
       loading: false,
       reason: 'feature_not_included',
       showUpgradePrompt: true,
+      requiredPlan,
+      currentPlan,
     }
   }
 
@@ -75,6 +108,7 @@ export function useFeatureAccess(
     hasAccess: true,
     loading: false,
     showUpgradePrompt: false,
+    currentPlan,
   }
 }
 

@@ -13,6 +13,10 @@ interface UseSubscriptionReturn {
   isTrialActive: boolean
   isTrialExpired: boolean
   daysUntilTrialEnd: number | null
+  getRemainingUsers: () => number
+  getRemainingStorage: () => number
+  getUsagePercentage: (limit: 'users' | 'storage') => number
+  getCurrentUsage: () => { users: number; storage: number }
   refetch: () => Promise<void>
 }
 
@@ -124,6 +128,41 @@ export function useSubscription(userId?: string): UseSubscriptionReturn {
     ? Math.ceil((new Date(subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null
 
+  // Calcular usuários restantes
+  const getRemainingUsers = (): number => {
+    if (!subscription?.plan?.limits) return 0
+    return Math.max(0, subscription.plan.limits.max_usuarios - subscription.current_users)
+  }
+
+  // Calcular armazenamento restante (em GB)
+  const getRemainingStorage = (): number => {
+    if (!subscription?.plan?.limits) return 0
+    return Math.max(0, subscription.plan.limits.armazenamento_gb - subscription.current_storage_gb)
+  }
+
+  // Calcular percentual de uso
+  const getUsagePercentage = (limit: 'users' | 'storage'): number => {
+    if (!subscription?.plan?.limits) return 0
+    
+    if (limit === 'users') {
+      const max = subscription.plan.limits.max_usuarios
+      return max > 0 ? Math.round((subscription.current_users / max) * 100) : 0
+    }
+    
+    if (limit === 'storage') {
+      const max = subscription.plan.limits.armazenamento_gb
+      return max > 0 ? Math.round((subscription.current_storage_gb / max) * 100) : 0
+    }
+    
+    return 0
+  }
+
+  // Obter uso atual
+  const getCurrentUsage = () => ({
+    users: subscription?.current_users || 0,
+    storage: subscription?.current_storage_gb || 0,
+  })
+
   return {
     subscription,
     loading,
@@ -133,6 +172,10 @@ export function useSubscription(userId?: string): UseSubscriptionReturn {
     isTrialActive,
     isTrialExpired,
     daysUntilTrialEnd,
+    getRemainingUsers,
+    getRemainingStorage,
+    getUsagePercentage,
+    getCurrentUsage,
     refetch: fetchSubscription,
   }
 }

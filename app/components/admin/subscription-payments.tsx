@@ -88,6 +88,7 @@ export default function SubscriptionPayments() {
 
   const loadSubscriptions = async () => {
     try {
+      console.log('📊 Carregando subscriptions...')
       setLoading(true)
 
       // Buscar subscriptions
@@ -96,17 +97,26 @@ export default function SubscriptionPayments() {
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (subsError) throw subsError
+      if (subsError) {
+        console.error('❌ Erro ao buscar subscriptions:', subsError)
+        throw subsError
+      }
+
+      console.log('✅ Subscriptions encontradas:', subscriptionsData?.length)
 
       // Buscar profiles separadamente
       const userIds = subscriptionsData?.map(sub => sub.user_id).filter(Boolean) || []
+      console.log('👥 Buscando profiles para', userIds.length, 'usuários')
+      
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', userIds)
 
       if (profilesError) {
-        console.warn('Erro ao buscar profiles:', profilesError)
+        console.warn('⚠️ Erro ao buscar profiles:', profilesError)
+      } else {
+        console.log('✅ Profiles encontrados:', profilesData?.length)
       }
 
       // Criar mapa de profiles
@@ -150,9 +160,10 @@ export default function SubscriptionPayments() {
         }
       })
 
+      console.log('✅ Dados processados:', processedData.length, 'subscriptions')
       setSubscriptions(processedData)
     } catch (error) {
-      console.error('Erro ao carregar subscriptions:', error)
+      console.error('❌ Erro ao carregar subscriptions:', error)
       toast({
         title: "Erro",
         description: "Não foi possível carregar as assinaturas.",
@@ -201,11 +212,17 @@ export default function SubscriptionPayments() {
     try {
       setProcessingPayment(true)
 
+      console.log('🔄 Processando pagamento...')
+      console.log('Data do pagamento:', paymentDate)
+      console.log('Valor:', paymentAmount)
+
       // Calcular nova data de vencimento (30 dias a partir da data de pagamento)
       const newBillingDate = addMonths(new Date(paymentDate), 1)
+      console.log('Nova data de vencimento:', newBillingDate)
 
       // Atualizar subscription
-      const { error: updateError } = await supabase
+      console.log('📝 Atualizando subscription:', selectedSubscription.id)
+      const { data: updateData, error: updateError } = await supabase
         .from('subscriptions')
         .update({
           next_billing_date: newBillingDate.toISOString(),
@@ -214,10 +231,17 @@ export default function SubscriptionPayments() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', selectedSubscription.id)
+        .select()
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('❌ Erro ao atualizar subscription:', updateError)
+        throw updateError
+      }
+
+      console.log('✅ Subscription atualizada:', updateData)
 
       // Registrar pagamento (criar tabela de pagamentos se necessário)
+      console.log('💰 Registrando pagamento...')
       const { error: paymentError } = await supabase
         .from('subscription_payments')
         .insert({
@@ -231,8 +255,14 @@ export default function SubscriptionPayments() {
         })
 
       // Se a tabela não existir, apenas ignorar o erro
-      if (paymentError && paymentError.code !== '42P01') {
-        console.warn('Aviso ao registrar pagamento:', paymentError)
+      if (paymentError) {
+        if (paymentError.code === '42P01') {
+          console.warn('⚠️ Tabela subscription_payments não existe ainda. Execute a migration.')
+        } else {
+          console.warn('⚠️ Aviso ao registrar pagamento:', paymentError)
+        }
+      } else {
+        console.log('✅ Pagamento registrado')
       }
 
       toast({
@@ -241,7 +271,10 @@ export default function SubscriptionPayments() {
       })
 
       setShowPaymentModal(false)
-      loadSubscriptions()
+      
+      console.log('🔄 Recarregando subscriptions...')
+      await loadSubscriptions()
+      console.log('✅ Subscriptions recarregadas')
     } catch (error) {
       console.error('Erro ao processar pagamento:', error)
       toast({

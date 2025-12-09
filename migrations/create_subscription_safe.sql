@@ -6,15 +6,15 @@
 -- =====================================================
 
 -- PASSO 1: Ver estrutura da tabela
-\echo '=== ESTRUTURA DA TABELA SUBSCRIPTIONS ==='
-SELECT column_name, data_type, is_nullable, column_default
-FROM information_schema.columns
-WHERE table_name = 'subscriptions' AND table_schema = 'public'
-ORDER BY ordinal_position;
+-- (Descomente para ver a estrutura)
+-- SELECT column_name, data_type, is_nullable, column_default
+-- FROM information_schema.columns
+-- WHERE table_name = 'subscriptions' AND table_schema = 'public'
+-- ORDER BY ordinal_position;
 
 -- PASSO 2: Ver planos disponíveis
-\echo '=== PLANOS DISPONÍVEIS ==='
-SELECT id, name, type, interval FROM plans WHERE is_active = true;
+-- (Descomente para ver os planos)
+-- SELECT id, name, type, interval FROM plans WHERE is_active = true;
 
 -- PASSO 3: Criar subscription
 -- IMPORTANTE: Se a tabela tiver campo 'plan_name', precisamos preenchê-lo
@@ -71,7 +71,6 @@ BEGIN
 END $$;
 
 -- PASSO 4: Verificar resultado
-\echo '=== SUBSCRIPTION CRIADA ==='
 SELECT 
   s.id,
   s.user_id,

@@ -10,10 +10,14 @@ CREATE OR REPLACE FUNCTION auto_create_subscription()
 RETURNS TRIGGER AS $$
 DECLARE
   v_plan_id UUID;
+  v_plan_name TEXT;
+  v_plan_price NUMERIC;
+  v_plan_type TEXT;
   v_default_plan_type VARCHAR := 'basico'; -- Plano padrão para novos usuários
 BEGIN
-  -- Buscar o ID do plano padrão (Básico)
-  SELECT id INTO v_plan_id
+  -- Buscar TODOS os dados do plano padrão
+  SELECT id, name, price_monthly, type
+  INTO v_plan_id, v_plan_name, v_plan_price, v_plan_type
   FROM plans
   WHERE type = v_default_plan_type 
     AND interval = 'monthly'
@@ -25,6 +29,9 @@ BEGIN
     INSERT INTO subscriptions (
       user_id,
       plan_id,
+      plan_name,
+      plan_price,
+      plan_type,
       status,
       start_date,
       current_users,
@@ -34,6 +41,9 @@ BEGIN
     ) VALUES (
       NEW.id,
       v_plan_id,
+      v_plan_name,
+      v_plan_price,
+      v_plan_type,
       'active',
       NOW(),
       1,  -- Começar com 1 usuário (o próprio)
@@ -42,7 +52,7 @@ BEGIN
       NOW()
     );
     
-    RAISE NOTICE 'Subscription criada automaticamente para usuário % com plano %', NEW.id, v_default_plan_type;
+    RAISE NOTICE 'Subscription criada automaticamente para usuário % com plano % (R$ %)', NEW.id, v_plan_name, v_plan_price;
   ELSE
     RAISE WARNING 'Plano padrão % não encontrado. Subscription não foi criada.', v_default_plan_type;
   END IF;

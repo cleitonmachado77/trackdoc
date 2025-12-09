@@ -90,22 +90,32 @@ export default function SubscriptionPayments() {
     try {
       setLoading(true)
 
-      // Buscar subscriptions com dados do usuário
-      const { data, error } = await supabase
+      // Buscar subscriptions
+      const { data: subscriptionsData, error: subsError } = await supabase
         .from('subscriptions')
-        .select(`
-          *,
-          profiles!subscriptions_user_id_fkey (
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (subsError) throw subsError
+
+      // Buscar profiles separadamente
+      const userIds = subscriptionsData?.map(sub => sub.user_id).filter(Boolean) || []
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds)
+
+      if (profilesError) {
+        console.warn('Erro ao buscar profiles:', profilesError)
+      }
+
+      // Criar mapa de profiles
+      const profilesMap = new Map(
+        (profilesData || []).map(p => [p.id, p])
+      )
 
       // Processar dados
-      const processedData: SubscriptionWithUser[] = (data || []).map((sub: any) => {
+      const processedData: SubscriptionWithUser[] = (subscriptionsData || []).map((sub: any) => {
         const nextBillingDate = sub.next_billing_date || sub.end_date
         const daysRemaining = nextBillingDate 
           ? differenceInDays(new Date(nextBillingDate), new Date())
@@ -132,8 +142,8 @@ export default function SubscriptionPayments() {
           current_storage_gb: sub.current_storage_gb,
           auto_renew: sub.auto_renew,
           created_at: sub.created_at,
-          user_name: sub.profiles?.full_name || 'Sem nome',
-          user_email: sub.profiles?.email || 'Sem email',
+          user_name: profile?.full_name || 'Sem nome',
+          user_email: profile?.email || 'Sem email',
           days_remaining: daysRemaining,
           payment_status: paymentStatus,
         }

@@ -19,9 +19,14 @@ export interface EntityPlanStatus {
   error: string | null
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+// Verificar se as variáveis de ambiente estão disponíveis
+let supabase: any = null
+if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+  supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
+}
 
 /**
  * Hook para gerenciar informações do plano de uma entidade
@@ -37,7 +42,7 @@ export function useEntityPlan(entityId?: string): EntityPlanStatus & {
   const [error, setError] = useState<string | null>(null)
 
   const fetchPlanInfo = useCallback(async () => {
-    if (!entityId) {
+    if (!entityId || !supabase) {
       setPlanInfo(null)
       setLoading(false)
       return
@@ -117,7 +122,9 @@ export function useEntityPlan(entityId?: string): EntityPlanStatus & {
   }, [planInfo])
 
   useEffect(() => {
-    fetchPlanInfo()
+    if (typeof window !== 'undefined') {
+      fetchPlanInfo()
+    }
   }, [fetchPlanInfo])
 
   return {

@@ -103,7 +103,7 @@ export default function EntityUserManagement() {
   const [isDeletingUser, setIsDeletingUser] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
 
-  // Hook para informações do plano da entidade
+  // Hook para informações do plano da entidade (só inicializar após ter entityInfo)
   const { planInfo, loading: planLoading, error: planError, refreshPlanInfo } = useEntityPlan(entityInfo?.id)
 
   const [formData, setFormData] = useState({
@@ -672,7 +672,7 @@ export default function EntityUserManagement() {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          {planInfo && !planLoading && (
+          {planInfo && !planLoading && entityInfo && (
             <div className="text-sm text-gray-600">
               {planInfo.currentUsers}/{planInfo.maxUsers} usuários
             </div>
@@ -680,7 +680,7 @@ export default function EntityUserManagement() {
           <LimitGuard userId={user?.id} limitType="users" showAlert={false}>
             <Button 
               onClick={() => setShowCreateModal(true)}
-              disabled={planInfo && !planInfo.canCreateUser}
+              disabled={planInfo ? !planInfo.canCreateUser : false}
             >
               <Plus className="h-4 w-4 mr-2" />
               {planInfo && !planInfo.canCreateUser ? 'Limite Atingido' : 'Cadastrar Usuário'}
@@ -690,7 +690,7 @@ export default function EntityUserManagement() {
       </div>
 
       {/* Informações do Plano */}
-      {planInfo && (
+      {planInfo && entityInfo && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">

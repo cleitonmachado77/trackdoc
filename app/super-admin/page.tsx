@@ -430,6 +430,9 @@ export default function SuperAdminPage() {
           .insert({
             user_id: authData.user.id,
             plan_id: newUser.plan_id,
+            plan_name: selectedPlan.name,
+            plan_description: `Plano ${selectedPlan.name} - ${selectedPlan.max_users} usuários, ${selectedPlan.max_storage_gb}GB`,
+            plan_price: selectedPlan.price_monthly,
             status: 'active',
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
@@ -493,11 +496,20 @@ export default function SuperAdminPage() {
         const endDate = new Date()
         endDate.setFullYear(endDate.getFullYear() + 1)
 
+        // Buscar informações do plano
+        const selectedPlan = plans.find(p => p.id === planId)
+        if (!selectedPlan) {
+          throw new Error('Plano não encontrado')
+        }
+
         const { error } = await supabase
           .from('subscriptions')
           .insert({
             user_id: userId,
             plan_id: planId,
+            plan_name: selectedPlan.name,
+            plan_description: `Plano ${selectedPlan.name} - ${selectedPlan.max_users} usuários, ${selectedPlan.max_storage_gb}GB`,
+            plan_price: selectedPlan.price_monthly,
             status: 'active',
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),

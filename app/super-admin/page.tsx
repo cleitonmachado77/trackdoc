@@ -41,6 +41,7 @@ import {
   Activity
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { formatFileSize, formatStorageGB } from "@/lib/utils"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -263,7 +264,7 @@ export default function SuperAdminPage() {
         }
         
         statsMap[doc.created_by].documentsCount++
-        statsMap[doc.created_by].storageUsedGB += (doc.file_size || 0) / (1024 * 1024 * 1024) // Converter para GB
+        statsMap[doc.created_by].storageUsedGB += parseFloat(formatStorageGB(doc.file_size || 0))
         
         // Atualizar última atividade
         if (doc.created_at && (!statsMap[doc.created_by].lastActivity || 
@@ -331,12 +332,24 @@ export default function SuperAdminPage() {
         .from('documents')
         .select('*', { count: 'exact', head: true })
 
+      // Calcular volume total de armazenamento
+      const { data: documentsData, error: docsError } = await supabase
+        .from('documents')
+        .select('file_size')
+
+      let totalStorageGB = 0
+      if (!docsError && documentsData) {
+        totalStorageGB = documentsData.reduce((total, doc) => {
+          return total + parseFloat(formatStorageGB(doc.file_size || 0))
+        }, 0)
+      }
+
       setStats({
         totalUsers: totalUsers || 0,
         activeUsers: activeUsers || 0,
         totalEntities: totalEntities || 0,
         totalDocuments: totalDocuments || 0,
-        storageUsedGB: 0,
+        storageUsedGB: totalStorageGB,
         usersByPlan: []
       })
     } catch (error) {
@@ -665,8 +678,13 @@ export default function SuperAdminPage() {
               </span>
               <span>•</span>
               <span className="flex items-center space-x-1">
-                <Building className="h-3 w-3" />
-                <span>{stats?.totalEntities || 0} Entidades</span>
+                <FileText className="h-3 w-3" />
+                <span>{stats?.totalDocuments || 0} Docs</span>
+              </span>
+              <span>•</span>
+              <span className="flex items-center space-x-1">
+                <HardDrive className="h-3 w-3" />
+                <span>{stats?.storageUsedGB?.toFixed(2) || '0.00'} GB</span>
               </span>
             </div>
           </div>
@@ -689,7 +707,7 @@ export default function SuperAdminPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -734,6 +752,19 @@ export default function SuperAdminPage() {
                   <p className="text-3xl font-bold">{stats?.totalDocuments || 0}</p>
                 </div>
                 <FileText className="h-10 w-10 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Volume Total</p>
+                  <p className="text-3xl font-bold">{stats?.storageUsedGB?.toFixed(2) || '0.00'}</p>
+                  <p className="text-xs text-gray-500 mt-1">GB</p>
+                </div>
+                <HardDrive className="h-10 w-10 text-indigo-500" />
               </div>
             </CardContent>
           </Card>

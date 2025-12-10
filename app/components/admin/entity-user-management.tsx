@@ -103,9 +103,6 @@ export default function EntityUserManagement() {
   const [isDeletingUser, setIsDeletingUser] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
 
-  // Hook para informações do plano da entidade (só inicializar após ter entityInfo)
-  const { planInfo, loading: planLoading, error: planError, refreshPlanInfo } = useEntityPlan(entityInfo?.id)
-
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -121,6 +118,9 @@ export default function EntityUserManagement() {
     current_users: number
     logo_url: string | null
   } | null>(null)
+
+  // Hook para informações do plano da entidade (só inicializar após ter entityInfo)
+  const { planInfo, loading: planLoading, error: planError, refreshPlanInfo } = useEntityPlan(entityInfo?.id)
   
   const [showLogoModal, setShowLogoModal] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)

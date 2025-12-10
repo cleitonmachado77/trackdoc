@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient, createSupabaseServiceClient } from '@/lib/supabase-server'
 
-// ✅ Cache de 30 segundos ao invés de force-dynamic
-export const revalidate = 30
+// ✅ Forçar renderização dinâmica para usar cookies
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {

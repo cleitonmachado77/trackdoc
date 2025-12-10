@@ -91,6 +91,38 @@ interface UserStats {
   lastActivity: string | null
 }
 
+interface UserLimits {
+  userId: string
+  planName: string
+  planType: string
+  maxUsers: number
+  maxStorageGB: number
+  maxDocuments: number
+  currentUsers: number
+  currentStorageGB: number
+  currentDocuments: number
+  usersLimitReached: boolean
+  storageLimitReached: boolean
+  documentsLimitReached: boolean
+  usersUsagePercent: number
+  storageUsagePercent: number
+  documentsUsagePercent: number
+}
+
+interface EntityData {
+  entityId: string
+  documentsCount: number
+  storageGB: number
+  usersCount: number
+  planName: string
+  maxStorageGB: number
+  maxDocuments: number
+  maxUsers: number
+  storagePercent: number
+  documentsPercent: number
+  usersPercent: number
+}
+
 interface Entity {
   id: string
   name: string
@@ -125,6 +157,8 @@ export default function SuperAdminPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [userStats, setUserStats] = useState<Record<string, UserStats>>({})
+  const [userLimits, setUserLimits] = useState<Record<string, UserLimits>>({})
+  const [entityData, setEntityData] = useState<Record<string, EntityData>>({})
 
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState("")
@@ -203,7 +237,9 @@ export default function SuperAdminPage() {
       loadEntities(),
       loadPlans(),
       loadStats(),
-      loadUserStats()
+      loadUserStats(),
+      loadUserLimits(),
+      loadEntityData()
     ])
   }
 
@@ -257,48 +293,57 @@ export default function SuperAdminPage() {
     try {
       console.log('🔄 [loadUserStats] Iniciando carregamento de estatísticas por usuário...')
       
-      // Carregar estatísticas de documentos por usuário
-      const { data: docsData, error: docsError } = await supabase
-        .from('documents')
-        .select('created_by, file_size, created_at')
+      // Buscar todos os usuários para calcular suas estatísticas
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id')
 
-      if (docsError) {
-        console.warn('⚠️ [loadUserStats] Erro ao carregar documentos:', docsError)
+      if (usersError) {
+        console.warn('⚠️ [loadUserStats] Erro ao carregar usuários:', usersError)
         setUserStats({})
         return
       }
 
-      console.log('📄 [loadUserStats] Documentos carregados:', {
-        count: docsData?.length,
-        sample: docsData?.slice(0, 3)
-      })
+      console.log('👥 [loadUserStats] Usuários encontrados:', usersData?.length)
 
-      // Agregar dados por usuário
+      // Calcular estatísticas para cada usuário usando a nova função SQL
       const statsMap: Record<string, UserStats> = {}
       
-      docsData?.forEach(doc => {
-        if (!doc.created_by) return
-        
-        if (!statsMap[doc.created_by]) {
-          statsMap[doc.created_by] = {
-            userId: doc.created_by,
-            documentsCount: 0,
-            storageUsedGB: 0,
-            lastActivity: doc.created_at
+      if (usersData) {
+        for (const user of usersData) {
+          try {
+            const { data: userUsage, error: usageError } = await supabase
+              .rpc('calculate_user_storage_usage', { p_user_id: user.id })
+
+            if (usageError) {
+              console.warn(`⚠️ [loadUserStats] Erro ao calcular uso para usuário ${user.id}:`, usageError)
+              continue
+            }
+
+            if (userUsage && userUsage.length > 0) {
+              const usage = userUsage[0]
+              statsMap[user.id] = {
+                userId: user.id,
+                documentsCount: usage.documents_count || 0,
+                storageUsedGB: parseFloat(usage.storage_used_gb) || 0,
+                lastActivity: usage.last_document_date
+              }
+            } else {
+              // Usuário sem documentos
+              statsMap[user.id] = {
+                userId: user.id,
+                documentsCount: 0,
+                storageUsedGB: 0,
+                lastActivity: null
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ [loadUserStats] Erro ao processar usuário ${user.id}:`, error)
           }
         }
-        
-        statsMap[doc.created_by].documentsCount++
-        statsMap[doc.created_by].storageUsedGB += (doc.file_size || 0) / (1024 * 1024 * 1024) // Converter bytes para GB
-        
-        // Atualizar última atividade
-        if (doc.created_at && (!statsMap[doc.created_by].lastActivity || 
-            new Date(doc.created_at) > new Date(statsMap[doc.created_by].lastActivity!))) {
-          statsMap[doc.created_by].lastActivity = doc.created_at
-        }
-      })
+      }
 
-      console.log('👥 [loadUserStats] Estatísticas por usuário:', {
+      console.log('📊 [loadUserStats] Estatísticas calculadas:', {
         totalUsers: Object.keys(statsMap).length,
         sample: Object.values(statsMap).slice(0, 2)
       })
@@ -307,6 +352,142 @@ export default function SuperAdminPage() {
     } catch (error) {
       console.error('❌ [loadUserStats] Erro ao carregar estatísticas de usuários:', error)
       setUserStats({})
+    }
+  }
+
+  const loadUserLimits = async () => {
+    try {
+      console.log('🔄 [loadUserLimits] Iniciando carregamento de dados de usuários...')
+      
+      // Buscar todos os usuários para calcular seus dados
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select('id')
+
+      if (usersError) {
+        console.warn('⚠️ [loadUserLimits] Erro ao carregar usuários:', usersError)
+        setUserLimits({})
+        return
+      }
+
+      console.log('👥 [loadUserLimits] Usuários encontrados:', usersData?.length)
+
+      // Calcular dados para cada usuário usando a nova função
+      const limitsMap: Record<string, UserLimits> = {}
+      
+      if (usersData) {
+        for (const user of usersData) {
+          try {
+            const { data: userStorageData, error: storageError } = await supabase
+              .rpc('get_user_storage_data', { p_user_id: user.id })
+
+            if (storageError) {
+              console.warn(`⚠️ [loadUserLimits] Erro ao calcular dados para usuário ${user.id}:`, storageError)
+              continue
+            }
+
+            if (userStorageData && userStorageData.length > 0) {
+              const data = userStorageData[0]
+              
+              limitsMap[user.id] = {
+                userId: user.id,
+                planName: data.plan_name || 'Sem plano',
+                planType: data.plan_name !== 'Sem plano' ? 'active' : 'none',
+                maxUsers: 0, // Não aplicável para usuários individuais
+                maxStorageGB: parseFloat(data.max_storage_gb) || 0,
+                maxDocuments: data.max_documents || 0,
+                currentUsers: 0, // Não aplicável para usuários individuais
+                currentStorageGB: parseFloat(data.storage_gb) || 0,
+                currentDocuments: data.documents_count || 0,
+                usersLimitReached: false,
+                storageLimitReached: data.storage_percent >= 100,
+                documentsLimitReached: data.documents_percent >= 100,
+                usersUsagePercent: 0,
+                storageUsagePercent: data.storage_percent || 0,
+                documentsUsagePercent: data.documents_percent || 0
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ [loadUserLimits] Erro ao processar dados do usuário ${user.id}:`, error)
+          }
+        }
+      }
+
+      console.log('📊 [loadUserLimits] Dados calculados:', {
+        totalUsers: Object.keys(limitsMap).length,
+        sample: Object.values(limitsMap).slice(0, 2)
+      })
+
+      setUserLimits(limitsMap)
+    } catch (error) {
+      console.error('❌ [loadUserLimits] Erro ao carregar dados de usuários:', error)
+      setUserLimits({})
+    }
+  }
+
+  const loadEntityData = async () => {
+    try {
+      console.log('🔄 [loadEntityData] Iniciando carregamento de dados de entidades...')
+      
+      // Buscar todas as entidades
+      const { data: entitiesData, error: entitiesError } = await supabase
+        .from('entities')
+        .select('id')
+
+      if (entitiesError) {
+        console.warn('⚠️ [loadEntityData] Erro ao carregar entidades:', entitiesError)
+        setEntityData({})
+        return
+      }
+
+      console.log('🏢 [loadEntityData] Entidades encontradas:', entitiesData?.length)
+
+      // Calcular dados para cada entidade
+      const entityMap: Record<string, EntityData> = {}
+      
+      if (entitiesData) {
+        for (const entity of entitiesData) {
+          try {
+            const { data: entityStorageData, error: storageError } = await supabase
+              .rpc('get_entity_storage_data', { p_entity_id: entity.id })
+
+            if (storageError) {
+              console.warn(`⚠️ [loadEntityData] Erro ao calcular dados para entidade ${entity.id}:`, storageError)
+              continue
+            }
+
+            if (entityStorageData && entityStorageData.length > 0) {
+              const data = entityStorageData[0]
+              
+              entityMap[entity.id] = {
+                entityId: entity.id,
+                documentsCount: data.documents_count || 0,
+                storageGB: parseFloat(data.storage_gb) || 0,
+                usersCount: data.users_count || 0,
+                planName: data.plan_name || 'Sem plano',
+                maxStorageGB: parseFloat(data.max_storage_gb) || 0,
+                maxDocuments: data.max_documents || 0,
+                maxUsers: data.max_users || 0,
+                storagePercent: data.storage_percent || 0,
+                documentsPercent: data.documents_percent || 0,
+                usersPercent: data.users_percent || 0
+              }
+            }
+          } catch (error) {
+            console.warn(`⚠️ [loadEntityData] Erro ao processar dados da entidade ${entity.id}:`, error)
+          }
+        }
+      }
+
+      console.log('📊 [loadEntityData] Dados de entidades calculados:', {
+        totalEntities: Object.keys(entityMap).length,
+        sample: Object.values(entityMap).slice(0, 2)
+      })
+
+      setEntityData(entityMap)
+    } catch (error) {
+      console.error('❌ [loadEntityData] Erro ao carregar dados de entidades:', error)
+      setEntityData({})
     }
   }
 
@@ -786,13 +967,16 @@ export default function SuperAdminPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total de Usuários</p>
                   <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
+                  <p className="text-xs text-green-600 mt-1">
+                    {stats?.activeUsers || 0} ativos
+                  </p>
                 </div>
                 <Users className="h-10 w-10 text-blue-500" />
               </div>
@@ -803,20 +987,11 @@ export default function SuperAdminPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Usuários Ativos</p>
-                  <p className="text-3xl font-bold">{stats?.activeUsers || 0}</p>
-                </div>
-                <Activity className="h-10 w-10 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
                   <p className="text-sm text-gray-600">Entidades</p>
                   <p className="text-3xl font-bold">{stats?.totalEntities || 0}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {Object.values(entityData).filter(e => e.documentsCount > 0).length} com dados
+                  </p>
                 </div>
                 <Building className="h-10 w-10 text-purple-500" />
               </div>
@@ -829,6 +1004,9 @@ export default function SuperAdminPage() {
                 <div>
                   <p className="text-sm text-gray-600">Documentos</p>
                   <p className="text-3xl font-bold">{stats?.totalDocuments || 0}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {Object.values(userStats).filter(u => u.documentsCount > 0).length} usuários com docs
+                  </p>
                 </div>
                 <FileText className="h-10 w-10 text-orange-500" />
               </div>
@@ -844,6 +1022,48 @@ export default function SuperAdminPage() {
                   <p className="text-xs text-gray-500 mt-1">GB</p>
                 </div>
                 <HardDrive className="h-10 w-10 text-indigo-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Alertas Críticos</p>
+                  <p className="text-3xl font-bold text-red-600">
+                    {Object.values(userLimits).filter(limits => 
+                      limits.storageLimitReached || limits.documentsLimitReached
+                    ).length + 
+                    Object.values(entityData).filter(entity => 
+                      entity.storagePercent >= 100 || entity.documentsPercent >= 100 || entity.usersPercent >= 100
+                    ).length}
+                  </p>
+                  <p className="text-xs text-red-500 mt-1">Limites atingidos</p>
+                </div>
+                <AlertCircle className="h-10 w-10 text-red-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Avisos</p>
+                  <p className="text-3xl font-bold text-orange-600">
+                    {Object.values(userLimits).filter(limits => 
+                      !limits.storageLimitReached && !limits.documentsLimitReached &&
+                      (limits.storageUsagePercent >= 80 || limits.documentsUsagePercent >= 80)
+                    ).length + 
+                    Object.values(entityData).filter(entity => 
+                      entity.storagePercent < 100 && entity.documentsPercent < 100 && entity.usersPercent < 100 &&
+                      (entity.storagePercent >= 80 || entity.documentsPercent >= 80 || entity.usersPercent >= 80)
+                    ).length}
+                  </p>
+                  <p className="text-xs text-orange-500 mt-1">Próximos do limite</p>
+                </div>
+                <Shield className="h-10 w-10 text-orange-500" />
               </div>
             </CardContent>
           </Card>
@@ -876,7 +1096,8 @@ export default function SuperAdminPage() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Usuários por Plano */}
               <Card>
                 <CardHeader>
                   <CardTitle>Usuários por Plano</CardTitle>
@@ -918,26 +1139,132 @@ export default function SuperAdminPage() {
                 </CardContent>
               </Card>
 
+              {/* Alertas de Sistema */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Últimos Usuários Cadastrados</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                    Alertas do Sistema
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {users.slice(0, 5).map(user => (
-                      <div key={user.id} className="flex items-center justify-between">
+                    {/* Usuários com limites críticos */}
+                    <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">{user.full_name || 'Sem nome'}</p>
-                          <p className="text-sm text-gray-500">{user.email}</p>
+                          <p className="text-sm font-medium text-red-800">Limites Críticos</p>
+                          <p className="text-xs text-red-600">Usuários com 100% dos limites</p>
                         </div>
-                        <div className="text-right">
-                          {getPlanBadge(user.subscription?.plan?.type)}
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatDate(user.created_at)}
-                          </p>
-                        </div>
+                        <Badge variant="destructive">
+                          {Object.values(userLimits).filter(limits => 
+                            limits.storageLimitReached || limits.documentsLimitReached
+                          ).length}
+                        </Badge>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Entidades com limites críticos */}
+                    <div className="p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-red-800">Entidades Críticas</p>
+                          <p className="text-xs text-red-600">Entidades com limites atingidos</p>
+                        </div>
+                        <Badge variant="destructive">
+                          {Object.values(entityData).filter(entity => 
+                            entity.storagePercent >= 100 || entity.documentsPercent >= 100 || entity.usersPercent >= 100
+                          ).length}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Avisos */}
+                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-orange-800">Avisos</p>
+                          <p className="text-xs text-orange-600">Próximos dos limites (80%+)</p>
+                        </div>
+                        <Badge variant="secondary">
+                          {Object.values(userLimits).filter(limits => 
+                            !limits.storageLimitReached && !limits.documentsLimitReached &&
+                            (limits.storageUsagePercent >= 80 || limits.documentsUsagePercent >= 80)
+                          ).length + 
+                          Object.values(entityData).filter(entity => 
+                            entity.storagePercent < 100 && entity.documentsPercent < 100 && entity.usersPercent < 100 &&
+                            (entity.storagePercent >= 80 || entity.documentsPercent >= 80 || entity.usersPercent >= 80)
+                          ).length}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Status OK */}
+                    <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-green-800">Status OK</p>
+                          <p className="text-xs text-green-600">Dentro dos limites normais</p>
+                        </div>
+                        <Badge className="bg-green-100 text-green-800">
+                          {Object.values(userLimits).filter(limits => 
+                            limits.storageUsagePercent < 80 && limits.documentsUsagePercent < 80
+                          ).length + 
+                          Object.values(entityData).filter(entity => 
+                            entity.storagePercent < 80 && entity.documentsPercent < 80 && entity.usersPercent < 80
+                          ).length}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Resumo de Armazenamento */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4 text-indigo-500" />
+                    Resumo de Armazenamento
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Volume total */}
+                    <div className="text-center p-4 bg-indigo-50 rounded-lg">
+                      <p className="text-2xl font-bold text-indigo-600">
+                        {stats?.storageUsedGB?.toFixed(2) || '0.00'} GB
+                      </p>
+                      <p className="text-sm text-indigo-600">Volume Total Usado</p>
+                    </div>
+
+                    {/* Distribuição */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span>Usuários com dados:</span>
+                        <span className="font-medium">
+                          {Object.values(userStats).filter(u => u.storageUsedGB > 0).length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Entidades com dados:</span>
+                        <span className="font-medium">
+                          {Object.values(entityData).filter(e => e.storageGB > 0).length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Maior usuário:</span>
+                        <span className="font-medium">
+                          {Math.max(...Object.values(userStats).map(u => u.storageUsedGB), 0).toFixed(2)} GB
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Maior entidade:</span>
+                        <span className="font-medium">
+                          {Math.max(...Object.values(entityData).map(e => e.storageGB), 0).toFixed(2)} GB
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1278,9 +1605,8 @@ export default function SuperAdminPage() {
                     <TableBody>
                       {filteredUsers.map(user => {
                         const stats = userStats[user.id]
+                        const limits = userLimits[user.id]
                         const plan = user.subscription?.plan
-                        const usagePercentage = plan ? 
-                          Math.round((stats?.storageUsedGB || 0) / plan.max_storage_gb * 100) : 0
 
                         return (
                           <TableRow key={user.id}>
@@ -1311,23 +1637,76 @@ export default function SuperAdminPage() {
                               </Select>
                             </TableCell>
                             <TableCell>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2 text-xs">
-                                  <FileText className="h-3 w-3 text-gray-400" />
-                                  <span>{stats?.documentsCount || 0} docs</span>
+                              <div className="space-y-2">
+                                {/* Documentos */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <FileText className="h-3 w-3 text-gray-400" />
+                                    <span>Docs:</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{stats?.documentsCount || 0}</span>
+                                    {limits && limits.maxDocuments > 0 && (
+                                      <>
+                                        <span className="text-gray-400">/</span>
+                                        <span>{limits.maxDocuments}</span>
+                                        <Badge 
+                                          variant={limits.documentsLimitReached ? "destructive" : 
+                                                  limits.documentsUsagePercent > 80 ? "secondary" : "outline"}
+                                          className="text-xs ml-1"
+                                        >
+                                          {limits.documentsUsagePercent}%
+                                        </Badge>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs">
-                                  <HardDrive className="h-3 w-3 text-gray-400" />
-                                  <span>{stats?.storageUsedGB?.toFixed(2) || '0.00'} GB</span>
-                                  {plan && stats && (
-                                    <Badge 
-                                      variant={usagePercentage > 80 ? "destructive" : "outline"}
-                                      className="text-xs"
-                                    >
-                                      {usagePercentage}%
-                                    </Badge>
-                                  )}
+                                
+                                {/* Armazenamento */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <HardDrive className="h-3 w-3 text-gray-400" />
+                                    <span>Storage:</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{stats?.storageUsedGB?.toFixed(2) || '0.00'} GB</span>
+                                    {limits && limits.maxStorageGB > 0 && (
+                                      <>
+                                        <span className="text-gray-400">/</span>
+                                        <span>{limits.maxStorageGB} GB</span>
+                                        <Badge 
+                                          variant={limits.storageLimitReached ? "destructive" : 
+                                                  limits.storageUsagePercent > 80 ? "secondary" : "outline"}
+                                          className="text-xs ml-1"
+                                        >
+                                          {limits.storageUsagePercent}%
+                                        </Badge>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
+
+                                {/* Usuários (se for admin de entidade) */}
+                                {limits && limits.currentUsers > 1 && (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-1">
+                                      <Users className="h-3 w-3 text-gray-400" />
+                                      <span>Users:</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <span>{limits.currentUsers}</span>
+                                      <span className="text-gray-400">/</span>
+                                      <span>{limits.maxUsers}</span>
+                                      <Badge 
+                                        variant={limits.usersLimitReached ? "destructive" : 
+                                                limits.usersUsagePercent > 80 ? "secondary" : "outline"}
+                                        className="text-xs ml-1"
+                                      >
+                                        {limits.usersUsagePercent}%
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -1367,13 +1746,15 @@ export default function SuperAdminPage() {
             </Card>
           </TabsContent>
 
+
+
           {/* Entities Tab */}
           <TabsContent value="entities" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Entidades Cadastradas</CardTitle>
                 <CardDescription>
-                  Visualize todas as entidades (empresas) do sistema
+                  Visualize todas as entidades (empresas) do sistema com dados de uso
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1383,21 +1764,105 @@ export default function SuperAdminPage() {
                       <TableRow>
                         <TableHead>Nome</TableHead>
                         <TableHead>Razão Social</TableHead>
-                        <TableHead>CNPJ</TableHead>
+                        <TableHead>Plano</TableHead>
+                        <TableHead>Uso</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Cadastro</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {entities.map(entity => (
-                        <TableRow key={entity.id}>
-                          <TableCell className="font-medium">{entity.name}</TableCell>
-                          <TableCell>{entity.legal_name || '-'}</TableCell>
-                          <TableCell>{entity.document_number || '-'}</TableCell>
-                          <TableCell>{getStatusBadge(entity.status)}</TableCell>
-                          <TableCell>{formatDate(entity.created_at)}</TableCell>
-                        </TableRow>
-                      ))}
+                      {entities.map(entity => {
+                        const data = entityData[entity.id]
+                        
+                        return (
+                          <TableRow key={entity.id}>
+                            <TableCell className="font-medium">{entity.name}</TableCell>
+                            <TableCell>{entity.legal_name || '-'}</TableCell>
+                            <TableCell>
+                              <Badge variant={data?.planName !== 'Sem plano' ? 'default' : 'outline'}>
+                                {data?.planName || 'Sem plano'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-2">
+                                {/* Usuários */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <Users className="h-3 w-3 text-gray-400" />
+                                    <span>Usuários:</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{data?.usersCount || 0}</span>
+                                    {data && data.maxUsers > 0 && (
+                                      <>
+                                        <span className="text-gray-400">/</span>
+                                        <span>{data.maxUsers}</span>
+                                        <Badge 
+                                          variant={data.usersPercent >= 100 ? "destructive" : 
+                                                  data.usersPercent >= 80 ? "secondary" : "outline"}
+                                          className="text-xs ml-1"
+                                        >
+                                          {data.usersPercent}%
+                                        </Badge>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Documentos */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <FileText className="h-3 w-3 text-gray-400" />
+                                    <span>Docs:</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{data?.documentsCount || 0}</span>
+                                    {data && data.maxDocuments > 0 && (
+                                      <>
+                                        <span className="text-gray-400">/</span>
+                                        <span>{data.maxDocuments}</span>
+                                        <Badge 
+                                          variant={data.documentsPercent >= 100 ? "destructive" : 
+                                                  data.documentsPercent >= 80 ? "secondary" : "outline"}
+                                          className="text-xs ml-1"
+                                        >
+                                          {data.documentsPercent}%
+                                        </Badge>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                
+                                {/* Armazenamento */}
+                                <div className="flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <HardDrive className="h-3 w-3 text-gray-400" />
+                                    <span>Storage:</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span>{data?.storageGB?.toFixed(2) || '0.00'} GB</span>
+                                    {data && data.maxStorageGB > 0 && (
+                                      <>
+                                        <span className="text-gray-400">/</span>
+                                        <span>{data.maxStorageGB} GB</span>
+                                        <Badge 
+                                          variant={data.storagePercent >= 100 ? "destructive" : 
+                                                  data.storagePercent >= 80 ? "secondary" : "outline"}
+                                          className="text-xs ml-1"
+                                        >
+                                          {data.storagePercent}%
+                                        </Badge>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{getStatusBadge(entity.status)}</TableCell>
+                            <TableCell>{formatDate(entity.created_at)}</TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>

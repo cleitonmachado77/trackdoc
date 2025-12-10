@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { canCreateMoreUsers, incrementEntityUserCount } from '@/lib/entity-subscription-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,6 +101,39 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+    
+    // Verificar limites do plano do admin da entidade
+    console.log('🔍 [create-entity-user] Verificando limites do plano...')
+    const limitCheck = await canCreateMoreUsers(entity_id)
+    
+    if (limitCheck.error) {
+      console.error('❌ [create-entity-user] Erro ao verificar limites:', limitCheck.error)
+      return NextResponse.json(
+        { error: 'Erro ao verificar limites do plano: ' + limitCheck.error },
+        { status: 400 }
+      )
+    }
+    
+    if (!limitCheck.canCreate) {
+      console.warn('⚠️ [create-entity-user] Limite de usuários atingido')
+      return NextResponse.json(
+        { 
+          error: `Limite de usuários atingido. Plano atual permite ${limitCheck.maxUsers} usuários e já possui ${limitCheck.currentUsers} usuários ativos.`,
+          details: {
+            maxUsers: limitCheck.maxUsers,
+            currentUsers: limitCheck.currentUsers,
+            remainingUsers: limitCheck.remainingUsers
+          }
+        },
+        { status: 400 }
+      )
+    }
+    
+    console.log('✅ [create-entity-user] Limites verificados:', {
+      maxUsers: limitCheck.maxUsers,
+      currentUsers: limitCheck.currentUsers,
+      remainingUsers: limitCheck.remainingUsers
+    })
     
     console.log('✅ [create-entity-user] Validações passaram, criando usuário...')
     
@@ -238,6 +272,18 @@ export async function POST(request: Request) {
       
       console.log('✅ [create-entity-user] Email de confirmação enviado com sucesso')
       
+      // Incrementar contador de usuários na subscription do admin da entidade
+      console.log('📊 [create-entity-user] Atualizando contador de usuários...')
+      const incrementResult = await incrementEntityUserCount(entity_id)
+      
+      if (!incrementResult.success) {
+        console.warn('⚠️ [create-entity-user] Falha ao atualizar contador:', incrementResult.error)
+        // Não falhar a criação do usuário por causa do contador
+        // Apenas logar o erro para investigação posterior
+      } else {
+        console.log('✅ [create-entity-user] Contador de usuários atualizado com sucesso')
+      }
+      
       return NextResponse.json({
         success: true,
         user: {
@@ -248,7 +294,12 @@ export async function POST(request: Request) {
           status: 'pending_confirmation',
           email_confirmed: false
         },
-        message: `Usuário ${full_name} criado com sucesso! Um email de confirmação foi enviado para ${email}.`
+        message: `Usuário ${full_name} criado com sucesso! Um email de confirmação foi enviado para ${email}.`,
+        planInfo: {
+          maxUsers: limitCheck.maxUsers,
+          currentUsers: limitCheck.currentUsers + 1, // +1 porque acabamos de criar
+          remainingUsers: limitCheck.remainingUsers - 1
+        }
       })
       
     } catch (emailErr) {

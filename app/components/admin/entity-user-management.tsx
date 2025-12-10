@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { LimitGuard } from "@/components/subscription/LimitGuard"
 import { LimitAlert } from "@/components/subscription/LimitAlert"
+import { useEntityPlan } from "@/hooks/use-entity-plan"
 import {
   Users,
   Plus,
@@ -101,6 +102,9 @@ export default function EntityUserManagement() {
   const [isUpdatingUser, setIsUpdatingUser] = useState(false)
   const [isDeletingUser, setIsDeletingUser] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+
+  // Hook para informações do plano da entidade
+  const { planInfo, loading: planLoading, error: planError, refreshPlanInfo } = useEntityPlan(entityInfo?.id)
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -390,8 +394,9 @@ export default function EntityUserManagement() {
       setShowStatusModal(false)
       setSelectedUser(null)
 
-      // Recarregar lista
+      // Recarregar lista e informações do plano
       await fetchEntityUsers()
+      await refreshPlanInfo()
 
     } catch (err) {
       console.error('Erro ao alterar status do usuário:', err)
@@ -467,10 +472,11 @@ export default function EntityUserManagement() {
       setShowDeleteModal(false)
       setSelectedUser(null)
       
-      // Recarregar lista antes de mostrar mensagem de sucesso
-      console.log('🔄 [deleteUser] Recarregando lista de usuários...')
+      // Recarregar lista e informações do plano antes de mostrar mensagem de sucesso
+      console.log('🔄 [deleteUser] Recarregando lista de usuários e informações do plano...')
       await fetchEntityUsers()
-      console.log('✅ [deleteUser] Lista recarregada')
+      await refreshPlanInfo()
+      console.log('✅ [deleteUser] Lista e plano recarregados')
       
       // Mostrar mensagem de sucesso após recarregar
       setSuccess(`Usuário excluído permanentemente!`)
@@ -570,8 +576,9 @@ export default function EntityUserManagement() {
         position: ""
       })
 
-      // Recarregar lista
+      // Recarregar lista e informações do plano
       await fetchEntityUsers()
+      await refreshPlanInfo()
 
     } catch (err) {
       console.error('Erro ao criar usuário:', err)
@@ -664,13 +671,102 @@ export default function EntityUserManagement() {
             <p className="text-gray-600">{entityInfo.name}</p>
           </div>
         </div>
-        <LimitGuard userId={user?.id} limitType="users" showAlert={false}>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Cadastrar Usuário
-          </Button>
-        </LimitGuard>
+        <div className="flex items-center space-x-3">
+          {planInfo && !planLoading && (
+            <div className="text-sm text-gray-600">
+              {planInfo.currentUsers}/{planInfo.maxUsers} usuários
+            </div>
+          )}
+          <LimitGuard userId={user?.id} limitType="users" showAlert={false}>
+            <Button 
+              onClick={() => setShowCreateModal(true)}
+              disabled={planInfo && !planInfo.canCreateUser}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {planInfo && !planInfo.canCreateUser ? 'Limite Atingido' : 'Cadastrar Usuário'}
+            </Button>
+          </LimitGuard>
+        </div>
       </div>
+
+      {/* Informações do Plano */}
+      {planInfo && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-blue-900">Limite de Usuários</h3>
+                  <p className="text-sm text-blue-700">
+                    Plano {planInfo.planName} - {planInfo.currentUsers} de {planInfo.maxUsers} usuários utilizados
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-900">
+                  {planInfo.remainingUsers}
+                </div>
+                <div className="text-sm text-blue-700">
+                  {planInfo.remainingUsers === 1 ? 'usuário restante' : 'usuários restantes'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Barra de progresso */}
+            <div className="mt-4">
+              <div className="flex justify-between text-sm text-blue-700 mb-1">
+                <span>Uso atual</span>
+                <span>{Math.round((planInfo.currentUsers / planInfo.maxUsers) * 100)}%</span>
+              </div>
+              <div className="w-full bg-blue-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    (planInfo.currentUsers / planInfo.maxUsers) >= 0.9 
+                      ? 'bg-red-500' 
+                      : (planInfo.currentUsers / planInfo.maxUsers) >= 0.8 
+                        ? 'bg-yellow-500' 
+                        : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${Math.min((planInfo.currentUsers / planInfo.maxUsers) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Alerta quando próximo do limite */}
+            {!planInfo.canCreateUser && (
+              <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <span className="text-sm text-red-700 font-medium">
+                    Limite de usuários atingido
+                  </span>
+                </div>
+                <p className="text-xs text-red-600 mt-1">
+                  Para criar mais usuários, faça upgrade do seu plano ou remova usuários inativos.
+                </p>
+              </div>
+            )}
+
+            {/* Alerta quando próximo do limite (80% ou mais) */}
+            {planInfo.canCreateUser && (planInfo.currentUsers / planInfo.maxUsers) >= 0.8 && (
+              <div className="mt-3 p-2 bg-yellow-100 border border-yellow-200 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-sm text-yellow-700 font-medium">
+                    Próximo do limite
+                  </span>
+                </div>
+                <p className="text-xs text-yellow-600 mt-1">
+                  Você está usando {Math.round((planInfo.currentUsers / planInfo.maxUsers) * 100)}% do seu limite de usuários.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Alertas */}
       <LimitAlert userId={user?.id} limitType="users" showAt={[80, 90]} />

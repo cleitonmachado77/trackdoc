@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Crown, Star, Building, Users, FileText, HardDrive, ArrowLeft, Mail } from "lucide-react"
+import { Check, Crown, Star, Building, Users, FileText, HardDrive, ArrowLeft, Mail, MessageCircle } from "lucide-react"
 import Link from "next/link"
 
 interface Plan {
@@ -176,17 +176,25 @@ export default function PricingPage() {
         </div>
 
         {/* Contact Section */}
-        <div className="text-center bg-white rounded-lg p-8 shadow-sm">
+        <div className="text-center bg-white rounded-lg p-8 shadow-sm border-2 border-blue-200">
           <h2 className="text-2xl font-bold mb-4">Interessado em um plano?</h2>
           <p className="text-gray-600 mb-6">
-            Entre em contato com nossa equipe para contratar o plano ideal para sua empresa
+            Para contratar ou alterar seu plano, entre em contato com o administrador do sistema ou nossa equipe de suporte
           </p>
-          <Button size="lg" className="gap-2" asChild>
-            <a href="mailto:contato@trackdoc.com.br">
-              <Mail className="h-4 w-4" />
-              Entrar em Contato
-            </a>
-          </Button>
+          <div className="flex gap-4 justify-center">
+            <Button size="lg" className="gap-2" asChild>
+              <Link href="/support">
+                <Mail className="h-4 w-4" />
+                Contatar Administrador
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="gap-2" asChild>
+              <a href="https://wa.me/551151926440" target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp: (11) 5192-6440
+              </a>
+            </Button>
+          </div>
         </div>
 
         {/* FAQ Section */}

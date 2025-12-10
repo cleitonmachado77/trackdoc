@@ -123,10 +123,10 @@ export function FeatureGate({
           {showUpgradePrompt && (
             <div className="space-y-3">
               <div className="flex gap-3 flex-wrap">
-                <Button asChild variant="default" className="gap-2">
-                  <Link href="/pricing">
+                <Button asChild variant="outline" className="gap-2">
+                  <Link href="/support">
                     <Sparkles className="h-4 w-4" />
-                    Ver Planos
+                    Contatar Administrador
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="gap-2">

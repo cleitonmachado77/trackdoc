@@ -66,8 +66,8 @@ export function LimitGuard({
         <AlertDescription>
           Você precisa de um plano ativo para realizar esta ação.
           <div className="mt-3">
-            <Button asChild size="sm">
-              <Link href="/pricing">Ver Planos</Link>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/support">Contatar Administrador</Link>
             </Button>
           </div>
         </AlertDescription>
@@ -153,8 +153,8 @@ export function LimitGuard({
           </p>
           
           <div className="flex gap-3">
-            <Button asChild variant="default" size="sm">
-              <Link href="/pricing">Ver Planos</Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/support">Contatar Administrador</Link>
             </Button>
             {limitType === 'storage' && (
               <Button asChild variant="outline" size="sm">

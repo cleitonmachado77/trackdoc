@@ -145,10 +145,10 @@ export function LimitAlert({
             </Button>
           )}
           {isCritical && (
-            <Button asChild variant="default" size="sm" className="gap-2">
-              <Link href="/pricing">
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href="/support">
                 <Sparkles className="h-4 w-4" />
-                Ver Planos
+                Contatar Administrador
               </Link>
             </Button>
           )}

@@ -139,9 +139,9 @@ export default function SubscriptionStatusCard() {
         {/* Ações */}
         <div className="flex gap-2">
           {(isTrial || isExpired) && (
-            <Button asChild className="flex-1">
-              <Link href="/pricing">
-                Ver Planos
+            <Button asChild variant="outline" className="flex-1">
+              <Link href="/support">
+                Contatar Administrador
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

@@ -65,12 +65,20 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild className="gap-2">
-            <Link href="/pricing">
-              <Sparkles className="h-4 w-4" />
-              Ver Planos Disponíveis
-            </Link>
-          </Button>
+          <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+            <AlertCircle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-900 dark:text-blue-100">
+              <strong>Para ativar um plano:</strong> Entre em contato com o administrador do sistema para configurar sua assinatura e ter acesso a todas as funcionalidades.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/support">
+                <AlertCircle className="h-4 w-4" />
+                Contatar Administrador
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )
@@ -152,9 +160,9 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
             <div className="flex items-center justify-between">
               <h4 className="font-semibold text-lg">Uso de Recursos</h4>
               <Button variant="outline" size="sm" asChild>
-                <Link href="/pricing">
+                <Link href="/support">
                   <TrendingUp className="h-4 w-4 mr-2" />
-                  Fazer Upgrade
+                  Contatar Administrador
                 </Link>
               </Button>
             </div>
@@ -310,7 +318,7 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
               </p>
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" size="sm" asChild className="bg-white">
-                  <Link href="/pricing">Ver Outros Planos</Link>
+                  <Link href="/support">Contatar Administrador</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild className="bg-white">
                   <Link href="/support">Falar com Suporte</Link>

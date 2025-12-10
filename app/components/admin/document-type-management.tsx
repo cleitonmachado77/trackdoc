@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-import { createDocumentType, updateDocumentType, deleteDocumentType } from "@/app/admin/actions"
 import DocumentTypeForm from "./document-type-form"
 import {
   Tag,
@@ -134,10 +133,19 @@ export default function DocumentTypeManagement({
       console.log("💾 [SAVE] Dados sendo enviados:", typeData)
       console.log("💾 [SAVE] retentionPeriod:", typeData.retentionPeriod)
       
-      // Executar operação no servidor
-      const result = isEditing 
-        ? await updateDocumentType(typeData.id!, typeData)
-        : await createDocumentType(typeData as Omit<DocumentType, "id">)
+      // Executar operação no servidor via API
+      const endpoint = isEditing ? `/api/document-types/${typeData.id}` : '/api/document-types'
+      const method = isEditing ? 'PUT' : 'POST'
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(typeData)
+      })
+      
+      const result = await response.json()
 
       console.log("💾 [SAVE] Resultado:", result)
       console.log("💾 [SAVE] result.success:", result.success)
@@ -226,7 +234,11 @@ export default function DocumentTypeManagement({
     setIsDeleting(true)
     
     try {
-      const result = await deleteDocumentType(typeToDeleteRef.id)
+      const response = await fetch(`/api/document-types/${typeToDeleteRef.id}`, {
+        method: 'DELETE'
+      })
+      
+      const result = await response.json()
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
       

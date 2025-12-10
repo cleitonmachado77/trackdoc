@@ -150,28 +150,38 @@ export default function SuperAdminPage() {
 
   const checkAuthorization = async () => {
     if (!user?.id) {
+      console.log('❌ [checkAuthorization] Usuário não encontrado')
       setLoading(false)
       return
     }
 
     try {
+      console.log('🔐 [checkAuthorization] Verificando autorização para:', user.id)
+      
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ [checkAuthorization] Erro ao buscar perfil:', error)
+        throw error
+      }
+
+      console.log('👤 [checkAuthorization] Perfil encontrado:', profile)
 
       // Apenas super_admin pode acessar
       if (profile?.role === 'super_admin') {
+        console.log('✅ [checkAuthorization] Usuário autorizado como super_admin')
         setAuthorized(true)
         await loadAllData()
       } else {
+        console.log('❌ [checkAuthorization] Usuário não é super_admin:', profile?.role)
         setAuthorized(false)
       }
     } catch (error) {
-      console.error('Erro ao verificar autorização:', error)
+      console.error('❌ [checkAuthorization] Erro ao verificar autorização:', error)
       setAuthorized(false)
     } finally {
       setLoading(false)
@@ -236,17 +246,23 @@ export default function SuperAdminPage() {
 
   const loadUserStats = async () => {
     try {
+      console.log('🔄 [loadUserStats] Iniciando carregamento de estatísticas por usuário...')
+      
       // Carregar estatísticas de documentos por usuário
       const { data: docsData, error: docsError } = await supabase
         .from('documents')
         .select('created_by, file_size, created_at')
 
       if (docsError) {
-        console.warn('Erro ao carregar documentos:', docsError)
-        // Não falhar se não houver documentos
+        console.warn('⚠️ [loadUserStats] Erro ao carregar documentos:', docsError)
         setUserStats({})
         return
       }
+
+      console.log('📄 [loadUserStats] Documentos carregados:', {
+        count: docsData?.length,
+        sample: docsData?.slice(0, 3)
+      })
 
       // Agregar dados por usuário
       const statsMap: Record<string, UserStats> = {}
@@ -264,7 +280,7 @@ export default function SuperAdminPage() {
         }
         
         statsMap[doc.created_by].documentsCount++
-        statsMap[doc.created_by].storageUsedGB += parseFloat(formatStorageGB(doc.file_size || 0))
+        statsMap[doc.created_by].storageUsedGB += (doc.file_size || 0) / (1024 * 1024 * 1024) // Converter bytes para GB
         
         // Atualizar última atividade
         if (doc.created_at && (!statsMap[doc.created_by].lastActivity || 
@@ -273,9 +289,14 @@ export default function SuperAdminPage() {
         }
       })
 
+      console.log('👥 [loadUserStats] Estatísticas por usuário:', {
+        totalUsers: Object.keys(statsMap).length,
+        sample: Object.values(statsMap).slice(0, 2)
+      })
+
       setUserStats(statsMap)
     } catch (error) {
-      console.error('Erro ao carregar estatísticas de usuários:', error)
+      console.error('❌ [loadUserStats] Erro ao carregar estatísticas de usuários:', error)
       setUserStats({})
     }
   }
@@ -311,10 +332,14 @@ export default function SuperAdminPage() {
 
   const loadStats = async () => {
     try {
+      console.log('🔄 [loadStats] Iniciando carregamento de estatísticas...')
+      
       // Total de usuários
       const { count: totalUsers } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
+
+      console.log('👥 [loadStats] Total de usuários:', totalUsers)
 
       // Usuários ativos
       const { count: activeUsers } = await supabase
@@ -322,38 +347,57 @@ export default function SuperAdminPage() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active')
 
+      console.log('✅ [loadStats] Usuários ativos:', activeUsers)
+
       // Total de entidades
       const { count: totalEntities } = await supabase
         .from('entities')
         .select('*', { count: 'exact', head: true })
+
+      console.log('🏢 [loadStats] Total de entidades:', totalEntities)
 
       // Total de documentos
       const { count: totalDocuments } = await supabase
         .from('documents')
         .select('*', { count: 'exact', head: true })
 
+      console.log('📄 [loadStats] Total de documentos:', totalDocuments)
+
       // Calcular volume total de armazenamento
       const { data: documentsData, error: docsError } = await supabase
         .from('documents')
         .select('file_size')
 
+      console.log('💾 [loadStats] Dados de documentos:', {
+        error: docsError,
+        count: documentsData?.length,
+        sample: documentsData?.slice(0, 3)
+      })
+
       let totalStorageGB = 0
       if (!docsError && documentsData) {
-        totalStorageGB = documentsData.reduce((total, doc) => {
-          return total + parseFloat(formatStorageGB(doc.file_size || 0))
+        const totalBytes = documentsData.reduce((total, doc) => {
+          return total + (doc.file_size || 0)
         }, 0)
+        totalStorageGB = totalBytes / (1024 * 1024 * 1024) // Converter bytes para GB
+        console.log('💾 [loadStats] Total bytes:', totalBytes, '-> GB:', totalStorageGB)
       }
 
-      setStats({
+      console.log('📊 [loadStats] Volume total calculado:', totalStorageGB, 'GB')
+
+      const statsData = {
         totalUsers: totalUsers || 0,
         activeUsers: activeUsers || 0,
         totalEntities: totalEntities || 0,
         totalDocuments: totalDocuments || 0,
         storageUsedGB: totalStorageGB,
         usersByPlan: []
-      })
+      }
+
+      console.log('📈 [loadStats] Estatísticas finais:', statsData)
+      setStats(statsData)
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error)
+      console.error('❌ [loadStats] Erro ao carregar estatísticas:', error)
     }
   }
 

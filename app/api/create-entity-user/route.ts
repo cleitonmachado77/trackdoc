@@ -27,7 +27,15 @@ export async function POST(request: Request) {
       entity_id,
       entity_role = 'user',
       phone,
-      position
+      position,
+      cpf,
+      address_street,
+      address_number,
+      address_complement,
+      address_neighborhood,
+      address_city,
+      address_state,
+      address_zipcode
     } = body
     
     // Validações básicas
@@ -148,6 +156,14 @@ export async function POST(request: Request) {
         entity_role: entity_role,
         phone: phone?.trim() || null,
         position: position?.trim() || null,
+        cpf: cpf?.trim() || null,
+        address_street: address_street?.trim() || null,
+        address_number: address_number?.trim() || null,
+        address_complement: address_complement?.trim() || null,
+        address_neighborhood: address_neighborhood?.trim() || null,
+        address_city: address_city?.trim() || null,
+        address_state: address_state?.trim() || null,
+        address_zipcode: address_zipcode?.trim() || null,
         registration_type: 'entity_user'
       }
     })
@@ -182,8 +198,18 @@ export async function POST(request: Request) {
         entity_role: entity_role,
         phone: phone?.trim() || null,
         position: position?.trim() || null,
+        cpf: cpf?.trim() || null,
+        address_street: address_street?.trim() || null,
+        address_number: address_number?.trim() || null,
+        address_complement: address_complement?.trim() || null,
+        address_neighborhood: address_neighborhood?.trim() || null,
+        address_city: address_city?.trim() || null,
+        address_state: address_state?.trim() || null,
+        address_zipcode: address_zipcode?.trim() || null,
         role: entity_role === 'admin' ? 'admin' : 'user',
         status: 'inactive', // Inativo até confirmar email
+        force_password_change: true, // Força alteração de senha no primeiro login
+        first_login_completed: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -227,6 +253,14 @@ export async function POST(request: Request) {
             entity_role: entity_role,
             phone: phone?.trim() || null,
             position: position?.trim() || null,
+            cpf: cpf?.trim() || null,
+            address_street: address_street?.trim() || null,
+            address_number: address_number?.trim() || null,
+            address_complement: address_complement?.trim() || null,
+            address_neighborhood: address_neighborhood?.trim() || null,
+            address_city: address_city?.trim() || null,
+            address_state: address_state?.trim() || null,
+            address_zipcode: address_zipcode?.trim() || null,
             registration_type: 'entity_user'
           },
           redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback?type=entity_user&entity_id=${entity_id}`
@@ -255,8 +289,18 @@ export async function POST(request: Request) {
           entity_role: entity_role,
           phone: phone?.trim() || null,
           position: position?.trim() || null,
+          cpf: cpf?.trim() || null,
+          address_street: address_street?.trim() || null,
+          address_number: address_number?.trim() || null,
+          address_complement: address_complement?.trim() || null,
+          address_neighborhood: address_neighborhood?.trim() || null,
+          address_city: address_city?.trim() || null,
+          address_state: address_state?.trim() || null,
+          address_zipcode: address_zipcode?.trim() || null,
           role: entity_role === 'admin' ? 'admin' : 'user',
           status: 'pending_confirmation', // Aguardando confirmação de email
+          force_password_change: true, // Força alteração de senha no primeiro login
+          first_login_completed: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

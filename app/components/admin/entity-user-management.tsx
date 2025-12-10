@@ -37,6 +37,7 @@ import {
 
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { createBrowserClient } from '@supabase/ssr'
+import { formatCPF, formatCEP, formatPhone } from "@/lib/format-utils"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -109,7 +110,15 @@ export default function EntityUserManagement() {
     password: "",
     entity_role: "user" as 'user' | 'admin' | 'manager' | 'viewer',
     phone: "",
-    position: ""
+    position: "",
+    cpf: "",
+    address_street: "",
+    address_number: "",
+    address_complement: "",
+    address_neighborhood: "",
+    address_city: "",
+    address_state: "",
+    address_zipcode: ""
   })
 
   const [entityInfo, setEntityInfo] = useState<{
@@ -1313,7 +1322,7 @@ export default function EntityUserManagement() {
 
       {/* Modal de Cadastro */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Cadastrar Novo Usuário</DialogTitle>
             <DialogDescription>
@@ -1378,7 +1387,7 @@ export default function EntityUserManagement() {
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, phone: formatPhone(e.target.value) })}
                 placeholder="Ex: (11) 99999-9999"
                 disabled={isCreatingUser}
               />
@@ -1392,6 +1401,130 @@ export default function EntityUserManagement() {
                 placeholder="Ex: Analista, Gerente"
                 disabled={isCreatingUser}
               />
+            </div>
+            <div>
+              <Label htmlFor="cpf">CPF (opcional)</Label>
+              <Input
+                id="cpf"
+                value={formData.cpf}
+                onChange={(e) => setFormData({ ...formData, cpf: formatCPF(e.target.value) })}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                disabled={isCreatingUser}
+              />
+            </div>
+            
+            {/* Seção de Endereço */}
+            <div className="space-y-4 pt-4 border-t">
+              <h4 className="text-sm font-medium text-gray-900">Endereço (opcional)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="address_street">Rua</Label>
+                  <Input
+                    id="address_street"
+                    value={formData.address_street}
+                    onChange={(e) => setFormData({ ...formData, address_street: e.target.value })}
+                    placeholder="Nome da rua"
+                    disabled={isCreatingUser}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address_number">Número</Label>
+                  <Input
+                    id="address_number"
+                    value={formData.address_number}
+                    onChange={(e) => setFormData({ ...formData, address_number: e.target.value })}
+                    placeholder="123"
+                    disabled={isCreatingUser}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="address_complement">Complemento</Label>
+                <Input
+                  id="address_complement"
+                  value={formData.address_complement}
+                  onChange={(e) => setFormData({ ...formData, address_complement: e.target.value })}
+                  placeholder="Apto, sala, etc."
+                  disabled={isCreatingUser}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="address_neighborhood">Bairro</Label>
+                  <Input
+                    id="address_neighborhood"
+                    value={formData.address_neighborhood}
+                    onChange={(e) => setFormData({ ...formData, address_neighborhood: e.target.value })}
+                    placeholder="Nome do bairro"
+                    disabled={isCreatingUser}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address_city">Cidade</Label>
+                  <Input
+                    id="address_city"
+                    value={formData.address_city}
+                    onChange={(e) => setFormData({ ...formData, address_city: e.target.value })}
+                    placeholder="Nome da cidade"
+                    disabled={isCreatingUser}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="address_state">Estado</Label>
+                  <Select
+                    value={formData.address_state}
+                    onValueChange={(value) => setFormData({ ...formData, address_state: value })}
+                    disabled={isCreatingUser}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AC">Acre</SelectItem>
+                      <SelectItem value="AL">Alagoas</SelectItem>
+                      <SelectItem value="AP">Amapá</SelectItem>
+                      <SelectItem value="AM">Amazonas</SelectItem>
+                      <SelectItem value="BA">Bahia</SelectItem>
+                      <SelectItem value="CE">Ceará</SelectItem>
+                      <SelectItem value="DF">Distrito Federal</SelectItem>
+                      <SelectItem value="ES">Espírito Santo</SelectItem>
+                      <SelectItem value="GO">Goiás</SelectItem>
+                      <SelectItem value="MA">Maranhão</SelectItem>
+                      <SelectItem value="MT">Mato Grosso</SelectItem>
+                      <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                      <SelectItem value="MG">Minas Gerais</SelectItem>
+                      <SelectItem value="PA">Pará</SelectItem>
+                      <SelectItem value="PB">Paraíba</SelectItem>
+                      <SelectItem value="PR">Paraná</SelectItem>
+                      <SelectItem value="PE">Pernambuco</SelectItem>
+                      <SelectItem value="PI">Piauí</SelectItem>
+                      <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                      <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                      <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                      <SelectItem value="RO">Rondônia</SelectItem>
+                      <SelectItem value="RR">Roraima</SelectItem>
+                      <SelectItem value="SC">Santa Catarina</SelectItem>
+                      <SelectItem value="SP">São Paulo</SelectItem>
+                      <SelectItem value="SE">Sergipe</SelectItem>
+                      <SelectItem value="TO">Tocantins</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="address_zipcode">CEP</Label>
+                  <Input
+                    id="address_zipcode"
+                    value={formData.address_zipcode}
+                    onChange={(e) => setFormData({ ...formData, address_zipcode: formatCEP(e.target.value) })}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    disabled={isCreatingUser}
+                  />
+                </div>
+              </div>
             </div>
             
             <div className="flex justify-end space-x-2 pt-4">

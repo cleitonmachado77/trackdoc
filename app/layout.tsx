@@ -8,6 +8,7 @@ import { ErrorHandlerSetup } from "./components/error-handler-setup"
 import { ThemeProvider } from "@/components/theme-provider"
 import { PreloadGuard } from "./components/preload-guard"
 import { Toaster } from "@/components/ui/toaster"
+import PasswordChangeGuard from "@/components/auth/PasswordChangeGuard"
 
 
 export const metadata: Metadata = {
@@ -38,9 +39,11 @@ export default function RootLayout({
           <ErrorBoundary>
             <SimpleAuthProvider>
               <PreloadGuard>
-                <AuthWrapper>
-                  {children}
-                </AuthWrapper>
+                <PasswordChangeGuard>
+                  <AuthWrapper>
+                    {children}
+                  </AuthWrapper>
+                </PasswordChangeGuard>
               </PreloadGuard>
             </SimpleAuthProvider>
           </ErrorBoundary>

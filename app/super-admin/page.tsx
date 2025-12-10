@@ -42,6 +42,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { formatFileSize, formatStorageGB } from "@/lib/utils"
+import { formatCPF, formatCEP, formatPhone } from "@/lib/format-utils"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -140,7 +141,15 @@ export default function SuperAdminPage() {
     company: "",
     password: "",
     plan_id: "",
-    role: "user"
+    role: "user",
+    cpf: "",
+    address_street: "",
+    address_number: "",
+    address_complement: "",
+    address_neighborhood: "",
+    address_city: "",
+    address_state: "",
+    address_zipcode: ""
   })
 
   // Verificar autorização
@@ -453,7 +462,15 @@ export default function SuperAdminPage() {
           company: "",
           password: "",
           plan_id: "",
-          role: "user"
+          role: "user",
+          cpf: "",
+          address_street: "",
+          address_number: "",
+          address_complement: "",
+          address_neighborhood: "",
+          address_city: "",
+          address_state: "",
+          address_zipcode: ""
         })
         await loadUsers()
         return
@@ -470,7 +487,17 @@ export default function SuperAdminPage() {
           company: newUser.company,
           role: newUser.role,
           status: 'active',
-          registration_completed: true
+          registration_completed: true,
+          force_password_change: true, // Força alteração de senha no primeiro login
+          first_login_completed: false,
+          cpf: newUser.cpf || null,
+          address_street: newUser.address_street || null,
+          address_number: newUser.address_number || null,
+          address_complement: newUser.address_complement || null,
+          address_neighborhood: newUser.address_neighborhood || null,
+          address_city: newUser.address_city || null,
+          address_state: newUser.address_state || null,
+          address_zipcode: newUser.address_zipcode || null
         })
 
       if (profileError) throw profileError
@@ -513,7 +540,15 @@ export default function SuperAdminPage() {
         company: "",
         password: "",
         plan_id: "",
-        role: "user"
+        role: "user",
+        cpf: "",
+        address_street: "",
+        address_number: "",
+        address_complement: "",
+        address_neighborhood: "",
+        address_city: "",
+        address_state: "",
+        address_zipcode: ""
       })
       await loadUsers()
 
@@ -927,7 +962,7 @@ export default function SuperAdminPage() {
                         Novo Usuário
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md">
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Criar Novo Usuário</DialogTitle>
                         <DialogDescription>
@@ -969,7 +1004,7 @@ export default function SuperAdminPage() {
                           <Input
                             id="phone"
                             value={newUser.phone}
-                            onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                            onChange={(e) => setNewUser({ ...newUser, phone: formatPhone(e.target.value) })}
                             placeholder="(11) 99999-9999"
                           />
                         </div>
@@ -981,6 +1016,122 @@ export default function SuperAdminPage() {
                             onChange={(e) => setNewUser({ ...newUser, company: e.target.value })}
                             placeholder="Nome da empresa"
                           />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="cpf">CPF</Label>
+                          <Input
+                            id="cpf"
+                            value={newUser.cpf}
+                            onChange={(e) => setNewUser({ ...newUser, cpf: formatCPF(e.target.value) })}
+                            placeholder="000.000.000-00"
+                            maxLength={14}
+                          />
+                        </div>
+                        
+                        {/* Seção de Endereço */}
+                        <div className="space-y-4 pt-4 border-t">
+                          <h4 className="text-sm font-medium text-gray-900">Endereço (opcional)</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label htmlFor="address_street">Rua</Label>
+                              <Input
+                                id="address_street"
+                                value={newUser.address_street}
+                                onChange={(e) => setNewUser({ ...newUser, address_street: e.target.value })}
+                                placeholder="Nome da rua"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="address_number">Número</Label>
+                              <Input
+                                id="address_number"
+                                value={newUser.address_number}
+                                onChange={(e) => setNewUser({ ...newUser, address_number: e.target.value })}
+                                placeholder="123"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="address_complement">Complemento</Label>
+                            <Input
+                              id="address_complement"
+                              value={newUser.address_complement}
+                              onChange={(e) => setNewUser({ ...newUser, address_complement: e.target.value })}
+                              placeholder="Apto, sala, etc."
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label htmlFor="address_neighborhood">Bairro</Label>
+                              <Input
+                                id="address_neighborhood"
+                                value={newUser.address_neighborhood}
+                                onChange={(e) => setNewUser({ ...newUser, address_neighborhood: e.target.value })}
+                                placeholder="Nome do bairro"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="address_city">Cidade</Label>
+                              <Input
+                                id="address_city"
+                                value={newUser.address_city}
+                                onChange={(e) => setNewUser({ ...newUser, address_city: e.target.value })}
+                                placeholder="Nome da cidade"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label htmlFor="address_state">Estado</Label>
+                              <Select
+                                value={newUser.address_state}
+                                onValueChange={(value) => setNewUser({ ...newUser, address_state: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione o estado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="AC">Acre</SelectItem>
+                                  <SelectItem value="AL">Alagoas</SelectItem>
+                                  <SelectItem value="AP">Amapá</SelectItem>
+                                  <SelectItem value="AM">Amazonas</SelectItem>
+                                  <SelectItem value="BA">Bahia</SelectItem>
+                                  <SelectItem value="CE">Ceará</SelectItem>
+                                  <SelectItem value="DF">Distrito Federal</SelectItem>
+                                  <SelectItem value="ES">Espírito Santo</SelectItem>
+                                  <SelectItem value="GO">Goiás</SelectItem>
+                                  <SelectItem value="MA">Maranhão</SelectItem>
+                                  <SelectItem value="MT">Mato Grosso</SelectItem>
+                                  <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                                  <SelectItem value="MG">Minas Gerais</SelectItem>
+                                  <SelectItem value="PA">Pará</SelectItem>
+                                  <SelectItem value="PB">Paraíba</SelectItem>
+                                  <SelectItem value="PR">Paraná</SelectItem>
+                                  <SelectItem value="PE">Pernambuco</SelectItem>
+                                  <SelectItem value="PI">Piauí</SelectItem>
+                                  <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                                  <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                                  <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                                  <SelectItem value="RO">Rondônia</SelectItem>
+                                  <SelectItem value="RR">Roraima</SelectItem>
+                                  <SelectItem value="SC">Santa Catarina</SelectItem>
+                                  <SelectItem value="SP">São Paulo</SelectItem>
+                                  <SelectItem value="SE">Sergipe</SelectItem>
+                                  <SelectItem value="TO">Tocantins</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="address_zipcode">CEP</Label>
+                              <Input
+                                id="address_zipcode"
+                                value={newUser.address_zipcode}
+                                onChange={(e) => setNewUser({ ...newUser, address_zipcode: formatCEP(e.target.value) })}
+                                placeholder="00000-000"
+                                maxLength={9}
+                              />
+                            </div>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="plan">Plano *</Label>

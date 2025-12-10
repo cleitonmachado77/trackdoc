@@ -156,11 +156,11 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
 
       if (error) return { error }
 
-      // Verificar se o usuário está ativo
+      // Verificar se o usuário está ativo e atualizar last_login
       if (data.user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('status')
+          .select('status, force_password_change, first_login_completed')
           .eq('id', data.user.id)
           .single()
 
@@ -169,6 +169,20 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
           // Fazer logout em caso de erro
           await supabase.auth.signOut({ scope: 'global' })
           return { error: profileError }
+        }
+
+        // Atualizar last_login no perfil
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            last_login: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', data.user.id)
+
+        if (updateError) {
+          console.warn('Aviso: Não foi possível atualizar last_login:', updateError)
+          // Não falhar o login por causa disso
         }
 
         if (profile?.status === 'inactive') {

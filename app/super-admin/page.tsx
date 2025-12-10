@@ -638,8 +638,44 @@ export default function SuperAdminPage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header fixo com Logo TrackDoc */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo TrackDoc */}
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/logo-horizontal-preto.png" 
+                alt="TrackDoc" 
+                className="h-6 w-auto"
+              />
+            </div>
+            
+            {/* Informações do Sistema */}
+            <div className="flex items-center space-x-4 text-xs text-gray-600">
+              <span className="flex items-center space-x-1">
+                <Shield className="h-3 w-3" />
+                <span>Painel Administrativo</span>
+              </span>
+              <span>•</span>
+              <span className="flex items-center space-x-1">
+                <Activity className="h-3 w-3" />
+                <span>{stats?.totalUsers || 0} Usuários</span>
+              </span>
+              <span>•</span>
+              <span className="flex items-center space-x-1">
+                <Building className="h-3 w-3" />
+                <span>{stats?.totalEntities || 0} Entidades</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Conteúdo principal com padding-top para compensar o header fixo */}
+      <div className="pt-16 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -1200,6 +1236,7 @@ export default function SuperAdminPage() {
             <SubscriptionPayments />
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   )

@@ -59,11 +59,14 @@ export function useDepartmentEmployees(departmentId?: string) {
     fetchUserEntityId()
   }, [user?.id])
 
-  // ✅ Função auxiliar para notificar atualização de departamentos (sem reload)
-  const notifyDepartmentsUpdate = () => {
-    // ✅ Disparar evento para atualizar contadores nos cards
-    window.dispatchEvent(new CustomEvent('departments-updated'))
-  }
+  // Função auxiliar para notificar atualização de departamentos
+  // Usando setTimeout para evitar bloqueio da UI
+  const notifyDepartmentsUpdate = useCallback(() => {
+    // Usar requestAnimationFrame para não bloquear a UI
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new CustomEvent('departments-updated'))
+    })
+  }, [])
 
   useEffect(() => {
     if (user?.id && entityId !== undefined) {

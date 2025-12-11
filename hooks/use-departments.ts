@@ -57,44 +57,43 @@ export function useDepartments() {
 
       if (queryError) throw queryError
 
-      const departmentsWithCounts = await Promise.all(
-        (data || []).map(async (dept) => {
-          const { count: docCount } = await supabase
-            .from('documents')
-            .select('*', { count: 'exact', head: true })
-            .eq('department_id', dept.id)
+      // Buscar contagens em batch para melhor performance
+      const deptIds = (data || []).map(d => d.id)
+      
+      // Buscar contagem de documentos por departamento
+      const { data: docCounts } = await supabase
+        .from('documents')
+        .select('department_id')
+        .in('department_id', deptIds)
+      
+      // Buscar contagem de usuários por departamento
+      const { data: userCounts } = await supabase
+        .from('user_departments')
+        .select('department_id')
+        .in('department_id', deptIds)
 
-          const { count: userCount } = await supabase
-            .from('user_departments')
-            .select('*', { count: 'exact', head: true })
-            .eq('department_id', dept.id)
-
-          let managerName = dept.manager?.full_name || ''
-          
-          if (dept.manager_id && !managerName) {
-            try {
-              const { data: managerData } = await supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', dept.manager_id)
-                .single()
-              
-              if (managerData?.full_name) {
-                managerName = managerData.full_name
-              }
-            } catch {
-              // Silenciar erro
-            }
-          }
-
-          return {
-            ...dept,
-            manager_name: managerName,
-            document_count: docCount || 0,
-            user_count: userCount || 0
-          }
+      // Criar mapas de contagem
+      const docCountMap: Record<string, number> = {}
+      const userCountMap: Record<string, number> = {}
+      
+      if (docCounts && Array.isArray(docCounts)) {
+        docCounts.forEach((doc: { department_id: string }) => {
+          docCountMap[doc.department_id] = (docCountMap[doc.department_id] || 0) + 1
         })
-      )
+      }
+      
+      if (userCounts && Array.isArray(userCounts)) {
+        userCounts.forEach((user: { department_id: string }) => {
+          userCountMap[user.department_id] = (userCountMap[user.department_id] || 0) + 1
+        })
+      }
+
+      const departmentsWithCounts = (data || []).map(dept => ({
+        ...dept,
+        manager_name: dept.manager?.full_name || '',
+        document_count: docCountMap[dept.id] || 0,
+        user_count: userCountMap[dept.id] || 0
+      }))
 
       setDepartments(departmentsWithCounts)
     } catch (err) {
@@ -115,33 +114,36 @@ export function useDepartments() {
   // Escutar evento global de atualização de departamentos
   useEffect(() => {
     let isUpdating = false
-    let updateTimeout: NodeJS.Timeout | null = null
     let isMounted = true
     
-    const handleDepartmentsUpdate = () => {
+    const handleDepartmentsUpdate = async () => {
       if (!isMounted || isUpdating) return
       
-      if (updateTimeout) clearTimeout(updateTimeout)
+      isUpdating = true
       
-      updateTimeout = setTimeout(async () => {
+      // Usar requestIdleCallback ou setTimeout para não bloquear a UI
+      const updateData = () => {
         if (!isMounted) return
         
-        isUpdating = true
-        try {
-          await fetchDepartments()
-        } catch {
-          // Silenciar erro
-        } finally {
-          if (isMounted) isUpdating = false
-        }
-      }, 100)
+        fetchDepartments()
+          .catch(() => {})
+          .finally(() => {
+            if (isMounted) isUpdating = false
+          })
+      }
+      
+      // Priorizar a responsividade da UI
+      if ('requestIdleCallback' in window) {
+        (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(updateData)
+      } else {
+        setTimeout(updateData, 50)
+      }
     }
 
     window.addEventListener('departments-updated', handleDepartmentsUpdate)
     return () => {
       isMounted = false
       window.removeEventListener('departments-updated', handleDepartmentsUpdate)
-      if (updateTimeout) clearTimeout(updateTimeout)
     }
   }, [fetchDepartments])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -50,6 +50,15 @@ export function DepartmentEmployeesModal({
     assignManager
   } = useDepartmentEmployees(departmentId)
 
+  // Função para recarregar a página mantendo a view de departamentos
+  const reloadToDepartments = useCallback(() => {
+    localStorage.setItem('redirectToDepartments', 'true')
+    setOpen(false)
+    setTimeout(() => {
+      window.location.reload()
+    }, 300)
+  }, [])
+
   const handleAddEmployee = async () => {
     if (!selectedEmployee) {
       toast({
@@ -71,11 +80,8 @@ export function DepartmentEmployeesModal({
         description: 'Funcionário adicionado ao departamento'
       })
       
-      // Fechar modal principal e recarregar página para evitar travamento
-      setOpen(false)
-      setTimeout(() => {
-        window.location.reload()
-      }, 300)
+      // Recarregar página mantendo a view de departamentos
+      reloadToDepartments()
       
     } catch (err) {
       setIsProcessing(false)
@@ -111,11 +117,8 @@ export function DepartmentEmployeesModal({
         description: `${employeeName} foi removido do departamento`
       })
       
-      // Fechar modal principal e recarregar página para evitar travamento
-      setOpen(false)
-      setTimeout(() => {
-        window.location.reload()
-      }, 300)
+      // Recarregar página mantendo a view de departamentos
+      reloadToDepartments()
       
     } catch (err) {
       setIsProcessing(false)
@@ -151,11 +154,8 @@ export function DepartmentEmployeesModal({
         description: `${employeeName} foi designado como gerente`
       })
       
-      // Fechar modal principal e recarregar página para evitar travamento
-      setOpen(false)
-      setTimeout(() => {
-        window.location.reload()
-      }, 300)
+      // Recarregar página mantendo a view de departamentos
+      reloadToDepartments()
       
     } catch (err) {
       setIsProcessing(false)

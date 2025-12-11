@@ -260,6 +260,16 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     }
   }, [searchParams])
 
+  // Verificar redirecionamento para departamentos após reload
+  useEffect(() => {
+    const redirectToDepartments = localStorage.getItem('redirectToDepartments')
+    if (redirectToDepartments === 'true') {
+      localStorage.removeItem('redirectToDepartments')
+      setActiveView('admin')
+      setAdminView('departments')
+    }
+  }, [])
+
 
 
   // Carregar assinaturas eletrônicas do usuário

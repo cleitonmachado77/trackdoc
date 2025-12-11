@@ -16,7 +16,23 @@ const supabaseAdmin = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, full_name, phone, company, password, plan_id, role } = body
+    const { 
+      email, 
+      full_name, 
+      phone, 
+      company, 
+      password, 
+      plan_id, 
+      role,
+      cpf,
+      address_street,
+      address_number,
+      address_complement,
+      address_neighborhood,
+      address_city,
+      address_state,
+      address_zipcode
+    } = body
 
     // Validações
     if (!email || !full_name || !password || !plan_id) {
@@ -47,43 +63,82 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Criar usuário no Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: email.toLowerCase(),
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name
-      }
-    })
+    // Buscar informações do plano
+    const { data: planData, error: planError } = await supabaseAdmin
+      .from('plans')
+      .select('id, name, max_users, max_storage_gb, price_monthly')
+      .eq('id', plan_id)
+      .single()
 
-    if (authError) {
-      console.error('Erro ao criar usuário no Auth:', authError)
+    if (planError || !planData) {
       return NextResponse.json(
-        { error: authError.message },
+        { error: 'Plano não encontrado' },
+        { status: 400 }
+      )
+    }
+
+    console.log('🔄 [create-user] Criando usuário com inviteUserByEmail...')
+
+    // Usar inviteUserByEmail para enviar email de confirmação automaticamente
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email.toLowerCase().trim(),
+      {
+        data: {
+          full_name: full_name.trim(),
+          phone: phone?.trim() || null,
+          company: company?.trim() || null,
+          cpf: cpf?.trim() || null,
+          address_street: address_street?.trim() || null,
+          address_number: address_number?.trim() || null,
+          address_complement: address_complement?.trim() || null,
+          address_neighborhood: address_neighborhood?.trim() || null,
+          address_city: address_city?.trim() || null,
+          address_state: address_state?.trim() || null,
+          address_zipcode: address_zipcode?.trim() || null,
+          registration_type: 'individual'
+        },
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback?type=new_user`
+      }
+    )
+
+    if (inviteError) {
+      console.error('❌ [create-user] Erro ao enviar convite:', inviteError)
+      return NextResponse.json(
+        { error: inviteError.message },
         { status: 500 }
       )
     }
 
-    const userId = authData.user.id
+    const userId = inviteData.user.id
+    console.log('✅ [create-user] Convite enviado, userId:', userId)
 
-    // 2. Criar perfil
+    // Criar perfil do usuário
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
         id: userId,
-        email: email.toLowerCase(),
-        full_name,
-        phone: phone || null,
-        company: company || null,
+        email: email.toLowerCase().trim(),
+        full_name: full_name.trim(),
+        phone: phone?.trim() || null,
+        company: company?.trim() || null,
         role: role || 'user',
-        status: 'active',
-        registration_completed: true,
-        registration_type: 'individual'
+        status: 'pending_confirmation', // Aguardando confirmação de email
+        registration_completed: false,
+        registration_type: 'individual',
+        force_password_change: true, // Força alteração de senha no primeiro login
+        first_login_completed: false,
+        cpf: cpf?.trim() || null,
+        address_street: address_street?.trim() || null,
+        address_number: address_number?.trim() || null,
+        address_complement: address_complement?.trim() || null,
+        address_neighborhood: address_neighborhood?.trim() || null,
+        address_city: address_city?.trim() || null,
+        address_state: address_state?.trim() || null,
+        address_zipcode: address_zipcode?.trim() || null
       })
 
     if (profileError) {
-      console.error('Erro ao criar perfil:', profileError)
+      console.error('❌ [create-user] Erro ao criar perfil:', profileError)
       // Tentar deletar o usuário do Auth se o perfil falhar
       await supabaseAdmin.auth.admin.deleteUser(userId)
       return NextResponse.json(
@@ -92,7 +147,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Criar subscription
+    console.log('✅ [create-user] Perfil criado com sucesso')
+
+    // Criar subscription
     const startDate = new Date()
     const endDate = new Date()
     endDate.setFullYear(endDate.getFullYear() + 1) // 1 ano de validade
@@ -102,6 +159,9 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         plan_id,
+        plan_name: planData.name,
+        plan_description: `Plano ${planData.name} - ${planData.max_users} usuários, ${planData.max_storage_gb}GB`,
+        plan_price: planData.price_monthly,
         status: 'active',
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -110,22 +170,25 @@ export async function POST(request: NextRequest) {
       })
 
     if (subError) {
-      console.error('Erro ao criar subscription:', subError)
+      console.error('⚠️ [create-user] Erro ao criar subscription:', subError)
       // Não falhar completamente, apenas logar
+    } else {
+      console.log('✅ [create-user] Subscription criada com sucesso')
     }
 
     return NextResponse.json({
       success: true,
       user: {
         id: userId,
-        email,
-        full_name
+        email: email.toLowerCase().trim(),
+        full_name: full_name.trim(),
+        status: 'pending_confirmation'
       },
-      message: 'Usuário criado com sucesso'
+      message: `Usuário ${full_name} criado com sucesso! Um email de confirmação foi enviado para ${email}.`
     })
 
   } catch (error: any) {
-    console.error('Erro interno:', error)
+    console.error('❌ [create-user] Erro interno:', error)
     return NextResponse.json(
       { error: error.message || 'Erro interno do servidor' },
       { status: 500 }

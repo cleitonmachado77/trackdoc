@@ -604,112 +604,22 @@ export default function SuperAdminPage() {
     setCreatingUser(true)
 
     try {
-      // 1. Criar usuário no Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUser.email,
-        password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: newUser.full_name
-        }
+      // Criar usuário via API (envia email de confirmação automaticamente)
+      const response = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser)
       })
 
-      if (authError) {
-        // Tentar via API se admin não funcionar
-        const response = await fetch('/api/admin/create-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newUser)
-        })
+      const result = await response.json()
 
-        if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.message || 'Erro ao criar usuário')
-        }
-
-        const result = await response.json()
-        
-        toast({
-          title: "Usuário criado",
-          description: `Usuário ${newUser.full_name} criado com sucesso!`
-        })
-
-        setShowCreateUserModal(false)
-        setNewUser({
-          email: "",
-          full_name: "",
-          phone: "",
-          company: "",
-          password: "",
-          plan_id: "",
-          role: "user",
-          cpf: "",
-          address_street: "",
-          address_number: "",
-          address_complement: "",
-          address_neighborhood: "",
-          address_city: "",
-          address_state: "",
-          address_zipcode: ""
-        })
-        await loadUsers()
-        return
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar usuário')
       }
-
-      // 2. Criar perfil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email: newUser.email,
-          full_name: newUser.full_name,
-          phone: newUser.phone,
-          company: newUser.company,
-          role: newUser.role,
-          status: 'active',
-          registration_completed: true,
-          force_password_change: true, // Força alteração de senha no primeiro login
-          first_login_completed: false,
-          cpf: newUser.cpf || null,
-          address_street: newUser.address_street || null,
-          address_number: newUser.address_number || null,
-          address_complement: newUser.address_complement || null,
-          address_neighborhood: newUser.address_neighborhood || null,
-          address_city: newUser.address_city || null,
-          address_state: newUser.address_state || null,
-          address_zipcode: newUser.address_zipcode || null
-        })
-
-      if (profileError) throw profileError
-
-      // 3. Criar subscription
-      const selectedPlan = plans.find(p => p.id === newUser.plan_id)
-      if (selectedPlan) {
-        const startDate = new Date()
-        const endDate = new Date()
-        endDate.setFullYear(endDate.getFullYear() + 1) // 1 ano de validade
-
-        const { error: subError } = await supabase
-          .from('subscriptions')
-          .insert({
-            user_id: authData.user.id,
-            plan_id: newUser.plan_id,
-            plan_name: selectedPlan.name,
-            plan_description: `Plano ${selectedPlan.name} - ${selectedPlan.max_users} usuários, ${selectedPlan.max_storage_gb}GB`,
-            plan_price: selectedPlan.price_monthly,
-            status: 'active',
-            start_date: startDate.toISOString(),
-            end_date: endDate.toISOString(),
-            current_users: 1,
-            current_storage_gb: 0
-          })
-
-        if (subError) throw subError
-      }
-
+      
       toast({
-        title: "Usuário criado",
-        description: `Usuário ${newUser.full_name} criado com sucesso!`
+        title: "Usuário criado com sucesso!",
+        description: `Um email de confirmação foi enviado para ${newUser.email}. O usuário deve confirmar o email para acessar o sistema.`
       })
 
       setShowCreateUserModal(false)

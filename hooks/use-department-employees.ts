@@ -75,6 +75,7 @@ export function useDepartmentEmployees(departmentId?: string) {
   const fetchEmployees = useCallback(async () => {
     if (!departmentId) {
       setEmployees([])
+      setLoading(false)
       return
     }
 
@@ -92,6 +93,7 @@ export function useDepartmentEmployees(departmentId?: string) {
 
       if (!userDepartmentsData || userDepartmentsData.length === 0) {
         setEmployees([])
+        setLoading(false)
         return
       }
 

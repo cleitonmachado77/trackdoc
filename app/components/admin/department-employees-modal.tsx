@@ -12,7 +12,6 @@ import { useDepartmentEmployees, DepartmentEmployee } from '@/hooks/use-departme
 import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -88,15 +87,20 @@ export function DepartmentEmployeesModal({
   const confirmRemoveEmployee = async () => {
     if (!employeeToRemove) return
     
+    const employeeName = employeeToRemove.full_name
+    const employeeId = employeeToRemove.id
+    
+    // Fechar dialog ANTES de processar
+    setShowRemoveConfirm(false)
+    setEmployeeToRemove(null)
+    
     try {
-      setIsProcessing(true) // ✅ Ativar loading
-      await removeEmployeeFromDepartment(employeeToRemove.id)
+      setIsProcessing(true)
+      await removeEmployeeFromDepartment(employeeId)
       toast({
         title: 'Sucesso',
-        description: `${employeeToRemove.full_name} foi removido do departamento`
+        description: `${employeeName} foi removido do departamento`
       })
-      setShowRemoveConfirm(false)
-      setEmployeeToRemove(null)
     } catch (err) {
       toast({
         title: 'Erro',
@@ -104,7 +108,7 @@ export function DepartmentEmployeesModal({
         variant: 'destructive'
       })
     } finally {
-      setIsProcessing(false) // ✅ Sempre resetar loading
+      setIsProcessing(false)
     }
   }
 
@@ -116,15 +120,20 @@ export function DepartmentEmployeesModal({
   const confirmAssignManager = async () => {
     if (!employeeToMakeManager) return
     
+    const employeeName = employeeToMakeManager.full_name
+    const employeeId = employeeToMakeManager.id
+    
+    // Fechar dialog ANTES de processar
+    setShowManagerConfirm(false)
+    setEmployeeToMakeManager(null)
+    
     try {
-      setIsProcessing(true) // ✅ Ativar loading
-      await assignManager(employeeToMakeManager.id)
+      setIsProcessing(true)
+      await assignManager(employeeId)
       toast({
         title: 'Sucesso',
-        description: `${employeeToMakeManager.full_name} foi designado como gerente`
+        description: `${employeeName} foi designado como gerente`
       })
-      setShowManagerConfirm(false)
-      setEmployeeToMakeManager(null)
     } catch (err) {
       toast({
         title: 'Erro',
@@ -132,7 +141,7 @@ export function DepartmentEmployeesModal({
         variant: 'destructive'
       })
     } finally {
-      setIsProcessing(false) // ✅ Sempre resetar loading
+      setIsProcessing(false)
     }
   }
 
@@ -354,9 +363,11 @@ export function DepartmentEmployeesModal({
       <AlertDialog 
         open={showRemoveConfirm} 
         onOpenChange={(open) => {
-          setShowRemoveConfirm(open)
-          if (!open) {
-            setEmployeeToRemove(null)
+          if (!isProcessing) {
+            setShowRemoveConfirm(open)
+            if (!open) {
+              setEmployeeToRemove(null)
+            }
           }
         }}
       >
@@ -370,14 +381,14 @@ export function DepartmentEmployeesModal({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
+            <Button 
               onClick={confirmRemoveEmployee} 
               disabled={isProcessing}
-              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
             >
               {isProcessing ? 'Removendo...' : 'Remover'}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -386,9 +397,11 @@ export function DepartmentEmployeesModal({
       <AlertDialog 
         open={showManagerConfirm} 
         onOpenChange={(open) => {
-          setShowManagerConfirm(open)
-          if (!open) {
-            setEmployeeToMakeManager(null)
+          if (!isProcessing) {
+            setShowManagerConfirm(open)
+            if (!open) {
+              setEmployeeToMakeManager(null)
+            }
           }
         }}
       >
@@ -402,14 +415,14 @@ export function DepartmentEmployeesModal({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
+            <Button 
               onClick={confirmAssignManager} 
               disabled={isProcessing}
               className="bg-blue-600 hover:bg-blue-700"
             >
               {isProcessing ? 'Designando...' : 'Designar Gerente'}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

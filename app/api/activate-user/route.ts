@@ -97,13 +97,15 @@ export async function POST(request: Request) {
       })
     }
     
-    // Ativar usuário
+    // Ativar usuário - preservando force_password_change e first_login_completed
     const { data: updatedProfile, error: updateError } = await supabase
       .from('profiles')
       .update({
         status: 'active',
         registration_completed: true,
         permissions: JSON.stringify(["read", "write"]),
+        // NÃO alterar force_password_change e first_login_completed aqui
+        // Esses campos devem ser alterados apenas quando o usuário trocar a senha
         updated_at: new Date().toISOString()
       })
       .eq('id', user_id)

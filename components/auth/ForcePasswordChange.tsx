@@ -87,34 +87,54 @@ export default function ForcePasswordChange({ user, onPasswordChanged }: ForcePa
     try {
       console.log('🔐 [ForcePasswordChange] Alterando senha do usuário:', user.id)
       
-      // 1. Alterar senha no Supabase Auth
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: newPassword
-      })
+      // Tentar alterar via sessão do cliente primeiro
+      const { data: sessionData } = await supabase.auth.getSession()
       
-      if (passwordError) {
-        console.error('❌ [ForcePasswordChange] Erro ao alterar senha:', passwordError)
-        throw passwordError
-      }
-      
-      console.log('✅ [ForcePasswordChange] Senha alterada no Auth')
-      
-      // 2. Atualizar perfil para remover flag de alteração obrigatória
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          force_password_change: false,
-          first_login_completed: true,
-          updated_at: new Date().toISOString()
+      if (sessionData.session) {
+        // Sessão disponível - usar método padrão
+        console.log('🔐 [ForcePasswordChange] Usando sessão do cliente')
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: newPassword
         })
-        .eq('id', user.id)
-      
-      if (profileError) {
-        console.error('❌ [ForcePasswordChange] Erro ao atualizar perfil:', profileError)
-        throw profileError
+        
+        if (passwordError) {
+          console.error('❌ [ForcePasswordChange] Erro ao alterar senha via cliente:', passwordError)
+          throw passwordError
+        }
+        
+        // Atualizar perfil
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            force_password_change: false,
+            first_login_completed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id)
+        
+        if (profileError) {
+          console.warn('⚠️ [ForcePasswordChange] Erro ao atualizar perfil:', profileError)
+        }
+      } else {
+        // Sem sessão - usar API com service role
+        console.log('🔐 [ForcePasswordChange] Sem sessão, usando API admin')
+        const response = await fetch('/api/admin/update-user-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user.id,
+            new_password: newPassword
+          })
+        })
+        
+        const result = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Erro ao alterar senha')
+        }
       }
       
-      console.log('✅ [ForcePasswordChange] Perfil atualizado')
+      console.log('✅ [ForcePasswordChange] Senha alterada com sucesso')
       
       toast({
         title: "Senha alterada com sucesso!",

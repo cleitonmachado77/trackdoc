@@ -77,40 +77,74 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔄 [create-user] Criando usuário com inviteUserByEmail...')
+    console.log('🔄 [create-user] Criando usuário...')
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'
 
-    // Usar inviteUserByEmail para enviar email de confirmação automaticamente
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      email.toLowerCase().trim(),
-      {
-        data: {
-          full_name: full_name.trim(),
-          phone: phone?.trim() || null,
-          company: company?.trim() || null,
-          cpf: cpf?.trim() || null,
-          address_street: address_street?.trim() || null,
-          address_number: address_number?.trim() || null,
-          address_complement: address_complement?.trim() || null,
-          address_neighborhood: address_neighborhood?.trim() || null,
-          address_city: address_city?.trim() || null,
-          address_state: address_state?.trim() || null,
-          address_zipcode: address_zipcode?.trim() || null,
-          registration_type: 'individual'
-        },
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://www.trackdoc.app.br'}/auth/callback?type=new_user`
+    // Passo 1: Criar usuário com senha definida
+    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password: password,
+      email_confirm: false,
+      user_metadata: {
+        full_name: full_name.trim(),
+        phone: phone?.trim() || null,
+        company: company?.trim() || null,
+        cpf: cpf?.trim() || null,
+        address_street: address_street?.trim() || null,
+        address_number: address_number?.trim() || null,
+        address_complement: address_complement?.trim() || null,
+        address_neighborhood: address_neighborhood?.trim() || null,
+        address_city: address_city?.trim() || null,
+        address_state: address_state?.trim() || null,
+        address_zipcode: address_zipcode?.trim() || null,
+        registration_type: 'individual'
       }
-    )
+    })
 
-    if (inviteError) {
-      console.error('❌ [create-user] Erro ao enviar convite:', inviteError)
+    if (createError) {
+      console.error('❌ [create-user] Erro ao criar usuário:', createError)
       return NextResponse.json(
-        { error: inviteError.message },
+        { error: createError.message },
         { status: 500 }
       )
     }
 
-    const userId = inviteData.user.id
-    console.log('✅ [create-user] Convite enviado, userId:', userId)
+    const userId = createData.user.id
+    console.log('✅ [create-user] Usuário criado, userId:', userId)
+
+    // Passo 2: Gerar link de confirmação e enviar email manualmente
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email.toLowerCase().trim(),
+      options: {
+        redirectTo: `${siteUrl}/auth/callback?type=new_user`
+      }
+    })
+
+    if (linkError) {
+      console.warn('⚠️ [create-user] Erro ao gerar link:', linkError)
+    } else if (linkData?.properties?.action_link) {
+      console.log('✅ [create-user] Link gerado, enviando email...')
+      
+      // Enviar email usando a API de email do Supabase (resend)
+      try {
+        const { error: resendError } = await supabaseAdmin.auth.resend({
+          type: 'signup',
+          email: email.toLowerCase().trim(),
+          options: {
+            emailRedirectTo: `${siteUrl}/auth/callback?type=new_user`
+          }
+        })
+        
+        if (resendError) {
+          console.warn('⚠️ [create-user] Erro ao enviar email:', resendError)
+        } else {
+          console.log('✅ [create-user] Email de confirmação enviado!')
+        }
+      } catch (emailError) {
+        console.warn('⚠️ [create-user] Erro ao enviar email:', emailError)
+      }
+    }
 
     // Criar perfil do usuário
     const { error: profileError } = await supabaseAdmin

@@ -124,10 +124,34 @@ export default function LoginPage() {
           
           // Verificar status do perfil
           if (profile.status === 'pending_confirmation') {
-            await supabase.auth.signOut()
-            setError("Seu cadastro está aguardando confirmação de email. Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.")
-            setIsLoading(false)
-            return
+            // Se conseguiu fazer login, o email já foi confirmado no Supabase Auth
+            // Tentar ativar o usuário automaticamente
+            console.log('🔧 [Login] Usuário com status pending_confirmation mas logado - tentando ativar...')
+            
+            try {
+              const activateResponse = await fetch('/api/activate-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id })
+              })
+              
+              if (activateResponse.ok) {
+                console.log('✅ [Login] Usuário ativado automaticamente!')
+                // Continuar com o login normalmente
+              } else {
+                console.error('❌ [Login] Falha ao ativar usuário')
+                await supabase.auth.signOut()
+                setError("Erro ao ativar sua conta. Por favor, tente novamente ou entre em contato com o suporte.")
+                setIsLoading(false)
+                return
+              }
+            } catch (activateError) {
+              console.error('❌ [Login] Erro ao ativar usuário:', activateError)
+              await supabase.auth.signOut()
+              setError("Erro ao ativar sua conta. Por favor, tente novamente ou entre em contato com o suporte.")
+              setIsLoading(false)
+              return
+            }
           }
           
           if (profile.status === 'inactive') {

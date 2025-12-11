@@ -14,7 +14,6 @@ interface Plan {
   price_monthly: number
   max_users: number
   max_storage_gb: number
-  max_documents: number
   features: string[]
   is_active: boolean
   type: string
@@ -150,12 +149,12 @@ export default function PricingPage() {
                     <span>Até {plan.max_users} usuário{plan.max_users > 1 ? 's' : ''}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-gray-400" />
-                    <span>Até {plan.max_documents} documentos</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
                     <HardDrive className="h-4 w-4 text-gray-400" />
                     <span>Até {plan.max_storage_gb}GB de armazenamento</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <span>Documentos ilimitados</span>
                   </div>
                 </div>
 

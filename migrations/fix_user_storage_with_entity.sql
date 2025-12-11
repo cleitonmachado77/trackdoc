@@ -4,28 +4,17 @@
 -- Esta migração atualiza a função get_user_storage_data para:
 -- 1. Se o usuário pertence a uma entidade, mostrar dados da entidade inteira
 -- 2. Se o usuário é solo (sem entidade), mostrar apenas seus próprios dados
+--
+-- IMPORTANTE: Não há limite de documentos nos planos!
+-- Os planos limitam apenas: usuários e armazenamento (GB)
+-- Documentos são ilimitados
 -- =====================================================
-
--- Primeiro, adicionar coluna max_documents à tabela plans se não existir
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'plans' AND column_name = 'max_documents'
-  ) THEN
-    ALTER TABLE plans ADD COLUMN max_documents INTEGER DEFAULT 1000;
-    
-    -- Atualizar valores padrão por plano
-    UPDATE plans SET max_documents = 500 WHERE type = 'basico';
-    UPDATE plans SET max_documents = 2000 WHERE type = 'profissional';
-    UPDATE plans SET max_documents = 10000 WHERE type = 'enterprise';
-  END IF;
-END $$;
 
 -- Remover função existente (necessário porque mudamos os parâmetros de retorno)
 DROP FUNCTION IF EXISTS get_user_storage_data(UUID);
 
 -- Criar função para calcular uso por usuário considerando entidade
+-- NOTA: documents_count é apenas informativo, não há limite
 CREATE OR REPLACE FUNCTION get_user_storage_data(p_user_id UUID)
 RETURNS TABLE (
   user_id UUID,
@@ -33,9 +22,7 @@ RETURNS TABLE (
   storage_gb NUMERIC,
   plan_name TEXT,
   max_storage_gb NUMERIC,
-  max_documents INTEGER,
   storage_percent INTEGER,
-  documents_percent INTEGER,
   users_count INTEGER,
   max_users INTEGER,
   users_percent INTEGER,
@@ -49,7 +36,6 @@ DECLARE
   v_users_count INTEGER := 1;
   v_plan_name TEXT := 'Sem plano';
   v_max_storage NUMERIC := 0.0;
-  v_max_docs INTEGER := 0;
   v_max_users INTEGER := 1;
   v_is_entity_data BOOLEAN := FALSE;
 BEGIN
@@ -83,9 +69,8 @@ BEGIN
     SELECT 
       COALESCE(pl.name, 'Sem plano'),
       COALESCE(pl.max_storage_gb, 0.0),
-      COALESCE(pl.max_documents, 1000),
       COALESCE(pl.max_users, 1)
-    INTO v_plan_name, v_max_storage, v_max_docs, v_max_users
+    INTO v_plan_name, v_max_storage, v_max_users
     FROM profiles admin
     INNER JOIN subscriptions s ON s.user_id = admin.id
     INNER JOIN plans pl ON pl.id = s.plan_id
@@ -99,9 +84,8 @@ BEGIN
       SELECT 
         COALESCE(pl.name, 'Sem plano'),
         COALESCE(pl.max_storage_gb, 0.0),
-        COALESCE(pl.max_documents, 1000),
         COALESCE(pl.max_users, 1)
-      INTO v_plan_name, v_max_storage, v_max_docs, v_max_users
+      INTO v_plan_name, v_max_storage, v_max_users
       FROM entity_subscriptions es
       INNER JOIN plans pl ON pl.id = es.plan_id
       WHERE es.entity_id = v_entity_id
@@ -114,9 +98,8 @@ BEGIN
       SELECT 
         COALESCE(pl.name, 'Sem plano'),
         COALESCE(pl.max_storage_gb, 0.0),
-        COALESCE(pl.max_documents, 1000),
         COALESCE(pl.max_users, 1)
-      INTO v_plan_name, v_max_storage, v_max_docs, v_max_users
+      INTO v_plan_name, v_max_storage, v_max_users
       FROM subscriptions s
       INNER JOIN plans pl ON pl.id = s.plan_id
       WHERE s.entity_id = v_entity_id
@@ -142,9 +125,8 @@ BEGIN
     -- Buscar informações do plano do usuário solo
     SELECT 
       COALESCE(pl.name, 'Sem plano'),
-      COALESCE(pl.max_storage_gb, 0.0),
-      COALESCE(pl.max_documents, 1000)
-    INTO v_plan_name, v_max_storage, v_max_docs
+      COALESCE(pl.max_storage_gb, 0.0)
+    INTO v_plan_name, v_max_storage
     FROM subscriptions s
     INNER JOIN plans pl ON pl.id = s.plan_id
     WHERE s.user_id = p_user_id
@@ -159,15 +141,10 @@ BEGIN
     v_storage_gb,
     v_plan_name,
     v_max_storage,
-    v_max_docs,
     CASE 
       WHEN v_max_storage > 0 THEN LEAST(100, (v_storage_gb * 100 / v_max_storage)::INTEGER)
       ELSE 0 
     END as storage_percent,
-    CASE 
-      WHEN v_max_docs > 0 THEN LEAST(100, (v_docs_count * 100 / v_max_docs))
-      ELSE 0 
-    END as documents_percent,
     v_users_count,
     v_max_users,
     CASE 
@@ -201,4 +178,5 @@ ORDER BY routine_name;
 --   dados refletem toda a entidade (docs, storage, users)
 -- - Se usuário é solo: is_entity_data = false,
 --   dados refletem apenas o próprio usuário
+-- - documents_count é apenas informativo (sem limite)
 -- =====================================================

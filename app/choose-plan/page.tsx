@@ -187,7 +187,7 @@ export default function ChoosePlanPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>Documentos:</span>
-                    <span className="font-medium">Até {plan.max_documents}</span>
+                    <span className="font-medium">Ilimitados</span>
                   </div>
                 </div>
 

@@ -49,12 +49,12 @@ export default function BillingManagement() {
   const { usage } = useUserUsage()
 
   // Plano atual baseado na assinatura real
+  // NOTA: Não há limite de documentos nos planos, apenas usuários e armazenamento
   const currentPlan = subscription ? {
     name: subscription.plan?.name || 'Plano não encontrado',
     price_monthly: subscription.plan?.price || 0,
     max_users: plans.find(p => p.name === subscription.plan?.name)?.max_users || 1,
     max_storage_gb: plans.find(p => p.name === subscription.plan?.name)?.max_storage_gb || 1,
-    max_documents: plans.find(p => p.name === subscription.plan?.name)?.max_documents || 10,
     features: subscription.plan?.features || [],
     is_trial: subscription.status === 'trial',
     trial_days: subscription.trial_end_date ? Math.ceil((new Date(subscription.trial_end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0,
@@ -64,7 +64,6 @@ export default function BillingManagement() {
     price_monthly: 0,
     max_users: 1,
     max_storage_gb: 1,
-    max_documents: 10,
     features: ["Acesso limitado", "Entre em contato para mais informações"],
     is_trial: false,
     trial_days: 0,
@@ -107,11 +106,10 @@ export default function BillingManagement() {
   const getUsageByMetric = (metricName: string) => {
     return usage.find(u => u.metric_name === metricName) || {
       current_usage: 0,
-      limit_value: currentPlan.max_documents
+      limit_value: 0
     }
   }
 
-  const documentsUsage = getUsageByMetric('documents')
   const storageUsage = getUsageByMetric('storage_gb')
   const usersUsage = getUsageByMetric('users')
 
@@ -185,7 +183,7 @@ export default function BillingManagement() {
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">Até {currentPlan.max_documents} documentos</span>
+                  <span className="text-sm">Documentos ilimitados</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-500" />
@@ -498,22 +496,7 @@ export default function BillingManagement() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Documentos</span>
-                <span className="text-sm text-gray-500">
-                  {documentsUsage.current_usage} / {currentPlan.max_documents}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-purple-600 h-2 rounded-full" 
-                  style={{ 
-                    width: `${Math.min((documentsUsage.current_usage / currentPlan.max_documents) * 100, 100)}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
+            {/* Documentos são ilimitados - não há barra de progresso */}
           </div>
         </CardContent>
       </Card>

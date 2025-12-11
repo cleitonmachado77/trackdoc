@@ -56,7 +56,6 @@ interface Plan {
   price_monthly: number
   max_users: number
   max_storage_gb: number
-  max_documents: number
   features: any
   is_active: boolean
 }
@@ -97,30 +96,25 @@ interface UserLimits {
   planType: string
   maxUsers: number
   maxStorageGB: number
-  maxDocuments: number
   currentUsers: number
   currentStorageGB: number
-  currentDocuments: number
+  currentDocuments: number // Mantido para exibição, mas sem limite
   usersLimitReached: boolean
   storageLimitReached: boolean
-  documentsLimitReached: boolean
   usersUsagePercent: number
   storageUsagePercent: number
-  documentsUsagePercent: number
   isEntityData: boolean // Indica se os dados são da entidade ou do usuário solo
 }
 
 interface EntityData {
   entityId: string
-  documentsCount: number
+  documentsCount: number // Mantido para exibição, mas sem limite
   storageGB: number
   usersCount: number
   planName: string
   maxStorageGB: number
-  maxDocuments: number
   maxUsers: number
   storagePercent: number
-  documentsPercent: number
   usersPercent: number
 }
 
@@ -395,22 +389,20 @@ export default function SuperAdminPage() {
               
               // A função agora retorna dados da entidade se o usuário pertencer a uma
               // ou dados individuais se for usuário solo
+              // NOTA: Não há limite de documentos nos planos, apenas usuários e armazenamento
               limitsMap[user.id] = {
                 userId: user.id,
                 planName: data.plan_name || 'Sem plano',
                 planType: data.plan_name !== 'Sem plano' ? 'active' : 'none',
                 maxUsers: data.max_users || 1,
                 maxStorageGB: parseFloat(data.max_storage_gb) || 0,
-                maxDocuments: data.max_documents || 0,
                 currentUsers: data.users_count || 1,
                 currentStorageGB: parseFloat(data.storage_gb) || 0,
-                currentDocuments: data.documents_count || 0,
+                currentDocuments: data.documents_count || 0, // Apenas para exibição, sem limite
                 usersLimitReached: (data.users_percent || 0) >= 100,
                 storageLimitReached: (data.storage_percent || 0) >= 100,
-                documentsLimitReached: (data.documents_percent || 0) >= 100,
                 usersUsagePercent: data.users_percent || 0,
                 storageUsagePercent: data.storage_percent || 0,
-                documentsUsagePercent: data.documents_percent || 0,
                 isEntityData: data.is_entity_data || false
               }
             }
@@ -467,17 +459,16 @@ export default function SuperAdminPage() {
             if (entityStorageData && entityStorageData.length > 0) {
               const data = entityStorageData[0]
               
+              // NOTA: Não há limite de documentos nos planos, apenas usuários e armazenamento
               entityMap[entity.id] = {
                 entityId: entity.id,
-                documentsCount: data.documents_count || 0,
+                documentsCount: data.documents_count || 0, // Apenas para exibição, sem limite
                 storageGB: parseFloat(data.storage_gb) || 0,
                 usersCount: data.users_count || 0,
                 planName: data.plan_name || 'Sem plano',
                 maxStorageGB: parseFloat(data.max_storage_gb) || 0,
-                maxDocuments: data.max_documents || 0,
                 maxUsers: data.max_users || 0,
                 storagePercent: data.storage_percent || 0,
-                documentsPercent: data.documents_percent || 0,
                 usersPercent: data.users_percent || 0
               }
             }
@@ -1041,10 +1032,10 @@ export default function SuperAdminPage() {
                   <p className="text-sm text-gray-600">Alertas Críticos</p>
                   <p className="text-3xl font-bold text-red-600">
                     {Object.values(userLimits).filter(limits => 
-                      limits.storageLimitReached || limits.documentsLimitReached
+                      limits.storageLimitReached || limits.usersLimitReached
                     ).length + 
                     Object.values(entityData).filter(entity => 
-                      entity.storagePercent >= 100 || entity.documentsPercent >= 100 || entity.usersPercent >= 100
+                      entity.storagePercent >= 100 || entity.usersPercent >= 100
                     ).length}
                   </p>
                   <p className="text-xs text-red-500 mt-1">Limites atingidos</p>
@@ -1061,12 +1052,12 @@ export default function SuperAdminPage() {
                   <p className="text-sm text-gray-600">Avisos</p>
                   <p className="text-3xl font-bold text-orange-600">
                     {Object.values(userLimits).filter(limits => 
-                      !limits.storageLimitReached && !limits.documentsLimitReached &&
-                      (limits.storageUsagePercent >= 80 || limits.documentsUsagePercent >= 80)
+                      !limits.storageLimitReached && !limits.usersLimitReached &&
+                      (limits.storageUsagePercent >= 80 || limits.usersUsagePercent >= 80)
                     ).length + 
                     Object.values(entityData).filter(entity => 
-                      entity.storagePercent < 100 && entity.documentsPercent < 100 && entity.usersPercent < 100 &&
-                      (entity.storagePercent >= 80 || entity.documentsPercent >= 80 || entity.usersPercent >= 80)
+                      entity.storagePercent < 100 && entity.usersPercent < 100 &&
+                      (entity.storagePercent >= 80 || entity.usersPercent >= 80)
                     ).length}
                   </p>
                   <p className="text-xs text-orange-500 mt-1">Próximos do limite</p>
@@ -1166,7 +1157,7 @@ export default function SuperAdminPage() {
                         </div>
                         <Badge variant="destructive">
                           {Object.values(userLimits).filter(limits => 
-                            limits.storageLimitReached || limits.documentsLimitReached
+                            limits.storageLimitReached || limits.usersLimitReached
                           ).length}
                         </Badge>
                       </div>
@@ -1181,7 +1172,7 @@ export default function SuperAdminPage() {
                         </div>
                         <Badge variant="destructive">
                           {Object.values(entityData).filter(entity => 
-                            entity.storagePercent >= 100 || entity.documentsPercent >= 100 || entity.usersPercent >= 100
+                            entity.storagePercent >= 100 || entity.usersPercent >= 100
                           ).length}
                         </Badge>
                       </div>
@@ -1196,12 +1187,12 @@ export default function SuperAdminPage() {
                         </div>
                         <Badge variant="secondary">
                           {Object.values(userLimits).filter(limits => 
-                            !limits.storageLimitReached && !limits.documentsLimitReached &&
-                            (limits.storageUsagePercent >= 80 || limits.documentsUsagePercent >= 80)
+                            !limits.storageLimitReached && !limits.usersLimitReached &&
+                            (limits.storageUsagePercent >= 80 || limits.usersUsagePercent >= 80)
                           ).length + 
                           Object.values(entityData).filter(entity => 
-                            entity.storagePercent < 100 && entity.documentsPercent < 100 && entity.usersPercent < 100 &&
-                            (entity.storagePercent >= 80 || entity.documentsPercent >= 80 || entity.usersPercent >= 80)
+                            entity.storagePercent < 100 && entity.usersPercent < 100 &&
+                            (entity.storagePercent >= 80 || entity.usersPercent >= 80)
                           ).length}
                         </Badge>
                       </div>
@@ -1216,10 +1207,10 @@ export default function SuperAdminPage() {
                         </div>
                         <Badge className="bg-green-100 text-green-800">
                           {Object.values(userLimits).filter(limits => 
-                            limits.storageUsagePercent < 80 && limits.documentsUsagePercent < 80
+                            limits.storageUsagePercent < 80 && limits.usersUsagePercent < 80
                           ).length + 
                           Object.values(entityData).filter(entity => 
-                            entity.storagePercent < 80 && entity.documentsPercent < 80 && entity.usersPercent < 80
+                            entity.storagePercent < 80 && entity.usersPercent < 80
                           ).length}
                         </Badge>
                       </div>
@@ -1483,7 +1474,7 @@ export default function SuperAdminPage() {
                                   <div className="flex flex-col">
                                     <span className="font-medium">{plan.name} - R$ {plan.price_monthly}/mês</span>
                                     <span className="text-xs text-gray-500">
-                                      {plan.max_users} usuários • {plan.max_storage_gb}GB • {plan.max_documents} docs
+                                      {plan.max_users} usuários • {plan.max_storage_gb}GB
                                     </span>
                                   </div>
                                 </SelectItem>
@@ -1646,27 +1637,14 @@ export default function SuperAdminPage() {
                             </TableCell>
                             <TableCell>
                               <div className="space-y-2">
-                                {/* Documentos */}
+                                {/* Documentos - sem limite, apenas contagem */}
                                 <div className="flex items-center justify-between text-xs">
                                   <div className="flex items-center gap-1">
                                     <FileText className="h-3 w-3 text-gray-400" />
                                     <span>Docs:</span>
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span>{stats?.documentsCount || 0}</span>
-                                    {limits && limits.maxDocuments > 0 && (
-                                      <>
-                                        <span className="text-gray-400">/</span>
-                                        <span>{limits.maxDocuments}</span>
-                                        <Badge 
-                                          variant={limits.documentsLimitReached ? "destructive" : 
-                                                  limits.documentsUsagePercent > 80 ? "secondary" : "outline"}
-                                          className="text-xs ml-1"
-                                        >
-                                          {limits.documentsUsagePercent}%
-                                        </Badge>
-                                      </>
-                                    )}
+                                    <span>{limits?.currentDocuments || 0}</span>
                                   </div>
                                 </div>
                                 
@@ -1829,6 +1807,7 @@ export default function SuperAdminPage() {
                                 </div>
                                 
                                 {/* Documentos */}
+                                {/* Documentos - sem limite, apenas contagem */}
                                 <div className="flex items-center justify-between text-xs">
                                   <div className="flex items-center gap-1">
                                     <FileText className="h-3 w-3 text-gray-400" />
@@ -1836,19 +1815,6 @@ export default function SuperAdminPage() {
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <span>{data?.documentsCount || 0}</span>
-                                    {data && data.maxDocuments > 0 && (
-                                      <>
-                                        <span className="text-gray-400">/</span>
-                                        <span>{data.maxDocuments}</span>
-                                        <Badge 
-                                          variant={data.documentsPercent >= 100 ? "destructive" : 
-                                                  data.documentsPercent >= 80 ? "secondary" : "outline"}
-                                          className="text-xs ml-1"
-                                        >
-                                          {data.documentsPercent}%
-                                        </Badge>
-                                      </>
-                                    )}
                                   </div>
                                 </div>
                                 
@@ -1926,7 +1892,7 @@ export default function SuperAdminPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-gray-400" />
-                            <span>Até {plan.max_documents} documentos</span>
+                            <span>Documentos ilimitados</span>
                           </div>
                         </div>
                         <Separator />

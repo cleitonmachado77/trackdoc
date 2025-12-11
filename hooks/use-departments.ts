@@ -16,7 +16,6 @@ export interface Department {
   status: 'active' | 'inactive'
   created_at: string
   updated_at: string
-  // Relacionamentos
   manager_name?: string
   document_count?: number
   user_count?: number
@@ -28,75 +27,12 @@ export function useDepartments() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchDepartments()
-    }
-  }, [user?.id])
-
-  // Escutar evento global de atualização de departamentos
-  useEffect(() => {
-    let isUpdating = false // ✅ Prevenir múltiplas execuções simultâneas
-    let updateTimeout: NodeJS.Timeout | null = null // ✅ Debounce para eventos
-    let isMounted = true // ✅ Prevenir operações em componentes desmontados
-    
-    const handleDepartmentsUpdate = () => {
-      if (!isMounted || isUpdating) {
-        return
-      }
-      
-      // ✅ Debounce: cancelar timeout anterior e aguardar 300ms (aumentado)
-      if (updateTimeout) {
-        clearTimeout(updateTimeout)
-      }
-      
-      updateTimeout = setTimeout(async () => {
-        if (!isMounted) return // ✅ Verificar novamente antes de executar
-        
-        isUpdating = true
-        
-        try {
-          // ✅ Aguardar um pouco para garantir que operações locais terminem
-          await new Promise(resolve => setTimeout(resolve, 100))
-          
-          if (isMounted) {
-            await fetchDepartments()
-          }
-        } catch (error) {
-          console.error('Erro ao recarregar departamentos:', error)
-        } finally {
-          if (isMounted) {
-            isUpdating = false // ✅ Resetar flag apenas se componente ainda montado
-          }
-        }
-      }, 500) // ✅ Aumentado para 500ms para evitar conflitos
-    }
-
-    window.addEventListener('departments-updated', handleDepartmentsUpdate)
-    return () => {
-      isMounted = false // ✅ Marcar como desmontado
-      window.removeEventListener('departments-updated', handleDepartmentsUpdate)
-      if (updateTimeout) {
-        clearTimeout(updateTimeout) // ✅ Limpar timeout ao desmontar
-      }
-    }
-  }, [])
-
   const fetchDepartments = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      let query = supabase
-        .from('departments')
-        .select(`
-          *,
-          manager:profiles!departments_manager_id_fkey(full_name)
-        `)
-        .order('name', { ascending: true })
-
-      // Buscar o profile do usuário para obter entity_id
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b' // ID padrão da entidade
+      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b'
       
       if (user?.id) {
         const { data: profileData } = await supabase
@@ -110,56 +46,32 @@ export function useDepartments() {
         }
       }
 
-      query = query.eq('entity_id', entityId)
+      const { data, error: queryError } = await supabase
+        .from('departments')
+        .select(`
+          *,
+          manager:profiles!departments_manager_id_fkey(full_name)
+        `)
+        .eq('entity_id', entityId)
+        .order('name', { ascending: true })
 
-      const { data, error } = await query
+      if (queryError) throw queryError
 
-      if (error) throw error
-
-      console.log('🔍 [DEBUG] Departamentos retornados do Supabase:', data?.length || 0)
-      if (data && data.length > 0) {
-        console.log('🔍 [DEBUG] Primeiro departamento (raw):', {
-          id: data[0].id,
-          name: data[0].name,
-          manager_id: data[0].manager_id,
-          manager: data[0].manager,
-          status: data[0].status
-        })
-      }
-
-
-
-      // Buscar contagem de documentos e usuários para cada departamento
       const departmentsWithCounts = await Promise.all(
         (data || []).map(async (dept) => {
-          // Contar documentos
           const { count: docCount } = await supabase
             .from('documents')
             .select('*', { count: 'exact', head: true })
             .eq('department_id', dept.id)
 
-                     // Contar usuários do departamento (corrigido para usar user_departments)
-          const { count: userCount, error: userError } = await supabase
+          const { count: userCount } = await supabase
             .from('user_departments')
             .select('*', { count: 'exact', head: true })
             .eq('department_id', dept.id)
 
-          if (userError) {
-            console.warn(`Erro ao contar usuários do departamento ${dept.name}:`, userError)
-          }
-
-          // Verificar se o manager_id existe mas o manager_name não foi carregado
           let managerName = dept.manager?.full_name || ''
           
           if (dept.manager_id && !managerName) {
-            console.warn('⚠️ [AVISO] Departamento tem manager_id mas manager_name não foi carregado:', {
-              departmentId: dept.id,
-              departmentName: dept.name,
-              manager_id: dept.manager_id,
-              manager: dept.manager
-            })
-            
-            // Tentar buscar o nome do gerente diretamente
             try {
               const { data: managerData } = await supabase
                 .from('profiles')
@@ -169,48 +81,76 @@ export function useDepartments() {
               
               if (managerData?.full_name) {
                 managerName = managerData.full_name
-                console.log('✅ [SUCESSO] Nome do gerente carregado diretamente:', managerName)
               }
-            } catch (managerError) {
-              console.error('❌ [ERRO] Não foi possível carregar o nome do gerente:', managerError)
+            } catch {
+              // Silenciar erro
             }
           }
 
-          const departmentData = {
+          return {
             ...dept,
             manager_name: managerName,
             document_count: docCount || 0,
             user_count: userCount || 0
           }
-
-          console.log('🔍 [DEBUG] Departamento carregado:', {
-            id: dept.id,
-            name: dept.name,
-            manager_id: dept.manager_id,
-            manager_name: departmentData.manager_name,
-            status: dept.status
-          })
-
-          return departmentData
         })
       )
 
       setDepartments(departmentsWithCounts)
     } catch (err) {
-      console.error('Erro ao carregar departamentos:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar departamentos')
       setDepartments([])
     } finally {
       setLoading(false)
     }
-  }, [user?.id]) // ✅ Dependências do useCallback
+  }, [user?.id])
 
-  const createDepartment = async (departmentData: Partial<Department>) => {
+  // Carregar departamentos quando o usuário mudar
+  useEffect(() => {
+    if (user?.id) {
+      fetchDepartments()
+    }
+  }, [user?.id, fetchDepartments])
+
+  // Escutar evento global de atualização de departamentos
+  useEffect(() => {
+    let isUpdating = false
+    let updateTimeout: NodeJS.Timeout | null = null
+    let isMounted = true
+    
+    const handleDepartmentsUpdate = () => {
+      if (!isMounted || isUpdating) return
+      
+      if (updateTimeout) clearTimeout(updateTimeout)
+      
+      updateTimeout = setTimeout(async () => {
+        if (!isMounted) return
+        
+        isUpdating = true
+        try {
+          await fetchDepartments()
+        } catch {
+          // Silenciar erro
+        } finally {
+          if (isMounted) isUpdating = false
+        }
+      }, 100)
+    }
+
+    window.addEventListener('departments-updated', handleDepartmentsUpdate)
+    return () => {
+      isMounted = false
+      window.removeEventListener('departments-updated', handleDepartmentsUpdate)
+      if (updateTimeout) clearTimeout(updateTimeout)
+    }
+  }, [fetchDepartments])
+
+
+  const createDepartment = useCallback(async (departmentData: Partial<Department>) => {
     try {
       setError(null)
 
-      // ✅ Buscar o profile do usuário para obter entity_id
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b' // ID padrão da entidade
+      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b'
       
       if (user?.id) {
         const { data: profileData } = await supabase
@@ -224,7 +164,6 @@ export function useDepartments() {
         }
       }
 
-      // ✅ Criar o departamento
       const { data: department, error: deptError } = await supabase
         .from('departments')
         .insert({
@@ -239,77 +178,38 @@ export function useDepartments() {
 
       if (deptError) throw deptError
 
-      // ✅ Se um gerente foi definido, adicionar automaticamente como funcionário
       if (departmentData.manager_id) {
-        try {
-          // ✅ Tentar usar a função SQL primeiro
-          const { error: addManagerError } = await supabase
-            .rpc('add_manager_to_department', {
-              p_department_id: department.id,
-              p_manager_id: departmentData.manager_id
+        const { error: addManagerError } = await supabase
+          .rpc('add_manager_to_department', {
+            p_department_id: department.id,
+            p_manager_id: departmentData.manager_id
+          })
+
+        if (addManagerError) {
+          await supabase
+            .from('user_departments')
+            .insert({
+              user_id: departmentData.manager_id,
+              department_id: department.id,
+              role_in_department: 'manager',
+              is_primary: true,
+              assigned_at: new Date().toISOString()
             })
-
-          if (addManagerError) {
-            console.warn('⚠️ Aviso: Função SQL não encontrada, usando inserção direta:', addManagerError.message)
-            
-            // ✅ SOLUÇÃO ALTERNATIVA: Inserir diretamente na tabela user_departments
-            const { error: insertError } = await supabase
-              .from('user_departments')
-              .insert({
-                user_id: departmentData.manager_id,
-                department_id: department.id,
-                role_in_department: 'manager',
-                is_primary: true,
-                assigned_at: new Date().toISOString()
-              })
-
-            if (insertError) {
-              console.warn('⚠️ Aviso: Não foi possível adicionar gerente como funcionário:', insertError.message)
-            } else {
-              console.log('✅ Gerente adicionado como funcionário via inserção direta')
-            }
-          }
-        } catch (managerError) {
-          console.warn('⚠️ Aviso: Erro ao adicionar gerente como funcionário:', managerError)
-          
-          // ✅ SOLUÇÃO ALTERNATIVA: Inserir diretamente na tabela user_departments
-          try {
-            const { error: insertError } = await supabase
-              .from('user_departments')
-              .insert({
-                user_id: departmentData.manager_id,
-                department_id: department.id,
-                role_in_department: 'manager',
-                is_primary: true,
-                assigned_at: new Date().toISOString()
-              })
-
-            if (insertError) {
-              console.warn('⚠️ Aviso: Não foi possível adicionar gerente como funcionário:', insertError.message)
-            } else {
-              console.log('✅ Gerente adicionado como funcionário via inserção direta')
-            }
-          } catch (fallbackError) {
-            console.error('❌ Erro crítico: Não foi possível adicionar gerente como funcionário:', fallbackError)
-          }
         }
       }
 
-      // ✅ Recarregar departamentos para atualizar contadores
       await fetchDepartments()
-      
       return department
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar departamento')
       throw err
     }
-  }
+  }, [user?.id, fetchDepartments])
 
-  const updateDepartment = async (id: string, updates: Partial<Department>) => {
+  const updateDepartment = useCallback(async (id: string, updates: Partial<Department>) => {
     try {
       setError(null)
 
-      // ✅ Atualizar o departamento
       const { data: department, error: deptError } = await supabase
         .from('departments')
         .update(updates)
@@ -322,77 +222,38 @@ export function useDepartments() {
 
       if (deptError) throw deptError
 
-      // ✅ Se um novo gerente foi definido, adicionar automaticamente como funcionário
-      if (updates.manager_id && updates.manager_id !== department.manager_id) {
-        try {
-          // ✅ Tentar usar a função SQL primeiro
-          const { error: addManagerError } = await supabase
-            .rpc('add_manager_to_department', {
-              p_department_id: id,
-              p_manager_id: updates.manager_id
+      if (updates.manager_id) {
+        const { error: addManagerError } = await supabase
+          .rpc('add_manager_to_department', {
+            p_department_id: id,
+            p_manager_id: updates.manager_id
+          })
+
+        if (addManagerError) {
+          await supabase
+            .from('user_departments')
+            .insert({
+              user_id: updates.manager_id,
+              department_id: id,
+              role_in_department: 'manager',
+              is_primary: true,
+              assigned_at: new Date().toISOString()
             })
-
-          if (addManagerError) {
-            console.warn('⚠️ Aviso: Função SQL não encontrada, usando inserção direta:', addManagerError.message)
-            
-            // ✅ SOLUÇÃO ALTERNATIVA: Inserir diretamente na tabela user_departments
-            const { error: insertError } = await supabase
-              .from('user_departments')
-              .insert({
-                user_id: updates.manager_id,
-                department_id: id,
-                role_in_department: 'manager',
-                is_primary: true,
-                assigned_at: new Date().toISOString()
-              })
-
-            if (insertError) {
-              console.warn('⚠️ Aviso: Não foi possível adicionar novo gerente como funcionário:', insertError.message)
-            } else {
-              console.log('✅ Novo gerente adicionado como funcionário via inserção direta')
-            }
-          }
-        } catch (managerError) {
-          console.warn('⚠️ Aviso: Erro ao adicionar novo gerente como funcionário:', managerError)
-          
-          // ✅ SOLUÇÃO ALTERNATIVA: Inserir diretamente na tabela user_departments
-          try {
-            const { error: insertError } = await supabase
-              .from('user_departments')
-              .insert({
-                user_id: updates.manager_id,
-                department_id: id,
-                role_in_department: 'manager',
-                is_primary: true,
-                assigned_at: new Date().toISOString()
-              })
-
-            if (insertError) {
-              console.warn('⚠️ Aviso: Não foi possível adicionar novo gerente como funcionário:', insertError.message)
-            } else {
-              console.log('✅ Novo gerente adicionado como funcionário via inserção direta')
-            }
-          } catch (fallbackError) {
-            console.error('❌ Erro crítico: Não foi possível adicionar novo gerente como funcionário:', fallbackError)
-          }
         }
       }
 
-      // ✅ Recarregar departamentos para atualizar contadores
       await fetchDepartments()
-      
       return department
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao atualizar departamento')
       throw err
     }
-  }
+  }, [fetchDepartments])
 
-  const deleteDepartment = async (id: string) => {
+  const deleteDepartment = useCallback(async (id: string) => {
     try {
       setError(null)
 
-      // Verificar se há documentos usando este departamento
       const { count: docCount } = await supabase
         .from('documents')
         .select('*', { count: 'exact', head: true })
@@ -401,9 +262,6 @@ export function useDepartments() {
       if (docCount && docCount > 0) {
         throw new Error('Não é possível deletar um departamento que possui documentos')
       }
-
-      // Nota: Não verificamos usuários pois profiles não tem department_id
-      // Se você quiser adicionar essa funcionalidade, precisará adicionar department_id à tabela profiles
 
       const { error } = await supabase
         .from('departments')
@@ -417,9 +275,9 @@ export function useDepartments() {
       setError(err instanceof Error ? err.message : 'Erro ao deletar departamento')
       throw err
     }
-  }
+  }, [fetchDepartments])
 
-  const toggleDepartmentStatus = async (id: string) => {
+  const toggleDepartmentStatus = useCallback(async (id: string) => {
     try {
       setError(null)
 
@@ -446,9 +304,9 @@ export function useDepartments() {
       setError(err instanceof Error ? err.message : 'Erro ao alterar status do departamento')
       throw err
     }
-  }
+  }, [departments, fetchDepartments])
 
-  const assignManager = async (id: string, managerId: string) => {
+  const assignManager = useCallback(async (id: string, managerId: string) => {
     try {
       setError(null)
 
@@ -470,7 +328,7 @@ export function useDepartments() {
       setError(err instanceof Error ? err.message : 'Erro ao atribuir gerente')
       throw err
     }
-  }
+  }, [fetchDepartments])
 
   return {
     departments,

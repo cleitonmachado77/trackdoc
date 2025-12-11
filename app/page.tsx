@@ -260,19 +260,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     }
   }, [searchParams])
 
-  // ✅ Verificar redirecionamento do localStorage após operações de departamento
-  useEffect(() => {
-    const redirectToDepartments = localStorage.getItem('redirectToDepartments')
-    if (redirectToDepartments === 'true') {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 [DEBUG] Redirecionamento detectado, abrindo seção de departamentos...')
-      }
-      setActiveView('admin')
-      setAdminView('departments')
-      // ✅ Limpar o flag para evitar redirecionamentos futuros
-      localStorage.removeItem('redirectToDepartments')
-    }
-  }, [])
+
 
   // Carregar assinaturas eletrônicas do usuário
   useEffect(() => {

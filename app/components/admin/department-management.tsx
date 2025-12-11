@@ -639,14 +639,6 @@ function DepartmentInfo({ department }: { department: Department }) {
 function DepartmentManagerInfo({ department }: { department: Department }) {
   const managerName = department.manager_name
   
-  console.log('🔍 [DEBUG] DepartmentManagerInfo:', {
-    departmentId: department.id,
-    departmentName: department.name,
-    manager_id: department.manager_id,
-    manager_name: managerName,
-    hasManagerName: !!managerName
-  })
-  
   if (!managerName) {
     return (
       <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
@@ -789,27 +781,13 @@ function DepartmentForm({
   // Atualizar form data quando department mudar
   useEffect(() => {
     if (department) {
-      const managerId = department.manager_id || ""
-      
-      console.log('🔍 [DEBUG] Carregando departamento:', {
-        id: department.id,
-        name: department.name,
-        manager_id: department.manager_id,
-        manager_id_processado: managerId,
-        manager_name: department.manager_name,
-        status: department.status,
-        manager_id_tipo: typeof department.manager_id,
-        manager_id_vazio: !department.manager_id
-      })
-      
       setFormData({
         name: department.name || "",
         description: department.description || "",
-        manager_id: managerId,
+        manager_id: department.manager_id || "",
         status: department.status || "active",
       })
     } else {
-      console.log('🔍 [DEBUG] Criando novo departamento')
       setFormData({
         name: "",
         description: "",
@@ -821,17 +799,7 @@ function DepartmentForm({
 
   const handleInputChange = useCallback((field: keyof DepartmentFormData, value: string | boolean) => {
     const newValue = field === 'status' ? (value ? 'active' : 'inactive') : value
-    
-    console.log('🔍 [DEBUG] Atualizando campo:', { field, value, newValue })
-    
-    setFormData(prev => {
-      const updated = {
-        ...prev,
-        [field]: newValue
-      }
-      console.log('🔍 [DEBUG] FormData atualizado:', updated)
-      return updated
-    })
+    setFormData(prev => ({ ...prev, [field]: newValue }))
   }, [])
 
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
@@ -884,8 +852,6 @@ function DepartmentForm({
         <Select 
           value={formData.manager_id && formData.manager_id.trim() !== '' ? formData.manager_id : undefined} 
           onValueChange={(value) => {
-            console.log('🔍 [DEBUG] Select onValueChange:', { value, tipo: typeof value, vazio: !value || value.trim() === '' })
-            // Ignorar valores vazios ou inválidos
             if (value && value.trim() !== '' && value !== 'loading' && value !== 'no-users') {
               handleInputChange('manager_id', value)
             }

@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -75,7 +74,6 @@ export default function DocumentTypeManagement({
   onDataChange
 }: DocumentTypeManagementProps) {
   const { toast } = useToast()
-  const router = useRouter()
   
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedType, setSelectedType] = useState<DocumentType | null>(null)
@@ -88,25 +86,15 @@ export default function DocumentTypeManagement({
 
   // Estado local para gerenciar os tipos de documentos
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>(initialDocumentTypes)
-  const [renderKey, setRenderKey] = useState(0)
 
   // Atualizar quando initialDocumentTypes mudar
   React.useEffect(() => {
-    console.log("🔄 [EFFECT] initialDocumentTypes mudou:", initialDocumentTypes.length)
     setDocumentTypes(initialDocumentTypes)
   }, [initialDocumentTypes])
 
-  // Log do render
-  console.log("🎨 [RENDER] Componente renderizando...")
-  console.log("🎨 [RENDER] documentTypes:", documentTypes.length)
-  console.log("🎨 [RENDER] renderKey:", renderKey)
-
   /* --------- DERIVADOS --------- */
   const filteredTypes = React.useMemo(() => {
-    const filtered = documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    console.log("🔍 [FILTER] documentTypes:", documentTypes.length, "tipos")
-    console.log("🔍 [FILTER] filteredTypes:", filtered.length, "tipos")
-    return filtered
+    return documentTypes.filter((type) => type.name?.toLowerCase().includes(searchTerm.toLowerCase()))
   }, [documentTypes, searchTerm])
 
   const stats = {
@@ -130,9 +118,6 @@ export default function DocumentTypeManagement({
     try {
       const isEditing = !!typeData.id
       
-      console.log("💾 [SAVE] Dados sendo enviados:", typeData)
-      console.log("💾 [SAVE] retentionPeriod:", typeData.retentionPeriod)
-      
       // Executar operação no servidor via API
       const endpoint = isEditing ? `/api/document-types/${typeData.id}` : '/api/document-types'
       const method = isEditing ? 'PUT' : 'POST'
@@ -146,47 +131,8 @@ export default function DocumentTypeManagement({
       })
       
       const result = await response.json()
-
-      console.log("💾 [SAVE] Resultado:", result)
-      console.log("💾 [SAVE] result.success:", result.success)
-      console.log("💾 [SAVE] result.data:", result.data)
       
       if (result.success && result.data) {
-        console.log("💾 [SAVE] Atualizando estado local...")
-        
-        // Atualizar estado local imediatamente
-        if (isEditing) {
-          console.log("💾 [SAVE] Editando tipo existente")
-          // Atualizar tipo existente
-          setDocumentTypes(prev => {
-            const updated = prev.map(t => 
-              t.id === typeData.id ? { ...t, ...result.data } : t
-            )
-            console.log("💾 [SAVE] Estado atualizado (edição):", updated)
-            return updated
-          })
-        } else {
-          console.log("💾 [SAVE] Adicionando novo tipo")
-          // Adicionar novo tipo
-          setDocumentTypes(prev => {
-            const updated = [...prev, result.data]
-            console.log("💾 [SAVE] Estado antes:", prev.length, "tipos")
-            console.log("💾 [SAVE] Estado depois:", updated.length, "tipos")
-            console.log("💾 [SAVE] Estado atualizado (novo):", updated)
-            return updated
-          })
-        }
-        
-        // Forçar re-render
-        setRenderKey(prev => prev + 1)
-        console.log("💾 [SAVE] Re-render forçado")
-        
-        // Chamar callback para atualizar dados na página pai
-        if (onDataChange) {
-          console.log("💾 [SAVE] Chamando onDataChange...")
-          onDataChange()
-        }
-        
         // Fechar modal
         setShowTypeModal(false)
         setSelectedType(null)
@@ -195,8 +141,13 @@ export default function DocumentTypeManagement({
           title: isEditing ? "Tipo atualizado" : "Tipo criado",
           description: `O tipo foi ${isEditing ? 'atualizado' : 'criado'} com sucesso.`,
         })
+        
+        // Recarregar página mantendo a view de tipos de documentos
+        localStorage.setItem('redirectToDocumentTypes', 'true')
+        setTimeout(() => {
+          window.location.reload()
+        }, 300)
       } else {
-        console.error("💾 [SAVE] Erro ou sem dados:", result)
         toast({
           title: "Erro",
           description: result.error || "Erro ao salvar tipo de documento",
@@ -242,39 +193,18 @@ export default function DocumentTypeManagement({
       setShowDeleteConfirm(false)
       setTypeToDelete(null)
       
-      console.log("🗑️ [DELETE] Resultado:", result)
-      console.log("🗑️ [DELETE] result.success:", result.success)
-      console.log("🗑️ [DELETE] ID a remover:", typeToDeleteRef.id)
-      
       if (result.success) {
-        console.log("🗑️ [DELETE] Removendo do estado local...")
-        // Remover do estado local imediatamente
-        setDocumentTypes(prev => {
-          const updated = prev.filter(t => t.id !== typeToDeleteRef.id)
-          console.log("🗑️ [DELETE] Estado antes:", prev.length, "tipos")
-          console.log("🗑️ [DELETE] Estado depois:", updated.length, "tipos")
-          console.log("🗑️ [DELETE] IDs antes:", prev.map(t => t.id))
-          console.log("🗑️ [DELETE] IDs depois:", updated.map(t => t.id))
-          console.log("🗑️ [DELETE] Estado atualizado:", updated)
-          return updated
-        })
-        
-        // Forçar re-render
-        setRenderKey(prev => prev + 1)
-        console.log("🗑️ [DELETE] Re-render forçado")
-        
-        // Chamar callback para atualizar dados na página pai
-        if (onDataChange) {
-          console.log("🗑️ [DELETE] Chamando onDataChange...")
-          onDataChange()
-        }
-        
         toast({
           title: "Tipo excluído",
           description: `O tipo "${typeToDeleteRef.name}" foi excluído com sucesso.`,
         })
+        
+        // Recarregar página mantendo a view de tipos de documentos
+        localStorage.setItem('redirectToDocumentTypes', 'true')
+        setTimeout(() => {
+          window.location.reload()
+        }, 300)
       } else {
-        console.error("🗑️ [DELETE] Erro:", result.error)
         toast({
           title: "Erro ao excluir",
           description: result.error || "Erro ao excluir tipo de documento",
@@ -425,9 +355,9 @@ export default function DocumentTypeManagement({
             </CardContent>
           </Card>
         ) : (
-        <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6" key={`grid-${renderKey}`}>
+        <div className="grid grid-cols-1 lg:col-span-3 xl:grid-cols-3 gap-6">
           {filteredTypes.map((type) => (
-            <Card key={`${type.id}-${renderKey}`}>
+            <Card key={type.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -537,7 +467,7 @@ export default function DocumentTypeManagement({
           <CardContent className="p-0">
             <div className="space-y-0">
               {filteredTypes.map((type, index) => (
-                <div key={`${type.id}-${renderKey}`} className={`p-4 ${index !== filteredTypes.length - 1 ? "border-b" : ""}`}>
+                <div key={type.id} className={`p-4 ${index !== filteredTypes.length - 1 ? "border-b" : ""}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
                       <div

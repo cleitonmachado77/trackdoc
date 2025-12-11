@@ -260,13 +260,21 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     }
   }, [searchParams])
 
-  // Verificar redirecionamento para departamentos após reload
+  // Verificar redirecionamento para views específicas após reload
   useEffect(() => {
     const redirectToDepartments = localStorage.getItem('redirectToDepartments')
+    const redirectToDocumentTypes = localStorage.getItem('redirectToDocumentTypes')
+    
     if (redirectToDepartments === 'true') {
       localStorage.removeItem('redirectToDepartments')
       setActiveView('admin')
       setAdminView('departments')
+    }
+    
+    if (redirectToDocumentTypes === 'true') {
+      localStorage.removeItem('redirectToDocumentTypes')
+      setActiveView('admin')
+      setAdminView('document-types')
     }
   }, [])
 

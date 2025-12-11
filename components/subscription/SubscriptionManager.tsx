@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { 
-  Calendar, 
   Users, 
   HardDrive, 
   AlertCircle,
@@ -266,76 +265,92 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
             </div>
           )}
 
-          {/* Limites do Plano */}
-          <div className="space-y-4">
-            <h4 className="font-semibold text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-600" />
-              Limites do Plano
-            </h4>
-            
-            {/* Usuários */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Usuários</span>
+          {/* Limites do Plano - Apenas para planos pagos (não Trial) */}
+          {!isTrial && (
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+                Limites do Plano
+              </h4>
+              
+              {/* Usuários */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Usuários</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-bold ${usersAlert === 'critical' ? 'text-red-600' : usersAlert === 'warning' ? 'text-amber-600' : 'text-gray-900'}`}>
+                      {subscription.current_users} / {plan.limits.max_usuarios}
+                    </span>
+                    <span className="text-muted-foreground ml-2">({usersPercentage}%)</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`font-bold ${usersAlert === 'critical' ? 'text-red-600' : usersAlert === 'warning' ? 'text-amber-600' : 'text-gray-900'}`}>
-                    {subscription.current_users} / {plan.limits.max_usuarios}
-                  </span>
-                  <span className="text-muted-foreground ml-2">({usersPercentage}%)</span>
-                </div>
+                <Progress 
+                  value={usersPercentage} 
+                  className={`h-2 ${usersAlert === 'critical' ? '[&>div]:bg-red-600' : usersAlert === 'warning' ? '[&>div]:bg-amber-500' : ''}`}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {remainingUsers > 0 
+                    ? `${remainingUsers} ${remainingUsers === 1 ? 'usuário disponível' : 'usuários disponíveis'}`
+                    : 'Limite atingido'
+                  }
+                </p>
               </div>
-              <Progress 
-                value={usersPercentage} 
-                className={`h-2 ${usersAlert === 'critical' ? '[&>div]:bg-red-600' : usersAlert === 'warning' ? '[&>div]:bg-amber-500' : ''}`}
-              />
-              <p className="text-xs text-muted-foreground">
-                {remainingUsers > 0 
-                  ? `${remainingUsers} ${remainingUsers === 1 ? 'usuário disponível' : 'usuários disponíveis'}`
-                  : 'Limite atingido'
-                }
+
+              {/* Armazenamento */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Armazenamento</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={`font-bold ${storageAlert === 'critical' ? 'text-red-600' : storageAlert === 'warning' ? 'text-amber-600' : 'text-gray-900'}`}>
+                      {subscription.current_storage_gb.toFixed(2)} / {plan.limits.armazenamento_gb} GB
+                    </span>
+                    <span className="text-muted-foreground ml-2">({storagePercentage}%)</span>
+                  </div>
+                </div>
+                <Progress 
+                  value={storagePercentage} 
+                  className={`h-2 ${storageAlert === 'critical' ? '[&>div]:bg-red-600' : storageAlert === 'warning' ? '[&>div]:bg-amber-500' : ''}`}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {remainingStorage > 0 
+                    ? `${remainingStorage.toFixed(2)} GB disponíveis`
+                    : 'Limite atingido'
+                  }
+                </p>
+              </div>
+
+              {/* Documentos - Ilimitados */}
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-green-600" />
+                  <span className="font-medium text-green-800">Documentos</span>
+                </div>
+                <Badge className="bg-green-100 text-green-800 border-green-200">
+                  Ilimitados
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          {/* Informação de acesso ilimitado para Trial */}
+          {isTrial && (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <span className="font-semibold text-green-900">Acesso Ilimitado Durante o Trial</span>
+              </div>
+              <p className="text-sm text-green-700">
+                Durante o período de teste de 14 dias, você tem acesso ilimitado a usuários, armazenamento e documentos. 
+                Aproveite para testar todas as funcionalidades do sistema!
               </p>
             </div>
-
-            {/* Armazenamento */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <HardDrive className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Armazenamento</span>
-                </div>
-                <div className="text-right">
-                  <span className={`font-bold ${storageAlert === 'critical' ? 'text-red-600' : storageAlert === 'warning' ? 'text-amber-600' : 'text-gray-900'}`}>
-                    {subscription.current_storage_gb.toFixed(2)} / {plan.limits.armazenamento_gb} GB
-                  </span>
-                  <span className="text-muted-foreground ml-2">({storagePercentage}%)</span>
-                </div>
-              </div>
-              <Progress 
-                value={storagePercentage} 
-                className={`h-2 ${storageAlert === 'critical' ? '[&>div]:bg-red-600' : storageAlert === 'warning' ? '[&>div]:bg-amber-500' : ''}`}
-              />
-              <p className="text-xs text-muted-foreground">
-                {remainingStorage > 0 
-                  ? `${remainingStorage.toFixed(2)} GB disponíveis`
-                  : 'Limite atingido'
-                }
-              </p>
-            </div>
-
-            {/* Documentos - Ilimitados */}
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-green-600" />
-                <span className="font-medium text-green-800">Documentos</span>
-              </div>
-              <Badge className="bg-green-100 text-green-800 border-green-200">
-                Ilimitados
-              </Badge>
-            </div>
-          </div>
+          )}
 
           {/* Funcionalidades Incluídas */}
           <div className="space-y-3 pt-4 border-t">

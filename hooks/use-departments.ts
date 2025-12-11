@@ -111,43 +111,6 @@ export function useDepartments() {
     }
   }, [user?.id, fetchDepartments])
 
-  // Escutar evento global de atualização de departamentos
-  useEffect(() => {
-    let isUpdating = false
-    let isMounted = true
-    
-    const handleDepartmentsUpdate = async () => {
-      if (!isMounted || isUpdating) return
-      
-      isUpdating = true
-      
-      // Usar requestIdleCallback ou setTimeout para não bloquear a UI
-      const updateData = () => {
-        if (!isMounted) return
-        
-        fetchDepartments()
-          .catch(() => {})
-          .finally(() => {
-            if (isMounted) isUpdating = false
-          })
-      }
-      
-      // Priorizar a responsividade da UI
-      if ('requestIdleCallback' in window) {
-        (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(updateData)
-      } else {
-        setTimeout(updateData, 50)
-      }
-    }
-
-    window.addEventListener('departments-updated', handleDepartmentsUpdate)
-    return () => {
-      isMounted = false
-      window.removeEventListener('departments-updated', handleDepartmentsUpdate)
-    }
-  }, [fetchDepartments])
-
-
   const createDepartment = useCallback(async (departmentData: Partial<Department>) => {
     try {
       setError(null)

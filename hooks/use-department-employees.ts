@@ -51,22 +51,13 @@ export function useDepartmentEmployees(departmentId?: string) {
         }
 
         setEntityId(profileData?.entity_id || null)
-      } catch (err) {
+      } catch {
         setEntityId(null)
       }
     }
 
     fetchUserEntityId()
   }, [user?.id])
-
-  // Função auxiliar para notificar atualização de departamentos
-  // Usando setTimeout para evitar bloqueio da UI
-  const notifyDepartmentsUpdate = useCallback(() => {
-    // Usar requestAnimationFrame para não bloquear a UI
-    requestAnimationFrame(() => {
-      window.dispatchEvent(new CustomEvent('departments-updated'))
-    })
-  }, [])
 
   useEffect(() => {
     if (user?.id && entityId !== undefined) {
@@ -86,7 +77,6 @@ export function useDepartmentEmployees(departmentId?: string) {
       setLoading(true)
       setError(null)
 
-      // Primeiro: buscar os relacionamentos user_departments
       const { data: userDepartmentsData, error: userDeptError } = await supabase
         .from('user_departments')
         .select('*')
@@ -100,15 +90,12 @@ export function useDepartmentEmployees(departmentId?: string) {
         return
       }
 
-      // Segundo: buscar os perfis dos usuários
       const userIds = userDepartmentsData.map(ud => ud.user_id)
       let profilesQuery = supabase
         .from('profiles')
         .select('*')
         .in('id', userIds)
 
-      // Aplicar filtro de entidade: se usuário tem entidade, filtrar por ela
-      // Se usuário não tem entidade (usuário solo), filtrar por usuários sem entidade
       if (entityId) {
         profilesQuery = profilesQuery.eq('entity_id', entityId)
       } else {
@@ -119,7 +106,6 @@ export function useDepartmentEmployees(departmentId?: string) {
 
       if (profilesError) throw profilesError
 
-      // Terceiro: buscar o gerente do departamento
       const { data: departmentData, error: departmentError } = await supabase
         .from('departments')
         .select('manager_id')
@@ -128,7 +114,6 @@ export function useDepartmentEmployees(departmentId?: string) {
 
       if (departmentError) throw departmentError
 
-      // Combinar os dados
       const employeesWithManager: DepartmentEmployee[] = profilesData.map(profile => {
         const userDept = userDepartmentsData.find(ud => ud.user_id === profile.id)
         return {
@@ -147,9 +132,7 @@ export function useDepartmentEmployees(departmentId?: string) {
         }
       })
 
-      // Ordenar por nome após transformação
       employeesWithManager.sort((a, b) => a.full_name.localeCompare(b.full_name))
-
       setEmployees(employeesWithManager)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar funcionários')
@@ -196,128 +179,50 @@ export function useDepartmentEmployees(departmentId?: string) {
       } else {
         setAvailableEmployees(filteredData)
       }
-    } catch (err) {
+    } catch {
       setAvailableEmployees([])
     }
   }, [departmentId, entityId])
 
-  const addEmployeeToDepartment = async (employeeId: string, role: string = 'member', isPrimary: boolean = false) => {
+
+  const addEmployeeToDepartment = async (
+    employeeId: string,
+    role: string = 'member',
+    isPrimary: boolean = false
+  ) => {
     if (!departmentId) throw new Error('ID do departamento não fornecido')
 
-    try {
-      setError(null)
-      
-      // ✅ IMPORTANTE: Atualizar estados LOCAIS primeiro (otimistic update)
-      const newEmployee = availableEmployees.find(emp => emp.id === employeeId)
-      if (newEmployee) {
-        setEmployees(prev => [...prev, {
-          ...newEmployee,
-          department_id: departmentId,
-          role_in_department: role,
-          is_primary: isPrimary,
-          assigned_at: new Date().toISOString(),
-          is_manager: false
-        }].sort((a, b) => a.full_name.localeCompare(b.full_name)))
-        
-        setAvailableEmployees(prev => prev.filter(emp => emp.id !== employeeId))
-      }
-      
-      // Usar a nova função SQL para adicionar usuário ao departamento
-      const { error } = await supabase
-        .rpc('add_user_to_department', {
-          p_user_id: employeeId,
-          p_department_id: departmentId,
-          p_role_in_department: role,
-          p_is_primary: isPrimary,
-          p_assigned_by: user?.id || null
-        })
+    const { error } = await supabase.rpc('add_user_to_department', {
+      p_user_id: employeeId,
+      p_department_id: departmentId,
+      p_role_in_department: role,
+      p_is_primary: isPrimary,
+      p_assigned_by: user?.id || null
+    })
 
-      if (error) {
-        // ✅ Reverter em caso de erro
-        await Promise.all([fetchEmployees(), fetchAvailableEmployees()])
-        throw error
-      }
-
-      // ✅ Notificar atualização para cards (sem reload)
-      notifyDepartmentsUpdate()
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao adicionar funcionário')
-      throw err
-    }
+    if (error) throw error
   }
 
   const removeEmployeeFromDepartment = async (employeeId: string) => {
-    try {
-      setError(null)
-      
-      // ✅ IMPORTANTE: Atualizar estados LOCAIS primeiro (optimistic update)
-      const removedEmployee = employees.find(emp => emp.id === employeeId)
-      setEmployees(prev => prev.filter(emp => emp.id !== employeeId))
-      
-      if (removedEmployee) {
-        setAvailableEmployees(prev => [...prev, {
-          ...removedEmployee,
-          department_id: undefined,
-          role_in_department: undefined,
-          is_primary: undefined,
-          assigned_at: undefined,
-          is_manager: undefined
-        }].sort((a, b) => a.full_name.localeCompare(b.full_name)))
-      }
-      
-      // Usar a nova função SQL para remover usuário do departamento
-      const { error } = await supabase
-        .rpc('remove_user_from_department', {
-          p_user_id: employeeId,
-          p_department_id: departmentId!
-        })
+    if (!departmentId) throw new Error('ID do departamento não fornecido')
 
-      if (error) {
-        // ✅ Reverter em caso de erro
-        await Promise.all([fetchEmployees(), fetchAvailableEmployees()])
-        throw error
-      }
+    const { error } = await supabase.rpc('remove_user_from_department', {
+      p_user_id: employeeId,
+      p_department_id: departmentId
+    })
 
-      // ✅ Notificar atualização para cards (sem reload)
-      notifyDepartmentsUpdate()
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao remover funcionário')
-      throw err
-    }
+    if (error) throw error
   }
 
   const assignManager = async (employeeId: string) => {
     if (!departmentId) throw new Error('ID do departamento não fornecido')
-    
-    try {
-      setError(null)
 
-      // ✅ IMPORTANTE: Atualizar estado LOCAL primeiro (optimistic update)
-      setEmployees(prev => prev.map(emp => ({
-        ...emp,
-        is_manager: emp.id === employeeId
-      })))
+    const { error } = await supabase
+      .from('departments')
+      .update({ manager_id: employeeId })
+      .eq('id', departmentId)
 
-      const { error } = await supabase
-        .from('departments')
-        .update({ manager_id: employeeId })
-        .eq('id', departmentId)
-
-      if (error) {
-        // ✅ Reverter em caso de erro
-        await fetchEmployees()
-        throw error
-      }
-
-      // ✅ Notificar atualização para cards (sem reload)
-      notifyDepartmentsUpdate()
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao atribuir gerente')
-      throw err
-    }
+    if (error) throw error
   }
 
   return {

@@ -60,22 +60,30 @@ export function DepartmentEmployeesModal({
       return
     }
 
+    setIsProcessing(true)
+    
     try {
-      setIsProcessing(true) // ✅ Ativar loading
       await addEmployeeToDepartment(selectedEmployee, 'member', false)
       setSelectedEmployee('')
+      
       toast({
         title: 'Sucesso',
         description: 'Funcionário adicionado ao departamento'
       })
+      
+      // Fechar modal principal e recarregar página para evitar travamento
+      setOpen(false)
+      setTimeout(() => {
+        window.location.reload()
+      }, 300)
+      
     } catch (err) {
+      setIsProcessing(false)
       toast({
         title: 'Erro',
         description: 'Erro ao adicionar funcionário',
         variant: 'destructive'
       })
-    } finally {
-      setIsProcessing(false) // ✅ Sempre resetar loading
     }
   }
 
@@ -90,25 +98,32 @@ export function DepartmentEmployeesModal({
     const employeeName = employeeToRemove.full_name
     const employeeId = employeeToRemove.id
     
-    // Fechar dialog ANTES de processar
+    // Fechar dialogs
     setShowRemoveConfirm(false)
     setEmployeeToRemove(null)
+    setIsProcessing(true)
     
     try {
-      setIsProcessing(true)
       await removeEmployeeFromDepartment(employeeId)
+      
       toast({
         title: 'Sucesso',
         description: `${employeeName} foi removido do departamento`
       })
+      
+      // Fechar modal principal e recarregar página para evitar travamento
+      setOpen(false)
+      setTimeout(() => {
+        window.location.reload()
+      }, 300)
+      
     } catch (err) {
+      setIsProcessing(false)
       toast({
         title: 'Erro',
         description: 'Erro ao remover funcionário',
         variant: 'destructive'
       })
-    } finally {
-      setIsProcessing(false)
     }
   }
 
@@ -123,25 +138,32 @@ export function DepartmentEmployeesModal({
     const employeeName = employeeToMakeManager.full_name
     const employeeId = employeeToMakeManager.id
     
-    // Fechar dialog ANTES de processar
+    // Fechar dialogs
     setShowManagerConfirm(false)
     setEmployeeToMakeManager(null)
+    setIsProcessing(true)
     
     try {
-      setIsProcessing(true)
       await assignManager(employeeId)
+      
       toast({
         title: 'Sucesso',
         description: `${employeeName} foi designado como gerente`
       })
+      
+      // Fechar modal principal e recarregar página para evitar travamento
+      setOpen(false)
+      setTimeout(() => {
+        window.location.reload()
+      }, 300)
+      
     } catch (err) {
+      setIsProcessing(false)
       toast({
         title: 'Erro',
         description: 'Erro ao designar gerente',
         variant: 'destructive'
       })
-    } finally {
-      setIsProcessing(false)
     }
   }
 

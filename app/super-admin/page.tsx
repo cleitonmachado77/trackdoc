@@ -107,6 +107,7 @@ interface UserLimits {
   usersUsagePercent: number
   storageUsagePercent: number
   documentsUsagePercent: number
+  isEntityData: boolean // Indica se os dados são da entidade ou do usuário solo
 }
 
 interface EntityData {
@@ -306,27 +307,29 @@ export default function SuperAdminPage() {
 
       console.log('👥 [loadUserStats] Usuários encontrados:', usersData?.length)
 
-      // Calcular estatísticas para cada usuário usando a nova função SQL
+      // Calcular estatísticas para cada usuário usando a função atualizada
+      // A função get_user_storage_data agora considera se o usuário pertence a uma entidade
       const statsMap: Record<string, UserStats> = {}
       
       if (usersData) {
         for (const user of usersData) {
           try {
-            const { data: userUsage, error: usageError } = await supabase
-              .rpc('calculate_user_storage_usage', { p_user_id: user.id })
+            // Usar get_user_storage_data que já considera entidade
+            const { data: userStorageData, error: storageError } = await supabase
+              .rpc('get_user_storage_data', { p_user_id: user.id })
 
-            if (usageError) {
-              console.warn(`⚠️ [loadUserStats] Erro ao calcular uso para usuário ${user.id}:`, usageError)
+            if (storageError) {
+              console.warn(`⚠️ [loadUserStats] Erro ao calcular uso para usuário ${user.id}:`, storageError)
               continue
             }
 
-            if (userUsage && userUsage.length > 0) {
-              const usage = userUsage[0]
+            if (userStorageData && userStorageData.length > 0) {
+              const data = userStorageData[0]
               statsMap[user.id] = {
                 userId: user.id,
-                documentsCount: usage.documents_count || 0,
-                storageUsedGB: parseFloat(usage.storage_used_gb) || 0,
-                lastActivity: usage.last_document_date
+                documentsCount: data.documents_count || 0,
+                storageUsedGB: parseFloat(data.storage_gb) || 0,
+                lastActivity: null // Pode ser adicionado posteriormente se necessário
               }
             } else {
               // Usuário sem documentos
@@ -372,7 +375,8 @@ export default function SuperAdminPage() {
 
       console.log('👥 [loadUserLimits] Usuários encontrados:', usersData?.length)
 
-      // Calcular dados para cada usuário usando a nova função
+      // Calcular dados para cada usuário usando a função atualizada
+      // A função agora considera se o usuário pertence a uma entidade
       const limitsMap: Record<string, UserLimits> = {}
       
       if (usersData) {
@@ -389,22 +393,25 @@ export default function SuperAdminPage() {
             if (userStorageData && userStorageData.length > 0) {
               const data = userStorageData[0]
               
+              // A função agora retorna dados da entidade se o usuário pertencer a uma
+              // ou dados individuais se for usuário solo
               limitsMap[user.id] = {
                 userId: user.id,
                 planName: data.plan_name || 'Sem plano',
                 planType: data.plan_name !== 'Sem plano' ? 'active' : 'none',
-                maxUsers: 0, // Não aplicável para usuários individuais
+                maxUsers: data.max_users || 1,
                 maxStorageGB: parseFloat(data.max_storage_gb) || 0,
                 maxDocuments: data.max_documents || 0,
-                currentUsers: 0, // Não aplicável para usuários individuais
+                currentUsers: data.users_count || 1,
                 currentStorageGB: parseFloat(data.storage_gb) || 0,
                 currentDocuments: data.documents_count || 0,
-                usersLimitReached: false,
-                storageLimitReached: data.storage_percent >= 100,
-                documentsLimitReached: data.documents_percent >= 100,
-                usersUsagePercent: 0,
+                usersLimitReached: (data.users_percent || 0) >= 100,
+                storageLimitReached: (data.storage_percent || 0) >= 100,
+                documentsLimitReached: (data.documents_percent || 0) >= 100,
+                usersUsagePercent: data.users_percent || 0,
                 storageUsagePercent: data.storage_percent || 0,
-                documentsUsagePercent: data.documents_percent || 0
+                documentsUsagePercent: data.documents_percent || 0,
+                isEntityData: data.is_entity_data || false
               }
             }
           } catch (error) {
@@ -415,6 +422,7 @@ export default function SuperAdminPage() {
 
       console.log('📊 [loadUserLimits] Dados calculados:', {
         totalUsers: Object.keys(limitsMap).length,
+        usersWithEntityData: Object.values(limitsMap).filter(l => l.isEntityData).length,
         sample: Object.values(limitsMap).slice(0, 2)
       })
 
@@ -1686,8 +1694,8 @@ export default function SuperAdminPage() {
                                   </div>
                                 </div>
 
-                                {/* Usuários (se for admin de entidade) */}
-                                {limits && limits.currentUsers > 1 && (
+                                {/* Usuários (se pertence a uma entidade) */}
+                                {limits && limits.isEntityData && (
                                   <div className="flex items-center justify-between text-xs">
                                     <div className="flex items-center gap-1">
                                       <Users className="h-3 w-3 text-gray-400" />
@@ -1695,16 +1703,27 @@ export default function SuperAdminPage() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                       <span>{limits.currentUsers}</span>
-                                      <span className="text-gray-400">/</span>
-                                      <span>{limits.maxUsers}</span>
-                                      <Badge 
-                                        variant={limits.usersLimitReached ? "destructive" : 
-                                                limits.usersUsagePercent > 80 ? "secondary" : "outline"}
-                                        className="text-xs ml-1"
-                                      >
-                                        {limits.usersUsagePercent}%
-                                      </Badge>
+                                      {limits.maxUsers > 0 && (
+                                        <>
+                                          <span className="text-gray-400">/</span>
+                                          <span>{limits.maxUsers}</span>
+                                          <Badge 
+                                            variant={limits.usersLimitReached ? "destructive" : 
+                                                    limits.usersUsagePercent > 80 ? "secondary" : "outline"}
+                                            className="text-xs ml-1"
+                                          >
+                                            {limits.usersUsagePercent}%
+                                          </Badge>
+                                        </>
+                                      )}
                                     </div>
+                                  </div>
+                                )}
+                                {/* Indicador de dados da entidade */}
+                                {limits && limits.isEntityData && (
+                                  <div className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                                    <Building className="h-3 w-3" />
+                                    <span>Dados da entidade</span>
                                   </div>
                                 )}
                               </div>

@@ -19,10 +19,7 @@ import {
   UserCheck,
   Workflow,
   PenTool,
-  X,
-  Settings,
-  Shield,
-  Info
+  X
 } from "lucide-react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useNotificationCounterNotifierSimple } from "@/hooks/use-notification-counter-simple"
@@ -61,7 +58,6 @@ export default function UnifiedNotificationsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterCategory, setFilterCategory] = useState("all")
   const [filterRead, setFilterRead] = useState("all")
-  const [showSettings, setShowSettings] = useState(false)
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -681,14 +677,6 @@ export default function UnifiedNotificationsPage() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => setShowSettings(!showSettings)}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Configurações
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
             onClick={fetchNotifications}
             disabled={loading}
           >
@@ -789,83 +777,7 @@ export default function UnifiedNotificationsPage() {
         </Card>
       )}
 
-      {/* Configurações */}
-      {showSettings && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Configurações de Notificações
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h4 className="font-medium text-foreground">Ações Rápidas</h4>
-                <div className="flex gap-2 flex-wrap">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={selectAllVisible}
-                    disabled={filteredNotifications.length === 0}
-                  >
-                    Selecionar todas visíveis
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={markAllAsRead}
-                    disabled={notifications.filter(n => !n.read).length === 0}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Marcar todas como lidas
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium text-foreground">Limpeza</h4>
-                <div className="flex gap-2 flex-wrap">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={clearReadNotifications}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Limpar lidas
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={clearAllNotifications}
-                    disabled={notifications.length === 0}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Limpar todas
-                  </Button>
-                </div>
-              </div>
-            </div>
-            <div className="border-t pt-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Shield className="h-4 w-4" />
-                <span>Notificações de departamento são automaticamente filtradas</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Info className="h-4 w-4" />
-                <span>As notificações são organizadas por prioridade e categoria</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Bell className="h-4 w-4" />
-                <span>Você recebe apenas notificações importantes (alta/urgente prioridade)</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <RefreshCw className="h-4 w-4" />
-                <span>As notificações são atualizadas automaticamente após exclusão</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Confirmação de exclusão */}
       {showDeleteConfirm && (
@@ -1011,7 +923,7 @@ export default function UnifiedNotificationsPage() {
                 {selectedNotifications.length === filteredNotifications.length ? (
                   <>
                     <X className="h-4 w-4 mr-2" />
-                    Deselecionar todas
+                    Remover seleção
                   </>
                 ) : (
                   <>

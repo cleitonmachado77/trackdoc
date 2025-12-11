@@ -481,12 +481,6 @@ export default function BibliotecaPage() {
                       // Determinar o status a ser exibido
                       const getDisplayStatus = () => {
                         const docStatus = (doc as any).status
-                        const approvalRequired = (doc as any).approval_required
-                        
-                        // Se o documento não requer aprovação e está como draft ou pending_approval
-                        if (!approvalRequired && (docStatus === 'draft' || docStatus === 'pending_approval')) {
-                          return { label: "Sem aprovação", color: "text-gray-600 bg-gray-100" }
-                        }
                         
                         return { 
                           label: statusLabels[docStatus] || docStatus,

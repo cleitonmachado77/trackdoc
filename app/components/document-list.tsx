@@ -452,16 +452,6 @@ export default function DocumentList() {
     }
 
     if (document.status === 'pending_approval') {
-      // Se não requer aprovação, mostrar "Sem aprovação"
-      if (!document.approval_required) {
-        return (
-          <>
-            <AlertCircle className="h-3 w-3 text-gray-500" />
-            <span className="text-xs text-gray-600 font-medium">Sem aprovação</span>
-          </>
-        )
-      }
-      
       return (
         <>
           <Clock className="h-3 w-3 text-yellow-500" />
@@ -557,7 +547,6 @@ export default function DocumentList() {
                                document.status === 'pending_approval' ? 'Em aprovação' :
                                document.status === 'draft' && !document.approval_required ? 'Sem aprovação' :
                                document.status === 'draft' ? 'Rascunho' :
-                               document.status === 'approved' && !document.approval_required ? 'Sem aprovação' :
                                'Aprovado'}
                             </Badge>
                             <DocumentVisibilityBadge
@@ -1184,7 +1173,22 @@ export default function DocumentList() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="approved">Aprovado</SelectItem>
+                  <SelectItem value="pending_approval">Em aprovação</SelectItem>
+                  <SelectItem value="rejected">Rejeitado</SelectItem>
+                  <SelectItem value="draft">Rascunho</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoria</label>
               <Select value={filters.category_id || 'all'} onValueChange={(value) => handleFilterChange('category_id', value)}>

@@ -1325,7 +1325,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                <Button variant="outline" size="sm" onClick={() => refetchApprovals()}>
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Atualizar
                 </Button>
@@ -2089,10 +2089,10 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
           open={showApprovalReviewModal}
           onOpenChange={setShowApprovalReviewModal}
           approval={selectedApproval}
-          onSuccess={() => {
+          onSuccess={async () => {
             setShowApprovalReviewModal(false)
-            // Implementar lógica de sucesso
-            console.log('Aprovação processada com sucesso')
+            // Recarregar lista de aprovações após processar
+            await refetchApprovals()
           }}
         />
       )}

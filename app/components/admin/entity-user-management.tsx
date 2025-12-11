@@ -686,15 +686,18 @@ export default function EntityUserManagement() {
               {planInfo.currentUsers}/{planInfo.maxUsers} usuários
             </div>
           )}
-          <LimitGuard userId={user?.id} limitType="users" showAlert={false}>
-            <Button 
-              onClick={() => setShowCreateModal(true)}
-              disabled={planInfo ? !planInfo.canCreateUser : false}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {planInfo && !planInfo.canCreateUser ? 'Limite Atingido' : 'Cadastrar Usuário'}
-            </Button>
-          </LimitGuard>
+          {/* Botão de cadastrar usuário - apenas para admins da entidade */}
+          {currentUserRole === 'admin' && (
+            <LimitGuard userId={user?.id} limitType="users" showAlert={false}>
+              <Button 
+                onClick={() => setShowCreateModal(true)}
+                disabled={planInfo ? !planInfo.canCreateUser : false}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {planInfo && !planInfo.canCreateUser ? 'Limite Atingido' : 'Cadastrar Usuário'}
+              </Button>
+            </LimitGuard>
+          )}
         </div>
       </div>
 

@@ -62,6 +62,7 @@ interface SubscriptionWithUser {
   user_email: string
   days_remaining: number
   payment_status: 'paid' | 'pending' | 'overdue'
+  is_entity_admin: boolean // true se é admin de entidade, false se é usuário solo
 }
 
 export default function SubscriptionPayments() {
@@ -91,10 +92,47 @@ export default function SubscriptionPayments() {
       console.log('📊 Carregando subscriptions...')
       setLoading(true)
 
-      // Buscar subscriptions
+      // Primeiro, buscar apenas usuários responsáveis por pagamento:
+      // 1. Admins de entidade (entity_role = 'admin' e entity_id IS NOT NULL)
+      // 2. Usuários solo (entity_id IS NULL)
+      const { data: paymentResponsibleUsers, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, entity_id, entity_role')
+        .or('entity_id.is.null,entity_role.eq.admin')
+
+      if (usersError) {
+        console.error('❌ Erro ao buscar usuários responsáveis:', usersError)
+        throw usersError
+      }
+
+      // Filtrar para garantir a lógica correta:
+      // - Usuários solo (entity_id IS NULL)
+      // - Admins de entidade (entity_id NOT NULL e entity_role = 'admin')
+      const filteredUsers = (paymentResponsibleUsers || []).filter(user => 
+        user.entity_id === null || user.entity_role === 'admin'
+      )
+
+      console.log('👥 Usuários responsáveis por pagamento:', filteredUsers.length)
+
+      // Criar mapa de profiles
+      const profilesMap = new Map(
+        filteredUsers.map(p => [p.id, p])
+      )
+
+      // Buscar subscriptions apenas desses usuários
+      const userIds = filteredUsers.map(u => u.id)
+      
+      if (userIds.length === 0) {
+        console.log('⚠️ Nenhum usuário responsável por pagamento encontrado')
+        setSubscriptions([])
+        setLoading(false)
+        return
+      }
+
       const { data: subscriptionsData, error: subsError } = await supabase
         .from('subscriptions')
         .select('*')
+        .in('user_id', userIds)
         .order('created_at', { ascending: false })
 
       if (subsError) {
@@ -104,29 +142,9 @@ export default function SubscriptionPayments() {
 
       console.log('✅ Subscriptions encontradas:', subscriptionsData?.length)
 
-      // Buscar profiles separadamente
-      const userIds = subscriptionsData?.map(sub => sub.user_id).filter(Boolean) || []
-      console.log('👥 Buscando profiles para', userIds.length, 'usuários')
-      
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds)
-
-      if (profilesError) {
-        console.warn('⚠️ Erro ao buscar profiles:', profilesError)
-      } else {
-        console.log('✅ Profiles encontrados:', profilesData?.length)
-      }
-
-      // Criar mapa de profiles
-      const profilesMap = new Map(
-        (profilesData || []).map(p => [p.id, p])
-      )
-
       // Processar dados
       const processedData: SubscriptionWithUser[] = (subscriptionsData || []).map((sub: any) => {
-        const profile = profilesMap.get(sub.user_id)
+        const profile = profilesMap.get(sub.user_id) as any
         const nextBillingDate = sub.next_billing_date || sub.end_date
         const daysRemaining = nextBillingDate 
           ? differenceInDays(new Date(nextBillingDate), new Date())
@@ -138,6 +156,9 @@ export default function SubscriptionPayments() {
         } else if (daysRemaining <= 7) {
           paymentStatus = 'pending'
         }
+
+        // Determinar se é admin de entidade ou usuário solo
+        const isEntityAdmin = profile?.entity_id !== null && profile?.entity_role === 'admin'
 
         return {
           id: sub.id,
@@ -157,6 +178,7 @@ export default function SubscriptionPayments() {
           user_email: profile?.email || 'Sem email',
           days_remaining: daysRemaining,
           payment_status: paymentStatus,
+          is_entity_admin: isEntityAdmin,
         }
       })
 
@@ -502,9 +524,20 @@ export default function SubscriptionPayments() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div>
-                          <h3 className="font-semibold text-gray-900">
-                            {subscription.user_name}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">
+                              {subscription.user_name}
+                            </h3>
+                            {subscription.is_entity_admin ? (
+                              <Badge className="bg-purple-100 text-purple-800 text-xs">
+                                Admin Entidade
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                Usuário Solo
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">{subscription.user_email}</p>
                         </div>
                       </div>

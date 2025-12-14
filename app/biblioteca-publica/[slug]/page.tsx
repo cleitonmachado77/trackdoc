@@ -46,13 +46,19 @@ interface Entity {
   logo_url: string | null
 }
 
+interface OwnerInfo {
+  name: string
+  logo_url: string | null
+  isEntity: boolean
+}
+
 export default function BibliotecaPublicaPage() {
   const params = useParams()
   const slug = params.slug as string
   
   const [items, setItems] = useState<LibraryItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [entity, setEntity] = useState<Entity | null>(null)
+  const [owner, setOwner] = useState<OwnerInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -69,87 +75,142 @@ export default function BibliotecaPublicaPage() {
     }
   }, [slug])
 
-  // Atualizar título da aba quando a entidade for carregada
+  // Atualizar título da aba quando o owner for carregado
   useEffect(() => {
-    if (entity) {
-      document.title = `Biblioteca Pública | ${entity.name}`
+    if (owner) {
+      document.title = `Biblioteca Pública | ${owner.name}`
     }
-  }, [entity])
+  }, [owner])
 
   const loadLibrary = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Primeiro, tentar buscar a entidade diretamente pelo slug
+      let ownerInfo: OwnerInfo | null = null
+      let entityId: string | null = null
+      let userId: string | null = null
+
+      // 1. Primeiro, tentar buscar a entidade diretamente pelo slug
       const { data: entityBySlug, error: entitySlugError } = await supabase
         .from("entities")
         .select("id, name, logo_url")
         .eq("id", slug)
         .single()
 
-      let entityId: string | null = null
-      let entityInfo: Entity | null = null
-
       if (!entitySlugError && entityBySlug) {
         // Slug é o ID da entidade
         entityId = entityBySlug.id
-        entityInfo = { name: entityBySlug.name, logo_url: entityBySlug.logo_url }
-      } else {
-        // Tentar buscar pelo public_slug de algum documento
-        const { data: firstItem, error: firstError } = await supabase
-          .from("public_library")
-          .select("entity_id")
-          .eq("public_slug", slug)
-          .eq("is_active", true)
-          .limit(1)
-          .single()
-
-        if (firstError || !firstItem) {
-          setError("Biblioteca não encontrada")
-          return
+        ownerInfo = { 
+          name: entityBySlug.name, 
+          logo_url: entityBySlug.logo_url,
+          isEntity: true 
         }
-
-        entityId = firstItem.entity_id
-
-        // Buscar informações da entidade
-        const { data: entityData, error: entityError } = await supabase
-          .from("entities")
-          .select("name, logo_url")
-          .eq("id", entityId)
+      } else {
+        // 2. Tentar buscar como usuário solo (slug é user_id)
+        const { data: userProfile, error: userError } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .eq("id", slug)
           .single()
 
-        if (entityError) throw entityError
-        entityInfo = entityData
+        if (!userError && userProfile) {
+          // Slug é o ID do usuário solo
+          userId = userProfile.id
+          ownerInfo = {
+            name: userProfile.full_name || "Usuário",
+            logo_url: null,
+            isEntity: false
+          }
+        } else {
+          // 3. Tentar buscar pelo public_slug de algum documento
+          const { data: firstItem, error: firstError } = await supabase
+            .from("public_library")
+            .select("entity_id, created_by")
+            .eq("public_slug", slug)
+            .eq("is_active", true)
+            .limit(1)
+            .single()
+
+          if (firstError || !firstItem) {
+            setError("Biblioteca não encontrada")
+            return
+          }
+
+          if (firstItem.entity_id) {
+            entityId = firstItem.entity_id
+            // Buscar informações da entidade
+            const { data: entityData, error: entityError } = await supabase
+              .from("entities")
+              .select("name, logo_url")
+              .eq("id", entityId)
+              .single()
+
+            if (entityError) throw entityError
+            ownerInfo = { 
+              name: entityData.name, 
+              logo_url: entityData.logo_url,
+              isEntity: true 
+            }
+          } else if (firstItem.created_by) {
+            userId = firstItem.created_by
+            // Buscar informações do usuário solo
+            const { data: userData, error: userError } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("id", userId)
+              .single()
+
+            if (userError) throw userError
+            ownerInfo = {
+              name: userData.full_name || "Usuário",
+              logo_url: null,
+              isEntity: false
+            }
+          }
+        }
       }
 
-      if (!entityId || !entityInfo) {
+      if (!ownerInfo || (!entityId && !userId)) {
         setError("Biblioteca não encontrada")
         return
       }
 
-      // Buscar categorias da entidade
-      const { data: categoriesData } = await supabase
+      // Buscar categorias
+      let categoriesQuery = supabase
         .from("library_categories")
         .select("*")
-        .eq("entity_id", entityId)
         .eq("is_active", true)
         .order("display_order", { ascending: true })
 
+      if (entityId) {
+        categoriesQuery = categoriesQuery.eq("entity_id", entityId)
+      } else if (userId) {
+        categoriesQuery = categoriesQuery.eq("created_by", userId)
+      }
+
+      const { data: categoriesData } = await categoriesQuery
       setCategories(categoriesData || [])
 
-      // Buscar todos os documentos ativos da entidade
-      const { data: libraryData, error: libraryError } = await supabase
+      // Buscar todos os documentos ativos
+      let libraryQuery = supabase
         .from("public_library")
         .select("*")
-        .eq("entity_id", entityId)
         .eq("is_active", true)
         .order("display_order", { ascending: true })
+
+      if (entityId) {
+        libraryQuery = libraryQuery.eq("entity_id", entityId)
+      } else if (userId) {
+        libraryQuery = libraryQuery.eq("created_by", userId)
+      }
+
+      const { data: libraryData, error: libraryError } = await libraryQuery
 
       if (libraryError) throw libraryError
 
       setItems(libraryData || [])
-      setEntity(entityInfo)
+      setOwner(ownerInfo)
     } catch (error: any) {
       console.error("Erro ao carregar biblioteca:", error)
       setError("Erro ao carregar biblioteca pública")
@@ -213,7 +274,7 @@ export default function BibliotecaPublicaPage() {
     )
   }
 
-  if (error || !entity) {
+  if (error || !owner) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Card className="max-w-md shadow-lg">
@@ -260,24 +321,30 @@ export default function BibliotecaPublicaPage() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {entity.logo_url ? (
+              {owner.isEntity && owner.logo_url ? (
                 <div className="h-16 w-16 rounded-lg overflow-hidden border flex items-center justify-center bg-white p-2">
                   <img
-                    src={entity.logo_url}
-                    alt={entity.name}
+                    src={owner.logo_url}
+                    alt={owner.name}
                     className="h-full w-full object-contain"
                   />
                 </div>
               ) : (
                 <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center border">
-                  <Building2 className="h-8 w-8 text-gray-600" />
+                  {owner.isEntity ? (
+                    <Building2 className="h-8 w-8 text-gray-600" />
+                  ) : (
+                    <FileText className="h-8 w-8 text-gray-600" />
+                  )}
                 </div>
               )}
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {entity.name}
+                  {owner.isEntity ? owner.name : `Biblioteca de ${owner.name}`}
                 </h1>
-                <p className="text-gray-600 mt-1">Biblioteca Pública de Documentos</p>
+                <p className="text-gray-600 mt-1">
+                  {owner.isEntity ? "Biblioteca Pública de Documentos" : "Documentos Públicos"}
+                </p>
               </div>
             </div>
             

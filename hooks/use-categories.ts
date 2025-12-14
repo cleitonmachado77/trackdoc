@@ -13,6 +13,7 @@ export interface Category {
   description?: string
   color?: string
   entity_id?: string
+  created_by?: string
   status: 'active' | 'inactive'
   created_at: string
   updated_at: string
@@ -32,7 +33,7 @@ export function useCategories() {
       setError(null)
 
       // Buscar o profile do usuário para obter entity_id
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b' // ID padrão da entidade
+      let entityId: string | null = null
       
       if (user?.id) {
         const { data: profileData } = await supabase
@@ -41,16 +42,21 @@ export function useCategories() {
           .eq('id', user.id)
           .single()
         
-        if (profileData?.entity_id) {
-          entityId = profileData.entity_id
-        }
+        entityId = profileData?.entity_id || null
       }
 
       let query = supabase
         .from('categories')
         .select('*')
-        .eq('entity_id', entityId)
         .order('name', { ascending: true })
+
+      // Filtrar por entity_id ou por created_by (usuários solo)
+      if (entityId) {
+        query = query.eq('entity_id', entityId)
+      } else if (user?.id) {
+        // Usuário solo: buscar apenas categorias criadas por ele
+        query = query.is('entity_id', null).eq('created_by', user.id)
+      }
 
       const { data, error } = await query
 
@@ -95,7 +101,7 @@ export function useCategories() {
       setError(null)
 
       // Buscar o profile do usuário para obter entity_id
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b' // ID padrão da entidade
+      let entityId: string | null = null
       
       if (user?.id) {
         const { data: profileData } = await supabase
@@ -104,16 +110,15 @@ export function useCategories() {
           .eq('id', user.id)
           .single()
         
-        if (profileData?.entity_id) {
-          entityId = profileData.entity_id
-        }
+        entityId = profileData?.entity_id || null
       }
 
       const { data, error } = await supabase
         .from('categories')
         .insert({
           ...categoryData,
-          entity_id: entityId
+          entity_id: entityId,
+          created_by: user?.id
         })
         .select()
         .single()

@@ -144,26 +144,37 @@ export function useDepartmentEmployees(departmentId?: string) {
 
   const fetchAvailableEmployees = useCallback(async () => {
     try {
-      let availableQuery = supabase
-        .from('profiles')
-        .select('*')
-        .order('full_name', { ascending: true })
+      if (!user?.id) {
+        setAvailableEmployees([])
+        return
+      }
+
+      let filteredData: any[] = []
 
       if (entityId) {
-        availableQuery = availableQuery.eq('entity_id', entityId)
+        // Usuário com entidade - buscar todos os usuários da mesma entidade
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('entity_id', entityId)
+          .in('status', ['active', 'inactive'])
+          .order('full_name', { ascending: true })
+
+        if (error) throw error
+        filteredData = data || []
       } else {
-        availableQuery = availableQuery.is('entity_id', null)
+        // Usuário solo - retornar apenas o próprio usuário
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (error) throw error
+        filteredData = profileData ? [profileData] : []
       }
 
-      const { data, error } = await availableQuery
-
-      if (error) throw error
-
-      let filteredData = data || []
-      if (entityId && filteredData.length > 0) {
-        filteredData = filteredData.filter(profile => profile.entity_id === entityId)
-      }
-
+      // Filtrar usuários que já estão no departamento
       if (departmentId && filteredData.length > 0) {
         const { data: departmentUsers, error: deptError } = await supabase
           .from('user_departments')
@@ -179,10 +190,11 @@ export function useDepartmentEmployees(departmentId?: string) {
       } else {
         setAvailableEmployees(filteredData)
       }
-    } catch {
+    } catch (err) {
+      console.error('Erro ao carregar funcionários disponíveis:', err)
       setAvailableEmployees([])
     }
-  }, [departmentId, entityId])
+  }, [departmentId, entityId, user?.id])
 
 
   const addEmployeeToDepartment = async (

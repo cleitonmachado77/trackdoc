@@ -53,11 +53,13 @@ interface Category {
 }
 
 interface LibraryCategoryManagerProps {
-  entityId: string
+  entityId: string | null
+  userId?: string | null
+  isSoloUser?: boolean
   onCategoryChange?: () => void | Promise<void>
 }
 
-export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCategoryManagerProps) {
+export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, onCategoryChange }: LibraryCategoryManagerProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -66,6 +68,9 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null)
   const { toast } = useToast()
+  
+  // ID efetivo para consultas
+  const effectiveId = entityId || userId
 
   const [formData, setFormData] = useState({
     name: "",
@@ -75,17 +80,31 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
   })
 
   useEffect(() => {
-    loadCategories()
-  }, [entityId])
+    if (effectiveId) {
+      loadCategories()
+    }
+  }, [effectiveId])
 
   const loadCategories = async () => {
+    if (!effectiveId) return
+    
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from("library_categories")
         .select("*")
-        .eq("entity_id", entityId)
         .order("display_order", { ascending: true })
+
+      // Usuário com entidade: filtrar por entity_id
+      // Usuário solo: filtrar por created_by
+      if (entityId) {
+        query = query.eq("entity_id", entityId)
+      } else if (userId) {
+        query = query.eq("created_by", userId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 
@@ -141,16 +160,23 @@ export function LibraryCategoryManager({ entityId, onCategoryChange }: LibraryCa
         })
       } else {
         // Criar nova categoria
+        // Para usuários solo (sem entidade), entity_id será null
+        const insertData: any = {
+          name: formData.name,
+          description: formData.description,
+          icon: formData.icon,
+          color: formData.color,
+          created_by: user?.id,
+        }
+        
+        // Adicionar entity_id apenas se existir
+        if (entityId) {
+          insertData.entity_id = entityId
+        }
+        
         const { error } = await supabase
           .from("library_categories")
-          .insert({
-            entity_id: entityId,
-            name: formData.name,
-            description: formData.description,
-            icon: formData.icon,
-            color: formData.color,
-            created_by: user?.id,
-          })
+          .insert(insertData)
 
         if (error) throw error
 

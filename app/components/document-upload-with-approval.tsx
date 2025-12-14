@@ -513,6 +513,10 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 label="Categoria *"
                 className={`h-8 text-sm ${!selectedCategory ? 'border-red-300 focus:border-red-500' : ''}`}
                 onCreate={async (data) => {
+                  // Buscar usuário atual da sessão
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const currentUserId = sessionData?.session?.user?.id
+                  
                   const { data: newCat, error } = await supabase
                     .from('categories')
                     .insert({
@@ -520,7 +524,8 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                       description: data.description || '',
                       color: data.color || '#3B82F6',
                       status: 'active',
-                      entity_id: profile?.entity_id || null
+                      entity_id: profile?.entity_id || null,
+                      created_by: currentUserId
                     })
                     .select()
                     .single()
@@ -567,6 +572,10 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 label="Departamento *"
                 className={`h-8 text-sm ${!selectedDepartment ? 'border-red-300 focus:border-red-500' : ''}`}
                 onCreate={async (data) => {
+                  // Buscar usuário atual da sessão
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const currentUserId = sessionData?.session?.user?.id
+                  
                   const { data: newDept, error } = await supabase
                     .from('departments')
                     .insert({
@@ -574,7 +583,8 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                       description: data.description || '',
                       manager_id: data.manager_id || null,
                       status: 'active',
-                      entity_id: profile?.entity_id || null
+                      entity_id: profile?.entity_id || null,
+                      created_by: currentUserId
                     })
                     .select()
                     .single()
@@ -615,6 +625,10 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 label="Tipo de Documento *"
                 className={`h-8 text-sm ${!selectedDocumentType ? 'border-red-300 focus:border-red-500' : ''}`}
                 onCreate={async (data) => {
+                  // Buscar usuário atual da sessão
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const currentUserId = sessionData?.session?.user?.id
+                  
                   const { data: newType, error } = await supabase
                     .from('document_types')
                     .insert({
@@ -624,9 +638,10 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                       color: data.color || '#3B82F6',
                       status: 'active',
                       approval_required: data.approval_required === 'true',
-                      retention_period: parseInt(data.retention_period) || 24,
-                      required_fields: ['title', 'author'], // Garantir campos obrigatórios padrão
-                      entity_id: profile?.entity_id || null
+                      retention_period: data.retention_period ? parseInt(data.retention_period) : 0,
+                      required_fields: ['title', 'author'],
+                      entity_id: profile?.entity_id || null,
+                      created_by: currentUserId
                     })
                     .select()
                     .single()
@@ -670,7 +685,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                       { value: 'true', label: 'Sim' }
                     ]
                   },
-                  { name: 'retention_period', label: 'Período de Retenção (meses)', type: 'text', placeholder: '24' },
+                  { name: 'retention_period', label: 'Período de Retenção (meses)', type: 'text', placeholder: '0' },
                   { 
                     name: 'color', 
                     label: 'Cor', 

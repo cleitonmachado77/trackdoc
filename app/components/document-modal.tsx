@@ -386,6 +386,10 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                 disabled={isReadOnly || (isEdit && formData.status !== "draft")}
                 className={isReadOnly ? "bg-gray-50" : ""}
                 onCreate={async (data) => {
+                  // Buscar usuário atual da sessão
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const currentUserId = sessionData?.session?.user?.id
+                  
                   const { data: newDept, error } = await supabase
                     .from('departments')
                     .insert({
@@ -393,7 +397,8 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                       description: data.description || '',
                       manager_id: data.manager_id || null,
                       status: 'active',
-                      entity_id: profile?.entity_id || null
+                      entity_id: profile?.entity_id || null,
+                      created_by: currentUserId
                     })
                     .select()
                     .single()
@@ -435,6 +440,10 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                 disabled={isReadOnly || (isEdit && formData.status !== "draft")}
                 className={isReadOnly || isEdit ? "bg-gray-50" : ""}
                 onCreate={async (data) => {
+                  // Buscar usuário atual da sessão
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const currentUserId = sessionData?.session?.user?.id
+                  
                   const { data: newType, error } = await supabase
                     .from('document_types')
                     .insert({
@@ -443,7 +452,8 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                       prefix: data.prefix,
                       color: data.color || '#3B82F6',
                       status: 'active',
-                      entity_id: profile?.entity_id || null
+                      entity_id: profile?.entity_id || null,
+                      created_by: currentUserId
                     })
                     .select()
                     .single()
@@ -494,6 +504,10 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                 disabled={isReadOnly || (isEdit && formData.status !== "draft")}
                 className={isReadOnly ? "bg-gray-50" : ""}
                 onCreate={async (data) => {
+                  // Buscar usuário atual da sessão
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const currentUserId = sessionData?.session?.user?.id
+                  
                   const { data: newCat, error } = await supabase
                     .from('categories')
                     .insert({
@@ -501,7 +515,8 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                       description: data.description,
                       color: data.color || '#3B82F6',
                       status: 'active',
-                      entity_id: profile?.entity_id || null
+                      entity_id: profile?.entity_id || null,
+                      created_by: currentUserId
                     })
                     .select()
                     .single()

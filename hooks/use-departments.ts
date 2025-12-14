@@ -32,28 +32,41 @@ export function useDepartments() {
       setLoading(true)
       setError(null)
 
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b'
-      
-      if (user?.id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('entity_id')
-          .eq('id', user.id)
-          .single()
-        
-        if (profileData?.entity_id) {
-          entityId = profileData.entity_id
-        }
+      if (!user?.id) {
+        setDepartments([])
+        return
       }
 
-      const { data, error: queryError } = await supabase
+      // Buscar entity_id do usuário
+      let entityId: string | null = null
+      
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('entity_id')
+        .eq('id', user.id)
+        .single()
+      
+      if (profileData?.entity_id) {
+        entityId = profileData.entity_id
+      }
+
+      // Buscar departamentos
+      let query = supabase
         .from('departments')
         .select(`
           *,
           manager:profiles!departments_manager_id_fkey(full_name)
         `)
-        .eq('entity_id', entityId)
-        .order('name', { ascending: true })
+      
+      if (entityId) {
+        // Usuário com entidade - buscar por entity_id
+        query = query.eq('entity_id', entityId)
+      } else {
+        // Usuário solo - buscar departamentos criados por ele
+        query = query.is('entity_id', null).eq('created_by', user.id)
+      }
+
+      const { data, error: queryError } = await query.order('name', { ascending: true })
 
       if (queryError) throw queryError
 
@@ -115,33 +128,120 @@ export function useDepartments() {
     try {
       setError(null)
 
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b'
+      console.log('🚀 [createDepartment] Iniciando criação de departamento:', departmentData)
+      console.log('👤 [createDepartment] User ID:', user?.id)
+
+      if (!user?.id) {
+        throw new Error('Usuário não autenticado. Por favor, faça login novamente.')
+      }
+
+      // Buscar entity_id do usuário (pode ser null para usuários solo)
+      let entityId: string | null = null
       
-      if (user?.id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('entity_id')
-          .eq('id', user.id)
-          .single()
-        
-        if (profileData?.entity_id) {
-          entityId = profileData.entity_id
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('entity_id')
+        .eq('id', user.id)
+        .single()
+      
+      console.log('📋 [createDepartment] Profile data:', profileData, 'Error:', profileError)
+      
+      if (profileData?.entity_id) {
+        entityId = profileData.entity_id
+      }
+
+      console.log('🏢 [createDepartment] Entity ID:', entityId, '(usuário solo:', !entityId, ')')
+
+      // Verificar se já existe um departamento com o mesmo nome
+      const normalizedName = (departmentData.name || '').trim().toLowerCase()
+      
+      // Buscar departamentos existentes
+      let query = supabase
+        .from('departments')
+        .select('id, name, status')
+      
+      if (entityId) {
+        // Usuário com entidade - buscar por entity_id
+        query = query.eq('entity_id', entityId)
+        console.log('🔍 [createDepartment] Verificando departamentos existentes para entity_id:', entityId)
+      } else {
+        // Usuário solo - buscar departamentos criados por ele
+        query = query.is('entity_id', null).eq('created_by', user.id)
+        console.log('🔍 [createDepartment] Verificando departamentos existentes para usuário solo (created_by:', user.id, ')')
+      }
+
+      const { data: existingDepartments, error: checkError } = await query
+
+      console.log('📊 [createDepartment] Departamentos existentes:', existingDepartments)
+
+      if (checkError) {
+        console.error('❌ [createDepartment] Erro ao verificar departamentos:', checkError)
+        throw checkError
+      }
+
+      // Verificar manualmente para garantir comparação case-insensitive
+      const existingDepartment = existingDepartments?.find(
+        dept => dept.name.toLowerCase().trim() === normalizedName
+      )
+
+      if (existingDepartment) {
+        console.log('⚠️ [createDepartment] Departamento duplicado encontrado:', existingDepartment)
+        if (existingDepartment.status === 'active') {
+          throw new Error(`Já existe um departamento ativo com o nome "${departmentData.name}".`)
+        } else {
+          throw new Error(`Já existe um departamento inativo com o nome "${departmentData.name}". Para reutilizar este nome, primeiro exclua permanentemente o departamento anterior ou reative-o.`)
         }
       }
 
+      // Preparar dados para inserção, removendo campos vazios ou inválidos
+      const insertData: Record<string, any> = {
+        name: departmentData.name,
+        status: departmentData.status || 'active',
+        created_by: user.id
+      }
+
+      // Adicionar entity_id apenas se o usuário tiver uma entidade
+      if (entityId) {
+        insertData.entity_id = entityId
+      }
+      // Para usuários solo, entity_id será NULL (permitido pela tabela)
+
+      // Adicionar campos opcionais apenas se tiverem valor
+      if (departmentData.description && departmentData.description.trim()) {
+        insertData.description = departmentData.description.trim()
+      }
+      
+      if (departmentData.manager_id && departmentData.manager_id.trim()) {
+        insertData.manager_id = departmentData.manager_id
+      }
+
+      console.log('📝 [createDepartment] Inserindo departamento:', insertData)
+
       const { data: department, error: deptError } = await supabase
         .from('departments')
-        .insert({
-          ...departmentData,
-          entity_id: entityId
-        })
+        .insert(insertData)
         .select(`
           *,
           manager:profiles!departments_manager_id_fkey(full_name)
         `)
         .single()
 
-      if (deptError) throw deptError
+      if (deptError) {
+        console.error('❌ [createDepartment] Erro ao criar departamento:', {
+          code: deptError.code,
+          message: deptError.message,
+          details: deptError.details,
+          hint: deptError.hint
+        })
+        
+        // Tratar erro de conflito (409) - nome duplicado
+        if (deptError.code === '23505' || deptError.message?.includes('duplicate') || deptError.message?.includes('unique')) {
+          throw new Error(`Já existe um departamento com o nome "${departmentData.name}". Por favor, escolha outro nome. (Erro: ${deptError.message})`)
+        }
+        throw new Error(deptError.message || 'Erro ao criar departamento')
+      }
+      
+      console.log('✅ [createDepartment] Departamento criado:', department)
 
       if (departmentData.manager_id) {
         const { error: addManagerError } = await supabase
@@ -175,9 +275,76 @@ export function useDepartments() {
     try {
       setError(null)
 
+      // Se está atualizando o nome, verificar se já existe outro departamento com o mesmo nome
+      if (updates.name && user?.id) {
+        // Buscar entity_id do usuário
+        let entityId: string | null = null
+        
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('entity_id')
+          .eq('id', user.id)
+          .single()
+        
+        if (profileData?.entity_id) {
+          entityId = profileData.entity_id
+        }
+
+        const normalizedName = updates.name.trim().toLowerCase()
+        
+        // Buscar departamentos existentes
+        let query = supabase
+          .from('departments')
+          .select('id, name, status')
+          .neq('id', id) // Excluir o próprio departamento da verificação
+        
+        if (entityId) {
+          query = query.eq('entity_id', entityId)
+        } else {
+          query = query.is('entity_id', null).eq('created_by', user.id)
+        }
+
+        const { data: existingDepartments, error: checkError } = await query
+
+        if (checkError) throw checkError
+
+        // Verificar manualmente para garantir comparação case-insensitive
+        const existingDepartment = existingDepartments?.find(
+          dept => dept.name.toLowerCase().trim() === normalizedName
+        )
+
+        if (existingDepartment) {
+          if (existingDepartment.status === 'active') {
+            throw new Error(`Já existe um departamento ativo com o nome "${updates.name}".`)
+          } else {
+            throw new Error(`Já existe um departamento inativo com o nome "${updates.name}". Para reutilizar este nome, primeiro exclua permanentemente o departamento anterior ou reative-o.`)
+          }
+        }
+      }
+
+      // Preparar dados para atualização, tratando campos vazios
+      const updateData: Record<string, any> = {}
+
+      if (updates.name !== undefined) {
+        updateData.name = updates.name
+      }
+      
+      if (updates.description !== undefined) {
+        updateData.description = updates.description?.trim() || null
+      }
+      
+      if (updates.status !== undefined) {
+        updateData.status = updates.status
+      }
+      
+      // Para manager_id, string vazia significa remover o gerente (null)
+      if (updates.manager_id !== undefined) {
+        updateData.manager_id = updates.manager_id?.trim() || null
+      }
+
       const { data: department, error: deptError } = await supabase
         .from('departments')
-        .update(updates)
+        .update(updateData)
         .eq('id', id)
         .select(`
           *,
@@ -187,7 +354,7 @@ export function useDepartments() {
 
       if (deptError) throw deptError
 
-      if (updates.manager_id) {
+      if (updates.manager_id && updates.manager_id.trim()) {
         const { error: addManagerError } = await supabase
           .rpc('add_manager_to_department', {
             p_department_id: id,

@@ -369,6 +369,30 @@ export async function createDepartment(departmentData: Omit<Department, "id">) {
       return { success: false, error: "Erro ao buscar perfil do usuário" }
     }
 
+    const entityId = profileData?.entity_id || 'ebde2fef-30e2-458b-8721-d86df2f6865b'
+
+    // Verificar se já existe um departamento com o mesmo nome na entidade
+    const { data: existingDepartment, error: checkError } = await supabase
+      .from("departments")
+      .select("id, name, status")
+      .eq("entity_id", entityId)
+      .ilike("name", departmentData.name)
+      .limit(1)
+
+    if (checkError) {
+      console.error("Erro ao verificar departamento existente:", checkError)
+      return { success: false, error: "Erro ao verificar departamentos existentes" }
+    }
+
+    if (existingDepartment && existingDepartment.length > 0) {
+      const existing = existingDepartment[0]
+      if (existing.status === 'active') {
+        return { success: false, error: `Já existe um departamento ativo com o nome "${departmentData.name}".` }
+      } else {
+        return { success: false, error: `Já existe um departamento inativo com o nome "${departmentData.name}". Para reutilizar este nome, primeiro exclua permanentemente o departamento anterior ou reative-o.` }
+      }
+    }
+
     // Criar departamento com entity_id
     const { data, error } = await supabase
       .from("departments")
@@ -377,7 +401,7 @@ export async function createDepartment(departmentData: Omit<Department, "id">) {
         description: departmentData.description,
         manager_id: departmentData.manager_id === "" ? null : departmentData.manager_id,
         status: departmentData.status || 'active',
-        entity_id: profileData?.entity_id || 'ebde2fef-30e2-458b-8721-d86df2f6865b'
+        entity_id: entityId
       })
       .select(`
         *,
@@ -437,6 +461,31 @@ export async function updateDepartment(id: string, departmentData: Partial<Depar
     // Verificar se o usuário pode editar este departamento
     if (existingDept.entity_id !== profileData?.entity_id) {
       return { success: false, error: "Sem permissão para editar este departamento" }
+    }
+
+    // Se está atualizando o nome, verificar se já existe outro departamento com o mesmo nome
+    if (departmentData.name && departmentData.name !== existingDept.name) {
+      const { data: duplicateDepartment, error: duplicateError } = await supabase
+        .from("departments")
+        .select("id, name, status")
+        .eq("entity_id", existingDept.entity_id)
+        .ilike("name", departmentData.name)
+        .neq("id", id) // Excluir o próprio departamento da verificação
+        .limit(1)
+
+      if (duplicateError) {
+        console.error("Erro ao verificar departamento duplicado:", duplicateError)
+        return { success: false, error: "Erro ao verificar departamentos existentes" }
+      }
+
+      if (duplicateDepartment && duplicateDepartment.length > 0) {
+        const duplicate = duplicateDepartment[0]
+        if (duplicate.status === 'active') {
+          return { success: false, error: `Já existe um departamento ativo com o nome "${departmentData.name}".` }
+        } else {
+          return { success: false, error: `Já existe um departamento inativo com o nome "${departmentData.name}". Para reutilizar este nome, primeiro exclua permanentemente o departamento anterior ou reative-o.` }
+        }
+      }
     }
 
     // Atualizar departamento

@@ -38,7 +38,7 @@ import {
 interface DepartmentFormData {
   name: string
   description: string
-  manager_id: string
+  manager_id?: string
   status: "active" | "inactive"
 }
 
@@ -113,15 +113,6 @@ export default function DepartmentManagement() {
 
   // Handlers
   const handleSaveDepartment = useCallback(async (departmentData: DepartmentFormData) => {
-    if (!departmentData.manager_id) {
-      toast({
-        title: "Gerente obrigatório",
-        description: "É necessário selecionar um gerente para o departamento.",
-        variant: "destructive",
-      })
-      return
-    }
-
     setIsSubmitting(true)
     try {
       if (selectedDepartment) {
@@ -379,11 +370,16 @@ export default function DepartmentManagement() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" aria-describedby="department-form-description">
           <DialogHeader>
             <DialogTitle>
               {selectedDepartment ? "Editar Departamento" : "Novo Departamento"}
             </DialogTitle>
+            <DialogDescription id="department-form-description">
+              {selectedDepartment 
+                ? "Edite as informações do departamento abaixo." 
+                : "Preencha as informações para criar um novo departamento."}
+            </DialogDescription>
           </DialogHeader>
           <DepartmentForm
             key={selectedDepartment?.id || 'new'}
@@ -641,11 +637,11 @@ function DepartmentManagerInfo({ department }: { department: Department }) {
   
   if (!managerName) {
     return (
-      <div className="flex items-center space-x-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-        <AlertTriangle className="h-5 w-5 text-yellow-600" />
+      <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <AlertTriangle className="h-5 w-5 text-gray-500" />
         <div>
-          <p className="text-sm font-medium text-yellow-800">Sem gerente atribuído</p>
-          <p className="text-xs text-yellow-600">Este departamento precisa de um gerente</p>
+          <p className="text-sm font-medium text-gray-700">Sem gerente atribuído</p>
+          <p className="text-xs text-gray-500">Gerente pode ser atribuído posteriormente</p>
         </div>
       </div>
     )
@@ -777,6 +773,10 @@ function DepartmentForm({
     manager_id: "",
     status: "active",
   })
+  const [nameValidation, setNameValidation] = useState<{
+    isChecking: boolean
+    error: string | null
+  }>({ isChecking: false, error: null })
 
   // Atualizar form data quando department mudar
   useEffect(() => {
@@ -797,10 +797,46 @@ function DepartmentForm({
     }
   }, [department])
 
+  const { departments } = useDepartments()
+
   const handleInputChange = useCallback((field: keyof DepartmentFormData, value: string | boolean) => {
     const newValue = field === 'status' ? (value ? 'active' : 'inactive') : value
     setFormData(prev => ({ ...prev, [field]: newValue }))
+    
+    // Validar nome em tempo real
+    if (field === 'name' && typeof value === 'string') {
+      validateDepartmentName(value)
+    }
   }, [])
+
+  const validateDepartmentName = useCallback((name: string) => {
+    if (!name.trim()) {
+      setNameValidation({ isChecking: false, error: null })
+      return
+    }
+
+    // Verificar se já existe um departamento com o mesmo nome (excluindo o atual se estiver editando)
+    const existingDepartment = departments.find(dept => 
+      dept.name.toLowerCase() === name.toLowerCase() && 
+      dept.id !== department?.id
+    )
+
+    if (existingDepartment) {
+      if (existingDepartment.status === 'active') {
+        setNameValidation({ 
+          isChecking: false, 
+          error: `Já existe um departamento ativo com o nome "${name}".` 
+        })
+      } else {
+        setNameValidation({ 
+          isChecking: false, 
+          error: `Já existe um departamento inativo com o nome "${name}". Para reutilizar este nome, primeiro exclua permanentemente o departamento anterior ou reative-o.` 
+        })
+      }
+    } else {
+      setNameValidation({ isChecking: false, error: null })
+    }
+  }, [departments, department?.id])
 
   const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -808,8 +844,11 @@ function DepartmentForm({
   }, [formData, onSave])
 
   const isFormValid = useMemo(() => {
-    return !!(formData.name.trim() && formData.manager_id && formData.manager_id.trim() !== '')
-  }, [formData.name, formData.manager_id])
+    return !!(
+      formData.name.trim() && 
+      !nameValidation.error
+    )
+  }, [formData.name, nameValidation.error])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -822,8 +861,18 @@ function DepartmentForm({
           placeholder="Ex: Tecnologia da Informação"
           required
           maxLength={100}
+          className={nameValidation.error ? "border-red-500 focus:border-red-500" : ""}
         />
-        {formData.name.length > 80 && (
+        {nameValidation.error && (
+          <div className="flex items-start space-x-2 p-3 bg-red-50 border border-red-200 rounded-md">
+            <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-red-800">
+              <p className="font-medium">Nome já existe</p>
+              <p className="mt-1">{nameValidation.error}</p>
+            </div>
+          </div>
+        )}
+        {formData.name.length > 80 && !nameValidation.error && (
           <p className="text-xs text-yellow-600">
             {formData.name.length}/100 caracteres
           </p>
@@ -848,20 +897,27 @@ function DepartmentForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="manager">Gerente *</Label>
+        <Label htmlFor="manager">Gerente (opcional)</Label>
         <Select 
-          value={formData.manager_id && formData.manager_id.trim() !== '' ? formData.manager_id : undefined} 
+          value={formData.manager_id || 'no-manager'} 
           onValueChange={(value) => {
-            if (value && value.trim() !== '' && value !== 'loading' && value !== 'no-users') {
-              handleInputChange('manager_id', value)
+            if (value !== 'loading' && value !== 'no-users') {
+              // Se selecionou "no-manager", definir como string vazia
+              const managerId = value === 'no-manager' ? '' : value
+              handleInputChange('manager_id', managerId)
             }
           }}
           disabled={usersLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder={usersLoading ? "Carregando..." : "Selecione um gerente"} />
+            <SelectValue placeholder={usersLoading ? "Carregando..." : "Nenhum gerente selecionado"} />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="no-manager">
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-500">Nenhum gerente (atribuir depois)</span>
+              </div>
+            </SelectItem>
             {usersLoading ? (
               <SelectItem value="loading" disabled>
                 <div className="flex items-center space-x-2">
@@ -873,7 +929,14 @@ function DepartmentForm({
               users.map((user: User) => (
                 <SelectItem key={user.id} value={user.id}>
                   <div className="flex flex-col">
-                    <span>{user.full_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{user.full_name}</span>
+                      {user.status !== 'active' && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-1 rounded">
+                          Inativo
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs text-gray-500">{user.email}</span>
                   </div>
                 </SelectItem>
@@ -887,14 +950,52 @@ function DepartmentForm({
         </Select>
         
         {(!formData.manager_id || formData.manager_id.trim() === '') && (
-          <div className="flex items-start space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-            <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-amber-800">
-              <p className="font-medium">Gerente obrigatório</p>
-              <p className="mt-1">É necessário atribuir um gerente ao departamento.</p>
+          <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-800">
+              <p className="font-medium">Gerente não atribuído</p>
+              <p className="mt-1">Você pode atribuir um gerente agora ou fazer isso posteriormente através da edição do departamento.</p>
             </div>
           </div>
         )}
+        
+        {formData.manager_id && formData.manager_id !== '' && (() => {
+          const selectedUser = users.find(u => u.id === formData.manager_id)
+          return selectedUser && selectedUser.status !== 'active' ? (
+            <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <AlertTriangle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">Usuário inativo selecionado</p>
+                <p className="mt-1">O usuário selecionado está inativo. Ele poderá gerenciar o departamento após ativar sua conta.</p>
+                {selectedUser.role === 'admin' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/fix-user-status', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        })
+                        
+                        if (response.ok) {
+                          // Recarregar usuários após ativação
+                          window.location.reload()
+                        }
+                      } catch (error) {
+                        console.error('Erro ao ativar usuário:', error)
+                      }
+                    }}
+                  >
+                    Ativar usuário admin
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : null
+        })()}
       </div>
 
       <div className="flex items-center space-x-2">

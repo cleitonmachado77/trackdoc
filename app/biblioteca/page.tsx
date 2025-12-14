@@ -97,6 +97,8 @@ export default function BibliotecaPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isBulkDialogOpen, setIsBulkDialogOpen] = useState(false)
   const [entityId, setEntityId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [isSoloUser, setIsSoloUser] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const { toast } = useToast()
 
@@ -106,22 +108,30 @@ export default function BibliotecaPage() {
   const [uploading, setUploading] = useState(false)
   const [showDocumentSelector, setShowDocumentSelector] = useState(false)
 
+  // ID efetivo para consultas (entity_id ou user_id para usuários solo)
+  const effectiveId = entityId || userId
+
   useEffect(() => {
     loadUserEntity()
   }, [])
 
   useEffect(() => {
-    if (entityId) {
+    if (effectiveId) {
       loadLibraryItems()
       loadDocuments()
       loadCategories()
     }
-  }, [entityId])
+  }, [effectiveId])
 
   const loadUserEntity = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      setUserId(user.id)
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -131,22 +141,38 @@ export default function BibliotecaPage() {
 
       if (profile?.entity_id) {
         setEntityId(profile.entity_id)
+        setIsSoloUser(false)
+      } else {
+        // Usuário solo - usar user_id como identificador
+        setIsSoloUser(true)
+        setLoading(false)
       }
     } catch (error) {
       console.error("Erro ao carregar entidade:", error)
+      setLoading(false)
     }
   }
 
   const loadLibraryItems = async () => {
-    if (!entityId) return
+    if (!effectiveId) return
 
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from("public_library")
         .select("*")
-        .eq("entity_id", entityId)
         .order("display_order", { ascending: true })
+
+      // Usuário com entidade: filtrar por entity_id
+      // Usuário solo: filtrar por created_by
+      if (entityId) {
+        query = query.eq("entity_id", entityId)
+      } else if (userId) {
+        query = query.eq("created_by", userId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setItems(data || [])
@@ -163,41 +189,65 @@ export default function BibliotecaPage() {
   }
 
   const loadDocuments = async () => {
-    if (!entityId) return
+    if (!effectiveId) return
 
     try {
-      console.log('📚 [BIBLIOTECA] Carregando documentos para entity_id:', entityId)
+      console.log('📚 [BIBLIOTECA] Carregando documentos para:', isSoloUser ? `user_id: ${userId}` : `entity_id: ${entityId}`)
       
-      const { data, error } = await supabase
-        .from("documents")
-        .select("id, title, description, file_name, file_type, status, approval_required")
-        .eq("entity_id", entityId)
-        .in("status", ["approved", "draft", "pending_approval"])
-        .order("title")
+      // Usuário com entidade: filtrar por entity_id
+      // Usuário solo: filtrar por created_by OU author_id (ambos podem ser usados)
+      if (entityId) {
+        const { data, error } = await supabase
+          .from("documents")
+          .select("id, title, description, file_name, file_type, status, approval_required")
+          .eq("entity_id", entityId)
+          .in("status", ["approved", "draft", "pending_approval"])
+          .order("title")
 
-      if (error) {
-        console.error('❌ [BIBLIOTECA] Erro ao carregar documentos:', error)
-        throw error
+        if (error) throw error
+        setDocuments(data || [])
+      } else if (userId) {
+        // Para usuários solo, buscar por created_by OU author_id
+        // author_id referencia profiles(id), created_by referencia auth.users(id)
+        const { data, error } = await supabase
+          .from("documents")
+          .select("id, title, description, file_name, file_type, status, approval_required, created_by, author_id")
+          .or(`created_by.eq.${userId},author_id.eq.${userId}`)
+          .in("status", ["approved", "draft", "pending_approval"])
+          .order("title")
+
+        if (error) {
+          console.error('❌ [BIBLIOTECA] Erro ao carregar documentos:', error)
+          throw error
+        }
+        
+        console.log('✅ [BIBLIOTECA] Documentos carregados:', data?.length || 0)
+        setDocuments(data || [])
       }
-      
-      console.log('✅ [BIBLIOTECA] Documentos carregados:', data?.length || 0)
-      
-      setDocuments(data || [])
     } catch (error) {
       console.error("Erro ao carregar documentos:", error)
     }
   }
 
   const loadCategories = async () => {
-    if (!entityId) return
+    if (!effectiveId) return
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("library_categories")
         .select("id, name, description, color")
-        .eq("entity_id", entityId)
         .eq("is_active", true)
         .order("display_order", { ascending: true })
+
+      // Usuário com entidade: filtrar por entity_id
+      // Usuário solo: filtrar por created_by
+      if (entityId) {
+        query = query.eq("entity_id", entityId)
+      } else if (userId) {
+        query = query.eq("created_by", userId)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
       setCategories(data || [])
@@ -207,7 +257,7 @@ export default function BibliotecaPage() {
   }
 
   const handleAddDocuments = async () => {
-    if (!entityId || selectedDocuments.length === 0) {
+    if (!effectiveId || selectedDocuments.length === 0) {
       toast({
         title: "Atenção",
         description: "Selecione pelo menos um documento",
@@ -236,19 +286,39 @@ export default function BibliotecaPage() {
       }
 
       // Preparar dados para inserção usando título e descrição originais
-      const insertData = docs.map(doc => ({
-        entity_id: entityId,
-        document_id: doc.id,
-        title: doc.title,
-        description: doc.description,
-        file_path: doc.file_path,
-        file_name: doc.file_name,
-        file_size: doc.file_size,
-        file_type: doc.file_type,
-        category_id: selectedCategoryId || null,
-        is_active: true,
-        created_by: user?.id,
-      }))
+      // Para usuários solo (isSoloUser), entity_id deve ser null
+      const insertData = docs.map(doc => {
+        // Gerar public_slug único
+        const slugBase = doc.title
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+          .replace(/[^a-z0-9]+/g, '-') // Substitui caracteres especiais por hífen
+          .replace(/^-+|-+$/g, '') // Remove hífens do início e fim
+        const uniqueSlug = `${slugBase}-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+        
+        const data: any = {
+          document_id: doc.id,
+          title: doc.title,
+          description: doc.description,
+          file_path: doc.file_path,
+          file_name: doc.file_name,
+          file_size: doc.file_size,
+          file_type: doc.file_type,
+          category_id: selectedCategoryId || null,
+          is_active: true,
+          created_by: user?.id,
+          public_slug: uniqueSlug,
+        }
+        
+        // Adicionar entity_id apenas se o usuário tiver entidade
+        if (entityId) {
+          data.entity_id = entityId
+        }
+        // Para usuários solo, entity_id fica null (não incluído)
+        
+        return data
+      })
 
       const { error } = await supabase
         .from("public_library")
@@ -333,9 +403,11 @@ export default function BibliotecaPage() {
   }
 
   const copyPublicLink = () => {
-    if (!entityId) return
+    // Usar entityId para usuários com entidade, ou userId para usuários solo
+    const linkId = entityId || userId
+    if (!linkId) return
     
-    const link = `${window.location.origin}/biblioteca-publica/${entityId}`
+    const link = `${window.location.origin}/biblioteca-publica/${linkId}`
     navigator.clipboard.writeText(link)
     toast({
       title: "Link copiado!",
@@ -360,8 +432,9 @@ export default function BibliotecaPage() {
           <Button 
             variant="outline" 
             onClick={() => {
-              if (!entityId) return
-              const link = `${window.location.origin}/biblioteca-publica/${entityId}`
+              const linkId = entityId || userId
+              if (!linkId) return
+              const link = `${window.location.origin}/biblioteca-publica/${linkId}`
               window.open(link, '_blank')
             }}
           >
@@ -376,19 +449,19 @@ export default function BibliotecaPage() {
       </div>
 
       <Tabs defaultValue="documents" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
+        <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
           <TabsTrigger 
             value="documents"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+            className="flex-1 min-w-[140px] whitespace-normal text-center px-3 py-2.5 text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            <FileText className="h-4 w-4" />
+            <FileText className="h-4 w-4 mr-2" />
             Documentos
           </TabsTrigger>
           <TabsTrigger 
             value="categories"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+            className="flex-1 min-w-[140px] whitespace-normal text-center px-3 py-2.5 text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            <FolderOpen className="h-4 w-4" />
+            <FolderOpen className="h-4 w-4 mr-2" />
             Categorias
           </TabsTrigger>
         </TabsList>
@@ -674,9 +747,21 @@ export default function BibliotecaPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {entityId && (
+              {loading && !effectiveId ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin" />
+                  <p>Carregando...</p>
+                </div>
+              ) : !effectiveId ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Não foi possível carregar suas informações.</p>
+                </div>
+              ) : (
                 <LibraryCategoryManager
                   entityId={entityId}
+                  userId={userId}
+                  isSoloUser={isSoloUser}
                   onCategoryChange={loadCategories}
                 />
               )}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -80,6 +80,26 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
     allowed_users: [],
     permission_types: ['read']
   })
+  const [userEntityId, setUserEntityId] = useState<string | null>(null)
+
+  // Buscar entity_id do usuário
+  useEffect(() => {
+    const fetchUserEntityId = async () => {
+      if (!user?.id) return
+      
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('entity_id')
+        .eq('id', user.id)
+        .single()
+      
+      if (profileData?.entity_id) {
+        setUserEntityId(profileData.entity_id)
+      }
+    }
+    
+    fetchUserEntityId()
+  }, [user?.id])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles: UploadFile[] = acceptedFiles.map(file => ({
@@ -463,13 +483,21 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               label="Categoria"
               className="h-8 text-sm"
               onCreate={async (data) => {
+                // Buscar usuário atual da sessão
+                const { data: sessionData } = await supabase.auth.getSession()
+                const currentUserId = sessionData?.session?.user?.id
+                
+                console.log('🔍 [onCreate Categoria] User ID:', currentUserId)
+                
                 const { data: newCat, error } = await supabase
                   .from('categories')
                   .insert({
                     name: data.name,
                     description: data.description,
                     color: data.color || '#3B82F6',
-                    status: 'active'
+                    status: 'active',
+                    entity_id: userEntityId,
+                    created_by: currentUserId
                   })
                   .select()
                   .single()
@@ -511,6 +539,12 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               label="Departamento"
               className="h-8 text-sm"
               onCreate={async (data) => {
+                // Buscar usuário atual da sessão
+                const { data: sessionData } = await supabase.auth.getSession()
+                const currentUserId = sessionData?.session?.user?.id
+                
+                console.log('🔍 [onCreate Departamento] User ID:', currentUserId)
+                
                 const { data: newDept, error } = await supabase
                   .from('departments')
                   .insert({
@@ -518,7 +552,9 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
                     short_name: data.short_name,
                     description: data.description,
                     manager_id: data.manager_id || null,
-                    status: 'active'
+                    status: 'active',
+                    entity_id: userEntityId,
+                    created_by: currentUserId
                   })
                   .select()
                   .single()
@@ -555,6 +591,12 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               label="Tipo de Documento"
               className="h-8 text-sm"
               onCreate={async (data) => {
+                // Buscar usuário atual da sessão
+                const { data: sessionData } = await supabase.auth.getSession()
+                const currentUserId = sessionData?.session?.user?.id
+                
+                console.log('🔍 [onCreate Tipo] User ID:', currentUserId)
+                
                 const { data: newType, error } = await supabase
                   .from('document_types')
                   .insert({
@@ -562,7 +604,9 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
                     description: data.description,
                     prefix: data.prefix,
                     color: data.color || '#3B82F6',
-                    status: 'active'
+                    status: 'active',
+                    entity_id: userEntityId,
+                    created_by: currentUserId
                   })
                   .select()
                   .single()

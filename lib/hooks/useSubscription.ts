@@ -51,6 +51,7 @@ export function useSubscription(userId?: string): UseSubscriptionReturn {
         }
       } else if (data) {
         // Transformar dados do RPC para o formato Subscription
+        // Todos os dados vêm diretamente do plano cadastrado no banco
         const sub: Subscription = {
           id: data.id,
           user_id: data.user_id,
@@ -70,11 +71,13 @@ export function useSubscription(userId?: string): UseSubscriptionReturn {
             name: data.plan_name,
             type: data.plan_type,
             price: data.plan_price,
-            interval: 'monthly',
-            features: data.plan_features,
+            interval: data.plan_interval || 'monthly',
+            features: data.plan_features || {},
             limits: {
               max_usuarios: data.max_usuarios,
               armazenamento_gb: data.armazenamento_gb,
+              usuario_adicional_preco: data.usuario_adicional_preco,
+              armazenamento_extra_preco: data.armazenamento_extra_preco,
             },
             created_at: '',
             updated_at: '',

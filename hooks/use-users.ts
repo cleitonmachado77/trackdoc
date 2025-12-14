@@ -13,6 +13,7 @@ export interface User {
   email: string
   role: string
   entity_id?: string
+  status?: 'active' | 'inactive' | 'suspended' | 'pending_confirmation'
   created_at: string
   updated_at: string
 }
@@ -34,34 +35,51 @@ export function useUsers() {
       setLoading(true)
       setError(null)
 
-      let query = supabase
-        .from('profiles')
-        .select('*')
-        .eq('status', 'active') // Filtrar apenas usuários ativos
-        .order('full_name', { ascending: true })
+      if (!user?.id) {
+        setUsers([])
+        return
+      }
 
       // Buscar o profile do usuário para obter entity_id
-      let entityId = 'ebde2fef-30e2-458b-8721-d86df2f6865b' // ID padrão da entidade
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
       
-      if (user?.id) {
-        const { data: profileData } = await supabase
+      const entityId = profileData?.entity_id
+
+      let data: any[] = []
+
+      if (entityId) {
+        // Usuário com entidade - buscar todos os usuários da mesma entidade
+        const { data: entityUsers, error: queryError } = await supabase
           .from('profiles')
-          .select('entity_id')
-          .eq('id', user.id)
-          .single()
-        
-        if (profileData?.entity_id) {
-          entityId = profileData.entity_id
+          .select('*')
+          .eq('entity_id', entityId)
+          .in('status', ['active', 'inactive'])
+          .order('full_name', { ascending: true })
+
+        if (queryError) throw queryError
+        data = entityUsers || []
+      } else {
+        // Usuário solo - retornar apenas o próprio usuário
+        if (profileData) {
+          data = [profileData]
         }
       }
 
-      query = query.eq('entity_id', entityId)
+      // Ordenar usuários: ativos primeiro, depois inativos
+      const sortedUsers = data.sort((a, b) => {
+        // Primeiro por status (ativos primeiro)
+        if (a.status === 'active' && b.status !== 'active') return -1
+        if (a.status !== 'active' && b.status === 'active') return 1
+        
+        // Depois por nome
+        return (a.full_name || '').localeCompare(b.full_name || '')
+      })
 
-      const { data, error } = await query
-
-      if (error) throw error
-
-      setUsers(data || [])
+      setUsers(sortedUsers)
     } catch (err) {
       console.error('Erro ao carregar usuários:', err)
       setError(err instanceof Error ? err.message : 'Erro ao carregar usuários')

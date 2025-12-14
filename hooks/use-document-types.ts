@@ -80,8 +80,8 @@ export function useDocumentTypes() {
         if (profileData?.entity_id) {
           query = query.eq("entity_id", profileData.entity_id)
         } else {
-          // Se o usuário não tem entidade, buscar apenas os tipos sem entidade (criados por ele)
-          query = query.is("entity_id", null)
+          // Se o usuário não tem entidade, buscar apenas os tipos criados por ele
+          query = query.is("entity_id", null).eq("created_by", user.id)
         }
 
         const { data, error } = await query

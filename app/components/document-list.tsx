@@ -472,18 +472,20 @@ export default function DocumentList() {
   // Função para renderizar os documentos em formato de lista
   const renderDocumentsList = (documentsList: Document[], title: string, icon: React.ReactNode, emptyMessage: string) => (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-trackdoc-black flex items-center gap-2">
-            {icon}
-            {title}
-          </h2>
-          <p className="text-trackdoc-gray mt-1">
-            {documentsList.length} documento(s) encontrado(s)
-          </p>
+      {/* Header - só exibe se não for "Documentos Armazenados" */}
+      {title !== "Documentos Armazenados" && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-trackdoc-black flex items-center gap-2">
+              {icon}
+              {title}
+            </h2>
+            <p className="text-trackdoc-gray mt-1">
+              {documentsList.length} documento(s) encontrado(s)
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Lista em Tabela */}
       {documentsList.length === 0 ? (
@@ -744,18 +746,20 @@ export default function DocumentList() {
   // Função para renderizar os documentos em cards compactos
   const renderDocumentsGrid = (documentsList: Document[], title: string, icon: React.ReactNode, emptyMessage: string) => (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-trackdoc-black flex items-center gap-2">
-            {icon}
-            {title}
-          </h2>
-          <p className="text-trackdoc-gray mt-1">
-            {documentsList.length} documento(s) encontrado(s)
-          </p>
+      {/* Header - só exibe se não for "Documentos Armazenados" */}
+      {title !== "Documentos Armazenados" && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-trackdoc-black flex items-center gap-2">
+              {icon}
+              {title}
+            </h2>
+            <p className="text-trackdoc-gray mt-1">
+              {documentsList.length} documento(s) encontrado(s)
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Grid de Cards Compactos */}
       {documentsList.length === 0 ? (

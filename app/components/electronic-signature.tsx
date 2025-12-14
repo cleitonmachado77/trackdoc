@@ -1054,11 +1054,6 @@ export default function ElectronicSignature() {
                   <p className="text-sm text-gray-400">
                     Faça upload de documentos primeiro para poder assiná-los
                   </p>
-                  <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                    <p className="text-xs text-yellow-700">
-                      <strong>Debug:</strong> {documents.length} documentos carregados
-                    </p>
-                  </div>
                 </div>
               ) : (
                 <>

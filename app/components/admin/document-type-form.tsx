@@ -161,7 +161,7 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
               if (!checked) {
                 setFormData((prev) => ({ ...prev, retentionPeriod: null }))
               } else {
-                setFormData((prev) => ({ ...prev, retentionPeriod: 24 }))
+                setFormData((prev) => ({ ...prev, retentionPeriod: 0 }))
               }
             }}
           />
@@ -173,12 +173,12 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
             <Input
               id="retention"
               type="number"
-              min="1"
-              placeholder="Ex: 24"
-              value={formData.retentionPeriod ?? 24}
+              min="0"
+              placeholder="Ex: 0"
+              value={formData.retentionPeriod ?? 0}
               onChange={(e) => {
                 const value = Number.parseInt(e.target.value, 10)
-                if (!isNaN(value) && value >= 1) {
+                if (!isNaN(value) && value >= 0) {
                   setFormData((prev) => ({ ...prev, retentionPeriod: value }))
                 }
               }}

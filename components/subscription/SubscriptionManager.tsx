@@ -252,7 +252,9 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Valor mensal</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-blue-600">R$ {plan.price}</span>
+                  <span className="text-3xl font-bold text-blue-600">
+                    R$ {typeof plan.price === 'number' ? plan.price.toFixed(2).replace('.', ',') : plan.price}
+                  </span>
                   <span className="text-muted-foreground">/mês</span>
                 </div>
               </div>
@@ -422,7 +424,9 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                 </div>
               </div>
               <p className="text-lg font-bold text-blue-600">
-                R$ {plan.limits.usuario_adicional_preco}
+                R$ {typeof plan.limits.usuario_adicional_preco === 'number' 
+                  ? plan.limits.usuario_adicional_preco.toFixed(2).replace('.', ',') 
+                  : plan.limits.usuario_adicional_preco}
                 <span className="text-sm font-normal text-muted-foreground">/mês</span>
               </p>
             </div>
@@ -436,7 +440,9 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                   </div>
                 </div>
                 <p className="text-lg font-bold text-blue-600">
-                  R$ {plan.limits.armazenamento_extra_preco}
+                  R$ {typeof plan.limits.armazenamento_extra_preco === 'number' 
+                    ? plan.limits.armazenamento_extra_preco.toFixed(2).replace('.', ',') 
+                    : plan.limits.armazenamento_extra_preco}
                   <span className="text-sm font-normal text-muted-foreground">/GB/mês</span>
                 </p>
               </div>

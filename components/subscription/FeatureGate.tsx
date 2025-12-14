@@ -46,7 +46,8 @@ export function FeatureGate({
 }: FeatureGateProps) {
   const { hasAccess, loading, reason, showUpgradePrompt, requiredPlan, currentPlan } = useFeatureAccess(userId, feature)
 
-  if (loading) {
+  // Mostrar loading enquanto userId não está disponível ou enquanto carrega dados
+  if (loading || userId === undefined) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

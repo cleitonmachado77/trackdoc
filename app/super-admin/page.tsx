@@ -38,7 +38,8 @@ import {
   UserPlus,
   RefreshCw,
   BarChart3,
-  Activity
+  Activity,
+  Clock
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { formatFileSize, formatStorageGB } from "@/lib/utils"
@@ -77,6 +78,8 @@ interface User {
     status: string
     start_date: string
     end_date: string | null
+    trial_start_date: string | null
+    trial_end_date: string | null
     current_users: number
     current_storage_gb: number
     plan?: Plan
@@ -251,7 +254,7 @@ export default function SuperAdminPage() {
       // Buscar subscriptions separadamente
       const { data: subscriptionsData, error: subsError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, plan_id, status, start_date, end_date, current_users, current_storage_gb')
+        .select('id, user_id, plan_id, status, start_date, end_date, trial_start_date, trial_end_date, current_users, current_storage_gb')
 
       if (subsError) {
         console.warn('Erro ao buscar subscriptions:', subsError)
@@ -751,12 +754,14 @@ export default function SuperAdminPage() {
 
     const matchesStatus = statusFilter === "all" || user.status === statusFilter
 
-    // Filtro de plano - incluir "sem plano"
+    // Filtro de plano - incluir "sem plano" e "trial"
     let matchesPlan = false
     if (planFilter === "all") {
       matchesPlan = true
     } else if (planFilter === "no_plan") {
       matchesPlan = !user.subscription?.plan
+    } else if (planFilter === "trial") {
+      matchesPlan = user.subscription?.status === 'trial'
     } else {
       matchesPlan = user.subscription?.plan?.type === planFilter
     }
@@ -876,7 +881,7 @@ export default function SuperAdminPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -888,6 +893,27 @@ export default function SuperAdminPage() {
                   </p>
                 </div>
                 <Users className="h-10 w-10 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Usuários Trial</p>
+                  <p className="text-3xl font-bold text-blue-600">
+                    {users.filter(u => u.subscription?.status === 'trial').length}
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    {users.filter(u => {
+                      if (u.subscription?.status !== 'trial' || !u.subscription?.trial_end_date) return false
+                      const daysRemaining = Math.ceil((new Date(u.subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      return daysRemaining <= 3 && daysRemaining > 0
+                    }).length} expirando em breve
+                  </p>
+                </div>
+                <Clock className="h-10 w-10 text-blue-500" />
               </div>
             </CardContent>
           </Card>
@@ -1058,6 +1084,40 @@ export default function SuperAdminPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
+                    {/* Trials expirando */}
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-800">Trials Expirando</p>
+                          <p className="text-xs text-blue-600">Usuários com trial expirando em até 3 dias</p>
+                        </div>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          {users.filter(u => {
+                            if (u.subscription?.status !== 'trial' || !u.subscription?.trial_end_date) return false
+                            const daysRemaining = Math.ceil((new Date(u.subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                            return daysRemaining <= 3 && daysRemaining > 0
+                          }).length}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Trials expirados */}
+                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-amber-800">Trials Expirados</p>
+                          <p className="text-xs text-amber-600">Usuários com trial já expirado</p>
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-800">
+                          {users.filter(u => {
+                            if (u.subscription?.status !== 'trial' || !u.subscription?.trial_end_date) return false
+                            const daysRemaining = Math.ceil((new Date(u.subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                            return daysRemaining <= 0
+                          }).length}
+                        </Badge>
+                      </div>
+                    </div>
+
                     {/* Usuários com limites críticos */}
                     <div className="p-3 bg-red-50 rounded-lg border border-red-200">
                       <div className="flex items-center justify-between">
@@ -1489,6 +1549,7 @@ export default function SuperAdminPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="trial">Trial</SelectItem>
                       <SelectItem value="basico">Básico</SelectItem>
                       <SelectItem value="profissional">Profissional</SelectItem>
                       <SelectItem value="enterprise">Enterprise</SelectItem>
@@ -1505,6 +1566,7 @@ export default function SuperAdminPage() {
                         <TableHead>Usuário</TableHead>
                         <TableHead>Empresa</TableHead>
                         <TableHead>Plano</TableHead>
+                        <TableHead>Trial</TableHead>
                         <TableHead>Uso</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Cadastro</TableHead>
@@ -1544,6 +1606,41 @@ export default function SuperAdminPage() {
                                   ))}
                                 </SelectContent>
                               </Select>
+                            </TableCell>
+                            <TableCell>
+                              {/* Contador de dias restantes do Trial */}
+                              {user.subscription?.status === 'trial' && user.subscription?.trial_end_date ? (
+                                (() => {
+                                  const trialEndDate = new Date(user.subscription.trial_end_date)
+                                  const today = new Date()
+                                  const daysRemaining = Math.ceil((trialEndDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                                  
+                                  if (daysRemaining <= 0) {
+                                    return (
+                                      <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                                        <Clock className="h-3 w-3" />
+                                        Expirado
+                                      </Badge>
+                                    )
+                                  } else if (daysRemaining <= 3) {
+                                    return (
+                                      <Badge className="bg-amber-100 text-amber-800 border-amber-200 flex items-center gap-1 w-fit">
+                                        <Clock className="h-3 w-3" />
+                                        {daysRemaining} {daysRemaining === 1 ? 'dia' : 'dias'}
+                                      </Badge>
+                                    )
+                                  } else {
+                                    return (
+                                      <Badge className="bg-blue-100 text-blue-800 border-blue-200 flex items-center gap-1 w-fit">
+                                        <Clock className="h-3 w-3" />
+                                        {daysRemaining} dias
+                                      </Badge>
+                                    )
+                                  }
+                                })()
+                              ) : (
+                                <span className="text-gray-400 text-sm">-</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <div className="space-y-2">

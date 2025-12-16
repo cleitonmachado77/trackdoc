@@ -907,8 +907,17 @@ export default function SuperAdminPage() {
                   </p>
                   <p className="text-xs text-amber-600 mt-1">
                     {users.filter(u => {
-                      if (u.subscription?.status !== 'trial' || !u.subscription?.trial_end_date) return false
-                      const daysRemaining = Math.ceil((new Date(u.subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      if (u.subscription?.status !== 'trial') return false
+                      // Calcular data de fim do trial (com fallback para start_date + 14 dias)
+                      let trialEndDate: Date | null = null
+                      if (u.subscription.trial_end_date) {
+                        trialEndDate = new Date(u.subscription.trial_end_date)
+                      } else if (u.subscription.start_date) {
+                        trialEndDate = new Date(u.subscription.start_date)
+                        trialEndDate.setDate(trialEndDate.getDate() + 14)
+                      }
+                      if (!trialEndDate) return false
+                      const daysRemaining = Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                       return daysRemaining <= 3 && daysRemaining > 0
                     }).length} expirando em breve
                   </p>
@@ -1093,8 +1102,16 @@ export default function SuperAdminPage() {
                         </div>
                         <Badge className="bg-blue-100 text-blue-800">
                           {users.filter(u => {
-                            if (u.subscription?.status !== 'trial' || !u.subscription?.trial_end_date) return false
-                            const daysRemaining = Math.ceil((new Date(u.subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                            if (u.subscription?.status !== 'trial') return false
+                            let trialEndDate: Date | null = null
+                            if (u.subscription.trial_end_date) {
+                              trialEndDate = new Date(u.subscription.trial_end_date)
+                            } else if (u.subscription.start_date) {
+                              trialEndDate = new Date(u.subscription.start_date)
+                              trialEndDate.setDate(trialEndDate.getDate() + 14)
+                            }
+                            if (!trialEndDate) return false
+                            const daysRemaining = Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                             return daysRemaining <= 3 && daysRemaining > 0
                           }).length}
                         </Badge>
@@ -1110,8 +1127,16 @@ export default function SuperAdminPage() {
                         </div>
                         <Badge className="bg-amber-100 text-amber-800">
                           {users.filter(u => {
-                            if (u.subscription?.status !== 'trial' || !u.subscription?.trial_end_date) return false
-                            const daysRemaining = Math.ceil((new Date(u.subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                            if (u.subscription?.status !== 'trial') return false
+                            let trialEndDate: Date | null = null
+                            if (u.subscription.trial_end_date) {
+                              trialEndDate = new Date(u.subscription.trial_end_date)
+                            } else if (u.subscription.start_date) {
+                              trialEndDate = new Date(u.subscription.start_date)
+                              trialEndDate.setDate(trialEndDate.getDate() + 14)
+                            }
+                            if (!trialEndDate) return false
+                            const daysRemaining = Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                             return daysRemaining <= 0
                           }).length}
                         </Badge>
@@ -1609,9 +1634,21 @@ export default function SuperAdminPage() {
                             </TableCell>
                             <TableCell>
                               {/* Contador de dias restantes do Trial */}
-                              {user.subscription?.status === 'trial' && user.subscription?.trial_end_date ? (
+                              {user.subscription?.status === 'trial' ? (
                                 (() => {
-                                  const trialEndDate = new Date(user.subscription.trial_end_date)
+                                  // Calcular data de fim do trial (com fallback para start_date + 14 dias)
+                                  let trialEndDate: Date | null = null
+                                  if (user.subscription.trial_end_date) {
+                                    trialEndDate = new Date(user.subscription.trial_end_date)
+                                  } else if (user.subscription.start_date) {
+                                    trialEndDate = new Date(user.subscription.start_date)
+                                    trialEndDate.setDate(trialEndDate.getDate() + 14)
+                                  }
+                                  
+                                  if (!trialEndDate) {
+                                    return <span className="text-gray-400 text-sm">-</span>
+                                  }
+                                  
                                   const today = new Date()
                                   const daysRemaining = Math.ceil((trialEndDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
                                   

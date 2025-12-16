@@ -19,7 +19,7 @@ import {
   FileText,
   AlertTriangle
 } from 'lucide-react'
-import { format, differenceInDays } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import Link from 'next/link'
 
@@ -103,9 +103,24 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
   // Verificar se é plano Trial
   const isTrial = subscription.status === 'trial'
   
-  // Calcular dias restantes do trial
-  const trialDaysRemaining = subscription.trial_end_date 
-    ? Math.max(0, differenceInDays(new Date(subscription.trial_end_date), new Date()))
+  // Calcular data de fim do trial (com fallback para start_date + 14 dias)
+  const calculateTrialEndDate = () => {
+    if (subscription.trial_end_date) {
+      return new Date(subscription.trial_end_date)
+    }
+    if (subscription.status === 'trial' && subscription.start_date) {
+      const startDate = new Date(subscription.start_date)
+      startDate.setDate(startDate.getDate() + 14)
+      return startDate
+    }
+    return null
+  }
+  
+  const trialEndDateCalculated = calculateTrialEndDate()
+  
+  // Calcular dias restantes do trial (usando Math.ceil para garantir que mostre pelo menos 1 dia quando ainda não expirou)
+  const trialDaysRemaining = trialEndDateCalculated 
+    ? Math.max(0, Math.ceil((trialEndDateCalculated.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0
 
   const getStatusBadge = (status: string) => {
@@ -144,8 +159,8 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
         </Alert>
       )}
 
-      {/* Status do Trial Ativo */}
-      {isTrialActive && daysUntilTrialEnd !== null && (
+      {/* Status do Trial Ativo - Sempre mostra dias restantes */}
+      {isTrial && !isTrialExpired && daysUntilTrialEnd !== null && (
         <Alert className={`${daysUntilTrialEnd <= 3 ? 'border-amber-300 bg-amber-50' : 'border-blue-200 bg-blue-50'} dark:bg-blue-950/20`}>
           {daysUntilTrialEnd <= 3 ? (
             <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -230,8 +245,8 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                 <div>
                   <p className="text-blue-700">Término do teste</p>
                   <p className={`font-bold ${trialDaysRemaining <= 3 ? 'text-amber-600' : 'text-blue-900'}`}>
-                    {subscription.trial_end_date 
-                      ? format(new Date(subscription.trial_end_date), "dd/MM/yyyy", { locale: ptBR })
+                    {trialEndDateCalculated 
+                      ? format(trialEndDateCalculated, "dd/MM/yyyy", { locale: ptBR })
                       : 'N/A'
                     }
                   </p>

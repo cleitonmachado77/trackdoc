@@ -118,17 +118,33 @@ export function useSubscription(userId?: string): UseSubscriptionReturn {
     return false
   }
 
-  // Verificar se trial está ativo
-  const isTrialActive = subscription?.status === 'trial' && 
-    subscription.trial_end_date ? new Date(subscription.trial_end_date) > new Date() : false
+  // Verificar se trial está ativo (usando trialEndDate calculado)
+  const isTrialActive = subscription?.status === 'trial' && trialEndDate 
+    ? trialEndDate > new Date() 
+    : false
 
-  // Verificar se trial expirou
-  const isTrialExpired = subscription?.status === 'trial' && 
-    subscription.trial_end_date ? new Date(subscription.trial_end_date) <= new Date() : false
+  // Verificar se trial expirou (usando trialEndDate calculado)
+  const isTrialExpired = subscription?.status === 'trial' && trialEndDate 
+    ? trialEndDate <= new Date() 
+    : false
 
   // Dias até o fim do trial
-  const daysUntilTrialEnd = subscription?.trial_end_date 
-    ? Math.ceil((new Date(subscription.trial_end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  // Se trial_end_date não estiver definido, calcula baseado em start_date + 14 dias
+  const calculateTrialEndDate = () => {
+    if (subscription?.trial_end_date) {
+      return new Date(subscription.trial_end_date)
+    }
+    if (subscription?.status === 'trial' && subscription?.start_date) {
+      const startDate = new Date(subscription.start_date)
+      startDate.setDate(startDate.getDate() + 14)
+      return startDate
+    }
+    return null
+  }
+  
+  const trialEndDate = calculateTrialEndDate()
+  const daysUntilTrialEnd = trialEndDate 
+    ? Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null
 
   // Calcular usuários restantes

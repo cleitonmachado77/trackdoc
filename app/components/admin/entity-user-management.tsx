@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { PageTitle } from "@/components/ui/page-title"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -675,10 +676,10 @@ export default function EntityUserManagement() {
             </Button>
           </div>
           
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Usuários da Entidade</h1>
-            <p className="text-gray-600">{entityInfo.name}</p>
-          </div>
+          <PageTitle
+            title="Usuários da Entidade"
+            subtitle={entityInfo.name}
+          />
         </div>
         <div className="flex items-center space-x-3">
           {planInfo && !planLoading && entityInfo && (

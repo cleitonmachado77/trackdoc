@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/hooks/use-auth-final'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { PageTitle } from "@/components/ui/page-title"
 import {
   FileText,
   Clock,
@@ -451,12 +452,12 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     const notificationOpenRate = notificationStats?.open_rate || 0
     const unreadNotificationsCount = 0 // Placeholder
 
-    // Dados para gráficos com cores melhoradas
+    // Dados para gráficos com cores padronizadas (mais suaves)
     const documentsByStatus = [
-      { name: 'Aprovados', value: approvedDocuments, color: '#10B981', fill: '#10B981' },
-      { name: 'Pendentes', value: pendingDocuments, color: '#F59E0B', fill: '#F59E0B' },
-      { name: 'Rascunhos', value: draftDocuments, color: '#6B7280', fill: '#6B7280' },
-      { name: 'Rejeitados', value: rejectedDocuments, color: '#EF4444', fill: '#EF4444' }
+      { name: 'Aprovados', value: approvedDocuments, color: '#059669', fill: '#059669' }, // green-600
+      { name: 'Pendentes', value: pendingDocuments, color: '#D97706', fill: '#D97706' }, // amber-600
+      { name: 'Sem aprovação', value: documents.filter(d => !d.approval_required).length, color: '#6B7280', fill: '#6B7280' }, // gray-500
+      { name: 'Rejeitados', value: rejectedDocuments, color: '#DC2626', fill: '#DC2626' } // red-600
     ].filter(item => item.value > 0) // Filtrar itens com valor 0
 
     // Calcular produtividade semanal baseada em dados reais
@@ -661,12 +662,10 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-trackdoc-black">Dashboard</h1>
-            <p className="text-trackdoc-gray mt-1">Visão geral do sistema</p>
-          </div>
-        </div>
+        <PageTitle
+          title="Dashboard"
+          subtitle="Visão geral do sistema"
+        />
 
         {/* KPIs Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -887,7 +886,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-600"></div>
                   <span className="text-sm text-gray-600">Aprovados</span>
                 </div>
                 <div className="text-right">
@@ -897,7 +896,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-600"></div>
                   <span className="text-sm text-gray-600">Pendentes</span>
                 </div>
                 <div className="text-right">
@@ -908,17 +907,17 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-gray-500"></div>
-                  <span className="text-sm text-gray-600">Rascunhos</span>
+                  <span className="text-sm text-gray-600">Sem aprovação</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{draftDocuments}</div>
-                  <div className="text-xs text-gray-500">{totalDocuments > 0 ? (draftDocuments / totalDocuments * 100).toFixed(1) : '0'}%</div>
+                  <div className="font-semibold">{documents.filter(d => !d.approval_required).length}</div>
+                  <div className="text-xs text-gray-500">{totalDocuments > 0 ? (documents.filter(d => !d.approval_required).length / totalDocuments * 100).toFixed(1) : '0'}%</div>
                 </div>
               </div>
               {rejectedDocuments > 0 && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-red-600"></div>
                     <span className="text-sm text-gray-600">Rejeitados</span>
                   </div>
                   <div className="text-right">
@@ -1317,20 +1316,15 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return (
           <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Aprovações</h1>
-                <p className="text-gray-600">
-                  Gerencie documentos pendentes de aprovação e acompanhe o status das solicitações
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => refetchApprovals()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Atualizar
-                </Button>
-              </div>
-            </div>
+            <PageTitle
+              title="Aprovações"
+              subtitle="Gerencie documentos pendentes de aprovação e acompanhe o status das solicitações"
+            >
+              <Button variant="outline" size="sm" onClick={() => refetchApprovals()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </PageTitle>
 
             {/* Estatísticas de Aprovação */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1637,22 +1631,18 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               {/* Header - Apenas na tela principal */}
               {adminView === "overview" && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h1 className="text-2xl font-bold text-gray-900">Administração</h1>
-                      <p className="text-gray-600">
-                        Gerencie usuários, configurações e relatórios do sistema
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setAdminViewMode(adminViewMode === 'list' ? 'cards' : 'list')}
-                      >
-                        {adminViewMode === 'list' ? (
-                          <>
-                            <LayoutGrid className="h-4 w-4 mr-2" />
+                  <PageTitle
+                    title="Administração"
+                    subtitle="Gerencie usuários, configurações e relatórios do sistema"
+                  >
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAdminViewMode(adminViewMode === 'list' ? 'cards' : 'list')}
+                    >
+                      {adminViewMode === 'list' ? (
+                        <>
+                          <LayoutGrid className="h-4 w-4 mr-2" />
                             Cards
                           </>
                         ) : (
@@ -1662,8 +1652,7 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                           </>
                         )}
                       </Button>
-                    </div>
-                  </div>
+                  </PageTitle>
                 </div>
               )}
 

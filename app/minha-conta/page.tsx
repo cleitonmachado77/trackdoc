@@ -44,6 +44,7 @@ import {
   CreditCard
 } from "lucide-react"
 import { SubscriptionManager } from "@/components/subscription/SubscriptionManager"
+import { PageTitle } from "@/components/ui/page-title"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -578,10 +579,10 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
             <ArrowLeft className="h-4 w-4" />
             Voltar ao Início
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-trackdoc-black">Minha Conta</h1>
-            <p className="text-trackdoc-gray">Gerencie suas informações pessoais e configurações</p>
-          </div>
+          <PageTitle
+            title="Minha Conta"
+            subtitle="Gerencie suas informações pessoais e configurações"
+          />
         </div>
 
       <Tabs defaultValue="profile" className="space-y-6">

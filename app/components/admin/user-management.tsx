@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { PageTitle } from "@/components/ui/page-title"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -278,11 +279,9 @@ export default function UserManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gerenciar Usuários</h1>
-          <p className="text-gray-600">Gerencie todos os usuários do sistema</p>
-        </div>
+      <PageTitle
+        title="Gerenciar Usuários"
+        subtitle="Gerencie todos os usuários do sistema"
       </div>
 
       {/* Alertas */}

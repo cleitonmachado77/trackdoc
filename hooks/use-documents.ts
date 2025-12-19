@@ -225,7 +225,12 @@ export function useDocuments(filters: DocumentFilters = {}) {
           query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%,document_number.ilike.%${filters.search}%`)
         }
         if (filters.status) {
-          query = query.eq('status', filters.status)
+          if (filters.status === 'no_approval') {
+            // Filtrar documentos que não requerem aprovação
+            query = query.eq('approval_required', false)
+          } else {
+            query = query.eq('status', filters.status)
+          }
         }
         if (filters.category_id) {
           query = query.eq('category_id', filters.category_id)

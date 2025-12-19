@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/hooks/use-auth-final'
 import SubscriptionPayments from "@/app/components/admin/subscription-payments"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageTitle } from "@/components/ui/page-title"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -869,16 +870,15 @@ export default function SuperAdminPage() {
       <div className="pt-16 p-6">
         <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Painel de Administração</h1>
-            <p className="text-gray-600">Gerencie usuários, planos e configurações do sistema</p>
-          </div>
+        <PageTitle
+          title="Painel de Administração"
+          subtitle="Gerencie usuários, planos e configurações do sistema"
+        >
           <Button onClick={() => loadAllData()} variant="outline" className="gap-2">
             <RefreshCw className="h-4 w-4" />
             Atualizar
           </Button>
-        </div>
+        </PageTitle>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">

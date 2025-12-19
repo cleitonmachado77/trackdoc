@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PageTitle } from "@/components/ui/page-title"
 import { Check, Crown, Star, Building, Users, FileText, HardDrive, ArrowLeft, Mail, MessageCircle } from "lucide-react"
 import Link from "next/link"
 
@@ -98,14 +99,14 @@ export default function PricingPage() {
           </Button>
         </div>
 
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Nossos Planos
-          </h1>
-          <p className="text-xl text-gray-600 mb-4">
-            Escolha o plano ideal para sua empresa
-          </p>
-          <p className="text-gray-500">
+        <div className="mb-12">
+          <PageTitle
+            title="Nossos Planos"
+            subtitle="Escolha o plano ideal para sua empresa"
+            size="lg"
+            centered
+          />
+          <p className="text-center text-gray-500 mt-4">
             Para contratar um plano, entre em contato com nossa equipe
           </p>
         </div>

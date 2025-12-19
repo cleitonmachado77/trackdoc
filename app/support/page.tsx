@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PageTitle } from "@/components/ui/page-title"
 import { 
   ArrowLeft, 
   Mail, 
@@ -29,13 +30,13 @@ export default function SupportPage() {
           </Button>
         </div>
 
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Suporte e Contato
-          </h1>
-          <p className="text-xl text-gray-600">
-            Estamos aqui para ajudar você
-          </p>
+        <div className="mb-12">
+          <PageTitle
+            title="Suporte e Contato"
+            subtitle="Estamos aqui para ajudar você"
+            size="lg"
+            centered
+          />
         </div>
 
         {/* Alert para contatar administrador */}

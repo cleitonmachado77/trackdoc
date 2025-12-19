@@ -50,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { PageTitle } from "@/components/ui/page-title"
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -421,32 +422,27 @@ export default function BibliotecaPage() {
 
   return (
     <div className="w-full h-full p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Biblioteca Pública</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie documentos públicos acessíveis por link externo
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              const linkId = entityId || userId
-              if (!linkId) return
-              const link = `${window.location.origin}/biblioteca-publica/${linkId}`
-              window.open(link, '_blank')
-            }}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Abrir Biblioteca
-          </Button>
-          <Button variant="outline" onClick={copyPublicLink}>
-            <Copy className="h-4 w-4 mr-2" />
-            Copiar Link
-          </Button>
-        </div>
-      </div>
+      <PageTitle
+        title="Biblioteca Pública"
+        subtitle="Gerencie documentos públicos acessíveis por link externo"
+      >
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            const linkId = entityId || userId
+            if (!linkId) return
+            const link = `${window.location.origin}/biblioteca-publica/${linkId}`
+            window.open(link, '_blank')
+          }}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          Abrir Biblioteca
+        </Button>
+        <Button variant="outline" onClick={copyPublicLink}>
+          <Copy className="h-4 w-4 mr-2" />
+          Copiar Link
+        </Button>
+      </PageTitle>
 
       <Tabs defaultValue="documents" className="space-y-4">
         <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">

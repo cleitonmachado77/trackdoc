@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageTitle } from "@/components/ui/page-title"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
@@ -196,8 +197,10 @@ export default function VerifySignaturePage() {
         <div className="max-w-4xl mx-auto">
           {/* Título da Página */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Verificação de Assinaturas</h1>
-            <p className="text-sm text-gray-600">Verifique a autenticidade de assinaturas eletrônicas</p>
+            <PageTitle
+              title="Verificação de Assinaturas"
+              subtitle="Verifique a autenticidade de assinaturas eletrônicas"
+            />
           </div>
 
           {/* Formulário de Verificação */}

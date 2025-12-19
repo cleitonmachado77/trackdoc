@@ -46,14 +46,14 @@ export default function ApprovalDetailsModal({
     switch (status) {
       case 'approved':
         return (
-          <Badge className="bg-green-100 text-green-800">
+          <Badge className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle className="h-3 w-3 mr-1" />
             Aprovado
           </Badge>
         )
       case 'rejected':
         return (
-          <Badge className="bg-red-100 text-red-800">
+          <Badge className="bg-red-50 text-red-700 border-red-200">
             <XCircle className="h-3 w-3 mr-1" />
             Rejeitado
           </Badge>
@@ -61,14 +61,14 @@ export default function ApprovalDetailsModal({
       case 'pending':
       case 'pending_approval':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800">
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200">
             <Clock className="h-3 w-3 mr-1" />
             Em aprovação
           </Badge>
         )
       default:
         return (
-          <Badge variant="secondary">
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200">
             Em aprovação
           </Badge>
         )

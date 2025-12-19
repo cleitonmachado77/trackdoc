@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { PageTitle } from "@/components/ui/page-title"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { 
@@ -661,11 +662,9 @@ export default function UnifiedNotificationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Central de Notificações</h1>
-          <p className="text-muted-foreground">
-            Todas as suas notificações importantes em um só lugar
+      <PageTitle
+        title="Central de Notificações"
+        subtitle="Todas as suas notificações importantes em um só lugar"
             {selectedNotifications.length > 0 && (
               <span className="ml-2 text-primary font-medium">
                 ({selectedNotifications.length} selecionada{selectedNotifications.length > 1 ? 's' : ''})

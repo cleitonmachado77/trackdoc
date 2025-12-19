@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DocumentStatusBadge } from "@/components/ui/document-status-badge"
 import {
   Table,
   TableBody,
@@ -536,21 +537,11 @@ export default function DocumentList() {
                                 #{document.document_number}
                               </Badge>
                             )}
-                            <Badge 
-                              variant={
-                                document.status === 'rejected' ? 'destructive' :
-                                document.status === 'pending_approval' ? 'secondary' :
-                                document.status === 'draft' ? 'outline' :
-                                'default'
-                              }
-                              className="text-xs shrink-0"
-                            >
-                              {document.status === 'rejected' ? 'Rejeitado' :
-                               document.status === 'pending_approval' ? 'Em aprovação' :
-                               document.status === 'draft' && !document.approval_required ? 'Sem aprovação' :
-                               document.status === 'draft' ? 'Rascunho' :
-                               'Aprovado'}
-                            </Badge>
+                            <DocumentStatusBadge
+                              status={document.status}
+                              approvalRequired={document.approval_required}
+                              className="shrink-0"
+                            />
                             <DocumentVisibilityBadge
                               documentId={document.id}
                               isPublic={document.is_public}
@@ -1189,7 +1180,7 @@ export default function DocumentList() {
                   <SelectItem value="approved">Aprovado</SelectItem>
                   <SelectItem value="pending_approval">Em aprovação</SelectItem>
                   <SelectItem value="rejected">Rejeitado</SelectItem>
-                  <SelectItem value="draft">Rascunho</SelectItem>
+                  <SelectItem value="no_approval">Sem aprovação</SelectItem>
                 </SelectContent>
               </Select>
             </div>

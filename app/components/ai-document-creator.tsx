@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageTitle } from "@/components/ui/page-title"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -278,10 +279,10 @@ Este documento será revisado periodicamente para garantir sua relevância e efi
         <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
           <Sparkles className="h-6 w-6 text-white" />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Crie documentos com IA</h1>
-          <p className="text-gray-600">Gere documentos profissionais usando inteligência artificial</p>
-        </div>
+        <PageTitle
+          title="Crie documentos com IA"
+          subtitle="Gere documentos profissionais usando inteligência artificial"
+        />
       </div>
 
       <Tabs defaultValue="create" className="space-y-6">

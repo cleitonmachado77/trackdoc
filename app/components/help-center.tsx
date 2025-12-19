@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageTitle } from "@/components/ui/page-title"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -102,10 +103,10 @@ export default function HelpCenter() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Central de Ajuda</h1>
-          <p className="text-gray-600">Encontre respostas, tutoriais e suporte técnico</p>
-        </div>
+        <PageTitle
+          title="Central de Ajuda"
+          subtitle="Encontre respostas, tutoriais e suporte técnico"
+        />
 
         {/* Search Bar */}
         <div className="relative max-w-md">

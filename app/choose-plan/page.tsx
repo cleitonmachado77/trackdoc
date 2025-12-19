@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { PageTitle } from "@/components/ui/page-title"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, Clock, Star, Loader2, AlertCircle, ArrowRight } from "lucide-react"
 import { useAuth } from '@/lib/hooks/use-auth-final'
@@ -107,10 +108,12 @@ export default function ChoosePlanPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Escolha seu Plano
-          </h1>
+        <div className="mb-12">
+          <PageTitle
+            title="Escolha seu Plano"
+            size="lg"
+            centered
+          />
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Selecione o plano que melhor atende às suas necessidades. 
             Você pode começar com o teste gratuito e fazer upgrade quando quiser.

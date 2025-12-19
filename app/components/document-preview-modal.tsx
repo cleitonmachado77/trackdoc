@@ -22,6 +22,7 @@ import {
   Eye,
   Hash,
 } from "lucide-react"
+import { DocumentStatusBadge } from "@/components/ui/document-status-badge"
 
 interface DocumentPreviewModalProps {
   open: boolean
@@ -48,15 +49,9 @@ const getFileTypeIcon = (fileType: string) => {
   }
 }
 
-const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  approved: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-}
+
 
 const statusLabels: Record<string, string> = {
-  draft: "Rascunho",
   pending: "Em aprovação",
   pending_approval: "Em aprovação",
   approved: "Aprovado",
@@ -107,10 +102,10 @@ export default function DocumentPreviewModal({
           <DialogTitle className="flex items-center space-x-3">
             <FileIcon className={`h-6 w-6 ${fileTypeInfo.color}`} />
             <span>{document.title}</span>
-            <Badge className={statusColors[document.status]}>
-              <StatusIcon className="h-3 w-3 mr-1" />
-              {statusLabels[document.status]}
-            </Badge>
+            <DocumentStatusBadge
+              status={document.status}
+              approvalRequired={document.approval_required}
+            />
           </DialogTitle>
         </DialogHeader>
 
@@ -304,21 +299,7 @@ export default function DocumentPreviewModal({
                 </div>
               )}
 
-              {document.status === "draft" && (
-                <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
-                  <div className="flex items-center space-x-3">
-                    <AlertCircle className="h-5 w-5 text-gray-600" />
-                    <div>
-                      <p className="font-medium text-gray-800">Documento em Rascunho</p>
-                      <p className="text-sm text-gray-600">Documento ainda não foi enviado para aprovação</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-600">--</div>
-                    <div className="text-xs text-gray-600">Rascunho</div>
-                  </div>
-                </div>
-              )}
+
             </CardContent>
           </Card>
 
@@ -369,12 +350,7 @@ export default function DocumentPreviewModal({
               <Download className="h-4 w-4 mr-2" />
               Download
             </Button>
-            {document.status === "draft" && (
-              <Button onClick={onEdit}>
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
-              </Button>
-            )}
+
           </div>
         </div>
       </DialogContent>

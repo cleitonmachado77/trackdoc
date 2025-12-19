@@ -157,7 +157,6 @@ const statusLabels: Record<string, string> = {
   approved: "Aprovado",
   pending: "Em aprovação",
   pending_approval: "Em aprovação",
-  draft: "Rascunho",
   rejected: "Rejeitado",
   active: "Ativo",
   inactive: "Inativo",

@@ -184,13 +184,7 @@ export function DepartmentEmployeesModal({
                 Gerente
               </Badge>
             )}
-            {employee.is_primary && (
-              <Badge variant="secondary" className="text-xs">
-                <Star className="h-3 w-3 mr-1" />
-                Principal
-              </Badge>
-            )}
-            {employee.role_in_department && employee.role_in_department !== 'manager' && (
+            {employee.role_in_department && employee.role_in_department !== 'manager' && employee.role_in_department !== 'member' && (
               <Badge variant="outline" className="text-xs">
                 {employee.role_in_department === 'admin' ? 'Administrador' :
                  employee.role_in_department === 'user' ? 'Usuário' :

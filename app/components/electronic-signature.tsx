@@ -738,13 +738,14 @@ export default function ElectronicSignature() {
 
     try {
       setLoadingMultiHistory(true)
-      console.log('🔍 [fetchMultiSignatureHistory] Buscando últimas 10 assinaturas múltiplas completadas')
+      console.log('🔍 [fetchMultiSignatureHistory] Buscando últimas 10 assinaturas múltiplas completadas do usuário:', user.id)
 
-      // Buscar os últimos 10 documentos assinados de forma múltipla
-      // Filtramos por status 'completed' e qr_code_data contendo signatureType:multiple
+      // Buscar os últimos 10 documentos assinados de forma múltipla pelo usuário logado
+      // Filtramos por user_id, status 'completed' e qr_code_data contendo signatureType:multiple
       const { data: multiSignedDocs, error: docsError } = await supabase
         .from('document_signatures')
         .select('*')
+        .eq('user_id', user.id) // Filtrar apenas assinaturas do usuário logado
         .eq('status', 'completed')
         .like('qr_code_data', '%"signatureType":"multiple"%')
         .order('created_at', { ascending: false })

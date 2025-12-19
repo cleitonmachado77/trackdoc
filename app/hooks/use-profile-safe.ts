@@ -26,12 +26,12 @@ export function useProfileSafe() {
     }
   }, [loading, user])
 
-  // Perfil básico de fallback
+  // Perfil básico de fallback - usuários individuais são administradores por padrão
   const fallbackProfile = user ? {
     id: user.id,
     email: user.email,
     full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-    role: 'user',
+    role: 'admin', // Papel de administrador para usuários individuais
     status: 'active',
     isFallback: true
   } : null

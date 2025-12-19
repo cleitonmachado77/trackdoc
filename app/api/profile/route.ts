@@ -95,8 +95,8 @@ export async function PUT(request: NextRequest) {
 
     // Normalizar o role para lowercase e validar valores permitidos
     const validRoles = ['user', 'admin', 'manager']
-    const normalizedRole = role ? role.toLowerCase() : 'user'
-    const finalRole = validRoles.includes(normalizedRole) ? normalizedRole : 'user'
+    const normalizedRole = role ? role.toLowerCase() : 'admin' // Padrão admin para usuários individuais
+    const finalRole = validRoles.includes(normalizedRole) ? normalizedRole : 'admin'
 
     console.log('📝 [profile-api] Dados recebidos:', { full_name, phone, role: finalRole, department_id, position })
 
@@ -111,10 +111,10 @@ export async function PUT(request: NextRequest) {
       phone,
       role: finalRole,
       status: 'active',
-      permissions: ['read', 'write'],
+      permissions: ['read', 'write', 'admin'], // Permissões administrativas para usuários individuais
       registration_completed: true,
       registration_type: 'individual',
-      entity_role: 'user',
+      entity_role: 'admin', // Papel de admin para usuários individuais
       department_id,
       position,
       updated_at: new Date().toISOString()

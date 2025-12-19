@@ -47,18 +47,19 @@ export async function POST(request: Request) {
           const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(user_id)
           
           if (!authError && authUser.user) {
-            // Criar perfil básico
+            // Criar perfil básico com papel de administrador para usuários individuais
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
               .insert({
                 id: user_id,
                 full_name: authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Usuário',
                 email: authUser.user.email,
-                role: 'user',
+                role: 'admin', // Papel de administrador para usuários individuais
                 status: 'active',
-                permissions: JSON.stringify(["read", "write"]),
+                permissions: JSON.stringify(["read", "write", "admin"]), // Permissões administrativas
                 registration_type: 'individual',
                 registration_completed: true,
+                entity_role: 'admin', // Papel de admin na entidade (mesmo sendo individual)
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
@@ -98,16 +99,26 @@ export async function POST(request: Request) {
     }
     
     // Ativar usuário - preservando force_password_change e first_login_completed
+    // Para usuários individuais, definir papel de administrador
+    const updateData: any = {
+      status: 'active',
+      registration_completed: true,
+      updated_at: new Date().toISOString()
+    }
+    
+    // Se é usuário individual (sem entity_id), definir como admin
+    if (!currentProfile.entity_id) {
+      updateData.role = 'admin'
+      updateData.entity_role = 'admin'
+      updateData.permissions = JSON.stringify(["read", "write", "admin"])
+    } else {
+      // Para usuários de entidade, manter permissões padrão
+      updateData.permissions = JSON.stringify(["read", "write"])
+    }
+    
     const { data: updatedProfile, error: updateError } = await supabase
       .from('profiles')
-      .update({
-        status: 'active',
-        registration_completed: true,
-        permissions: JSON.stringify(["read", "write"]),
-        // NÃO alterar force_password_change e first_login_completed aqui
-        // Esses campos devem ser alterados apenas quando o usuário trocar a senha
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', user_id)
       .select()
       .single()

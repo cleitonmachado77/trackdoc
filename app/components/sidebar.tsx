@@ -28,10 +28,8 @@ import {
 import { cn } from "@/lib/utils"
 import { useAuth } from '@/lib/hooks/use-auth-final'
 import { useProfile } from "./profile-context"
-import { useNotificationCounterSimple } from "@/hooks/use-notification-counter-simple"
-import { useNotificationsCounter } from "@/hooks/use-notifications-counter"
+
 import FixedQuickSearchModal from "./fixed-quick-search-modal"
-import BellNotificationsV2 from "./bell-notifications-v2"
 import { createBrowserClient } from "@supabase/ssr"
 
 interface SidebarProps {
@@ -48,8 +46,7 @@ const supabase = createBrowserClient(
 const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprovalsCount }: SidebarProps) {
   const { user, signOut } = useAuth()
   const { profile, loading: profileLoading } = useProfile()
-  const { unreadCount: unreadNotificationsCount, refreshCounter: refreshNotificationsCounter } = useNotificationsCounter()
-  const { refreshCounter } = useNotificationCounterSimple()
+
   const [isExpanded, setIsExpanded] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [showQuickSearch, setShowQuickSearch] = useState(false)
@@ -127,7 +124,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         id: "notifications",
         label: "Notificações",
         icon: Bell,
-        badge: unreadNotificationsCount > 0 ? unreadNotificationsCount.toString() : null,
+        badge: null, // Badge removido - notificações centralizadas na aba principal
         onClick: () => {
           // Otimização: Remover refresh desnecessário
           onViewChange('notifications')
@@ -149,7 +146,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
     ]
 
     return baseItems
-  }, [pendingApprovalsCount, unreadNotificationsCount, onViewChange])
+  }, [pendingApprovalsCount, onViewChange])
 
   return (
     <>
@@ -319,17 +316,14 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
             <div className="mb-4">
               <h3 className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider mb-3">Ações Rápidas</h3>
               <div className="space-y-1 p-2 bg-sidebar-accent rounded-lg border border-border">
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="ghost"
-                    className="flex-1 justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar"
-                    onClick={() => setShowQuickSearch(true)}
-                  >
-                    <Search className="h-4 w-4 mr-3" />
-                    Busca Rápida
-                  </Button>
-                  <BellNotificationsV2 />
-                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar"
+                  onClick={() => setShowQuickSearch(true)}
+                >
+                  <Search className="h-4 w-4 mr-3" />
+                  Busca Rápida
+                </Button>
                 <Button
                   variant="ghost"
                   className={cn(
@@ -364,9 +358,6 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
               >
                 <Search className="h-5 w-5" />
               </Button>
-              <div className="flex justify-center min-h-[44px] items-center">
-                <BellNotificationsV2 />
-              </div>
               <Button
                 variant="ghost"
                 className={cn(

@@ -114,6 +114,45 @@ export default function BellNotificationsV2() {
     }
   }, [user, loading, fetchNotifications])
 
+  // Configurar realtime subscription para atualização automática
+  useEffect(() => {
+    if (!user?.email) return
+
+    console.log('📡 [BellNotifications] Configurando subscription para notificações do usuário:', user.email)
+
+    const supabase = getSupabaseSingleton()
+    const channel = supabase
+      .channel('bell_notifications_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escutar INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('🔄 [BellNotifications] Mudança detectada em notifications:', payload)
+          
+          // Verificar se a notificação é para este usuário
+          const notification = payload.new as any
+          if (notification && notification.recipients && notification.recipients.includes(user.email)) {
+            console.log('✅ [BellNotifications] Notificação é para este usuário, recarregando...')
+            // Recarregar notificações quando houver mudanças
+            fetchNotifications()
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [BellNotifications] Status da conexão:', status)
+      })
+
+    // Cleanup: remover subscription quando componente desmontar
+    return () => {
+      console.log('🔌 [BellNotifications] Desconectando subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [user?.email, fetchNotifications])
+
   // Listener para atualizações de notificações
   useEffect(() => {
     const handleNotificationsUpdate = () => {

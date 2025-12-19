@@ -153,8 +153,6 @@ export default function SupportPage() {
                 <h4 className="font-semibold mb-2">Suporte Técnico</h4>
                 <div className="space-y-1 text-sm text-gray-600">
                   <p>Segunda a Sexta: 8h às 18h</p>
-                  <p>Sábado: 8h às 12h</p>
-                  <p>Domingo: Fechado</p>
                 </div>
               </div>
               <div>

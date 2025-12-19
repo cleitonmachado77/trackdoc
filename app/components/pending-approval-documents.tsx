@@ -88,6 +88,27 @@ export default function PendingApprovalDocuments() {
     }
   }, [user?.id])
 
+  // Listener para eventos customizados de atualização
+  useEffect(() => {
+    const handleApprovalsUpdate = () => {
+      console.log('🔔 [PendingApprovals] Recebido evento de atualização de aprovações')
+      fetchPendingApprovals()
+    }
+
+    const handleForceRefresh = () => {
+      console.log('🔔 [PendingApprovals] Recebido evento de força atualização')
+      fetchPendingApprovals()
+    }
+
+    window.addEventListener('approvals-updated', handleApprovalsUpdate)
+    window.addEventListener('force-counter-refresh', handleForceRefresh)
+
+    return () => {
+      window.removeEventListener('approvals-updated', handleApprovalsUpdate)
+      window.removeEventListener('force-counter-refresh', handleForceRefresh)
+    }
+  }, [fetchPendingApprovals])
+
   const fetchPendingApprovals = async () => {
     try {
       setLoading(true)

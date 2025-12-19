@@ -69,12 +69,26 @@ export function useNotificationCounterSimple() {
       setUnreadCount(event.detail.count)
     }
 
+    const handleApprovalsUpdate = () => {
+      console.log('🔔 [useNotificationCounterSimple] Recebido evento de atualização de aprovações')
+      refreshCounter()
+    }
+
+    const handleForceRefresh = () => {
+      console.log('🔔 [useNotificationCounterSimple] Recebido evento de força atualização')
+      refreshCounter()
+    }
+
     window.addEventListener(NOTIFICATION_COUNTER_EVENT as any, handleCounterChange)
+    window.addEventListener('approvals-updated', handleApprovalsUpdate)
+    window.addEventListener('force-counter-refresh', handleForceRefresh)
 
     return () => {
       window.removeEventListener(NOTIFICATION_COUNTER_EVENT as any, handleCounterChange)
+      window.removeEventListener('approvals-updated', handleApprovalsUpdate)
+      window.removeEventListener('force-counter-refresh', handleForceRefresh)
     }
-  }, [])
+  }, [refreshCounter])
 
   // Carregar contador inicial
   useEffect(() => {
@@ -93,6 +107,43 @@ export function useNotificationCounterSimple() {
 
     return () => clearInterval(interval)
   }, [user?.email, user?.id]) // Removido fetchUnreadCount das dependências
+
+  // Configurar realtime subscription para atualização automática de aprovações
+  useEffect(() => {
+    if (!user?.id) return
+
+    console.log('📡 [useNotificationCounterSimple] Configurando subscription para approval_requests do usuário:', user.id)
+
+    // Importar supabase dinamicamente para evitar problemas de SSR
+    import('@/lib/supabase-singleton').then(({ getSupabaseSingleton }) => {
+      const supabase = getSupabaseSingleton()
+      const channel = supabase
+        .channel('approval_counter_realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // Escutar INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'approval_requests',
+            filter: `approver_id=eq.${user.id}` // Apenas aprovações para este usuário
+          },
+          (payload) => {
+            console.log('🔄 [useNotificationCounterSimple] Mudança detectada em approval_requests:', payload)
+            // Atualizar contador quando houver mudanças
+            refreshCounter()
+          }
+        )
+        .subscribe((status) => {
+          console.log('📡 [useNotificationCounterSimple] Status da conexão:', status)
+        })
+
+      // Cleanup será feito no return do useEffect
+      return () => {
+        console.log('🔌 [useNotificationCounterSimple] Desconectando subscription')
+        supabase.removeChannel(channel)
+      }
+    })
+  }, [user?.id, refreshCounter])
 
   return {
     unreadCount,

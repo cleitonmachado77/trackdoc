@@ -72,14 +72,14 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
           <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
             <AlertCircle className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-900 dark:text-blue-100">
-              <strong>Para ativar um plano:</strong> Entre em contato com o administrador do sistema para configurar sua assinatura e ter acesso a todas as funcionalidades.
+              <strong>Para ativar um plano:</strong> Entre em contato com nossa equipe de suporte para configurar sua assinatura e ter acesso a todas as funcionalidades.
             </AlertDescription>
           </Alert>
           <div className="mt-4">
             <Button asChild variant="outline" className="gap-2">
               <Link href="/support">
                 <AlertCircle className="h-4 w-4" />
-                Contatar Administrador
+                Falar com Suporte
               </Link>
             </Button>
           </div>
@@ -506,12 +506,9 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                   Precisa de ajuda com seu plano?
                 </p>
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Para alterações no seu plano, adicionar recursos ou tirar dúvidas, entre em contato com o administrador do sistema ou nossa equipe de suporte.
+                  Para alterações no seu plano, adicionar recursos ou tirar dúvidas, entre em contato com nossa equipe de suporte.
                 </p>
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" asChild className="bg-white">
-                    <Link href="/support">Contatar Administrador</Link>
-                  </Button>
                   <Button variant="outline" size="sm" asChild className="bg-white">
                     <Link href="/support">Falar com Suporte</Link>
                   </Button>

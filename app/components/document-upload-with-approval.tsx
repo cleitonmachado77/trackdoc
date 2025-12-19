@@ -187,6 +187,44 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
       // Nota: A notificação será criada automaticamente pelo trigger do banco de dados
       // (trigger_notify_approval_request)
+      
+      // Fallback: Criar notificação manualmente caso o trigger não funcione
+      try {
+        const { data: approverData } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', approverId)
+          .single()
+
+        if (approverData?.email) {
+          const { error: notificationError } = await supabase
+            .from('notifications')
+            .insert({
+              title: 'Documento para Aprovação',
+              message: `Você tem um novo documento "${documentTitle || 'documento'}" aguardando sua aprovação.`,
+              type: 'info',
+              priority: 'high',
+              category: 'approval',
+              recipients: [approverData.email],
+              channels: ['email', 'in_app'],
+              status: 'pending',
+              created_by: user?.id,
+              metadata: {
+                document_id: documentId,
+                document_title: documentTitle || 'documento',
+                approval_request_id: null // Será preenchido pelo trigger se existir
+              }
+            })
+
+          if (notificationError) {
+            console.warn('⚠️ Erro ao criar notificação manual:', notificationError)
+          } else {
+            console.log('✅ Notificação criada manualmente para aprovação')
+          }
+        }
+      } catch (notificationError) {
+        console.warn('⚠️ Erro ao criar notificação de fallback:', notificationError)
+      }
 
       // Buscar informações do aprovador para exibir no toast
       const { data: approverData } = await supabase
@@ -199,6 +237,16 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
         title: "Aprovação solicitada!",
         description: `Documento enviado para aprovação${approverData ? ` de ${approverData.full_name}` : ''}.`,
       })
+
+      // Disparar evento para atualizar componentes imediatamente
+      console.log('📢 [DocumentUpload] Disparando eventos de atualização após criar aprovação')
+      window.dispatchEvent(new CustomEvent('notifications-updated'))
+      window.dispatchEvent(new CustomEvent('approvals-updated'))
+
+      // Forçar atualização dos contadores após um pequeno delay
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('force-counter-refresh'))
+      }, 500)
 
     } catch (error) {
       console.error('Erro ao solicitar aprovação:', error)

@@ -494,6 +494,48 @@ export default function UnifiedNotificationsPage() {
     fetchNotifications()
   }, [fetchNotifications])
 
+  // Configurar realtime subscription para atualização automática de notificações
+  useEffect(() => {
+    if (!user?.email) return
+
+    console.log('📡 [REALTIME] Configurando subscription para notificações do usuário:', user.email)
+
+    const channel = supabase
+      .channel('notifications_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escutar INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('🔄 [REALTIME] Mudança detectada em notifications:', payload)
+          
+          // Verificar se a notificação é para este usuário
+          const notification = payload.new as any
+          if (notification && notification.recipients && notification.recipients.includes(user.email)) {
+            console.log('✅ [REALTIME] Notificação é para este usuário, recarregando...')
+            // Recarregar notificações quando houver mudanças
+            fetchNotifications()
+            
+            // Notificar mudança no contador
+            notifyNotificationsCounterChange()
+            notifyCounterChange()
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [REALTIME] Status da conexão de notificações:', status)
+      })
+
+    // Cleanup: remover subscription quando componente desmontar
+    return () => {
+      console.log('🔌 [REALTIME] Desconectando subscription de notificações')
+      supabase.removeChannel(channel)
+    }
+  }, [user?.email, fetchNotifications, notifyNotificationsCounterChange, notifyCounterChange])
+
   // Contar notificações por tipo
   const unreadCount = notifications.filter(n => !n.read).length
   const importantCount = notifications.filter(n => 

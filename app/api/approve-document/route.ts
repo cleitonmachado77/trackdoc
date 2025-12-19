@@ -102,6 +102,57 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`✅ [API] Documento ${documentStatus} com sucesso`)
+      
+      // Criar notificação para o autor do documento
+      try {
+        const { data: documentData } = await supabase
+          .from('documents')
+          .select('title, author_id, created_by')
+          .eq('id', approvalData.document_id)
+          .single()
+
+        if (documentData) {
+          const authorId = documentData.author_id || documentData.created_by
+          
+          if (authorId) {
+            const { data: authorProfile } = await supabase
+              .from('profiles')
+              .select('email, full_name')
+              .eq('id', authorId)
+              .single()
+
+            if (authorProfile?.email) {
+              const { error: notificationError } = await supabase
+                .from('notifications')
+                .insert({
+                  title: `Documento ${approved ? 'Aprovado' : 'Rejeitado'}`,
+                  message: `Seu documento "${documentData.title}" foi ${approved ? 'aprovado' : 'rejeitado'}.${comments ? ` Comentário: ${comments}` : ''}`,
+                  type: approved ? 'success' : 'warning',
+                  priority: 'high',
+                  category: 'approval',
+                  recipients: [authorProfile.email],
+                  channels: ['email', 'in_app'],
+                  status: 'pending',
+                  created_by: userId || approvalData.approver_id,
+                  metadata: {
+                    document_id: approvalData.document_id,
+                    document_title: documentData.title,
+                    approval_status: status,
+                    comments: comments || null
+                  }
+                })
+
+              if (notificationError) {
+                console.warn('⚠️ [API] Erro ao criar notificação para autor:', notificationError)
+              } else {
+                console.log('✅ [API] Notificação criada para autor do documento')
+              }
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.warn('⚠️ [API] Erro ao criar notificação de aprovação:', notificationError)
+      }
     } catch (docError) {
       console.error('❌ [API] Erro crítico ao atualizar documento:', docError)
       throw docError

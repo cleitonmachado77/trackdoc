@@ -81,10 +81,17 @@ export function useNotificationsCounter() {
       refreshCounter()
     }
 
+    const handleForceRefresh = () => {
+      console.log('🔔 [useNotificationsCounter] Recebido evento de força atualização')
+      refreshCounter()
+    }
+
     window.addEventListener('notifications-updated', handleNotificationsUpdate)
+    window.addEventListener('force-counter-refresh', handleForceRefresh)
 
     return () => {
       window.removeEventListener('notifications-updated', handleNotificationsUpdate)
+      window.removeEventListener('force-counter-refresh', handleForceRefresh)
     }
   }, [refreshCounter])
 
@@ -105,6 +112,45 @@ export function useNotificationsCounter() {
 
     return () => clearInterval(interval)
   }, [user?.email, fetchUnreadCount])
+
+  // Configurar realtime subscription para atualização automática
+  useEffect(() => {
+    if (!user?.email) return
+
+    console.log('📡 [useNotificationsCounter] Configurando subscription para notificações do usuário:', user.email)
+
+    const supabase = getSupabaseSingleton()
+    const channel = supabase
+      .channel('notifications_counter_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escutar INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('🔄 [useNotificationsCounter] Mudança detectada em notifications:', payload)
+          
+          // Verificar se a notificação é para este usuário
+          const notification = payload.new as any
+          if (notification && notification.recipients && notification.recipients.includes(user.email)) {
+            console.log('✅ [useNotificationsCounter] Notificação é para este usuário, atualizando contador...')
+            // Atualizar contador quando houver mudanças
+            refreshCounter()
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 [useNotificationsCounter] Status da conexão:', status)
+      })
+
+    // Cleanup: remover subscription quando componente desmontar
+    return () => {
+      console.log('🔌 [useNotificationsCounter] Desconectando subscription')
+      supabase.removeChannel(channel)
+    }
+  }, [user?.email, refreshCounter])
 
   return {
     unreadCount,

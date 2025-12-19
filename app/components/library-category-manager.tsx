@@ -76,7 +76,6 @@ export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, o
     name: "",
     description: "",
     icon: "FolderOpen",
-    color: "#3b82f6",
   })
 
   useEffect(() => {
@@ -148,7 +147,7 @@ export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, o
             name: formData.name,
             description: formData.description,
             icon: formData.icon,
-            color: formData.color,
+            color: "#3b82f6",
           })
           .eq("id", editingCategory.id)
 
@@ -165,7 +164,7 @@ export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, o
           name: formData.name,
           description: formData.description,
           icon: formData.icon,
-          color: formData.color,
+          color: "#3b82f6",
           created_by: user?.id,
         }
         
@@ -280,7 +279,6 @@ export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, o
       name: category.name,
       description: category.description || "",
       icon: category.icon || "FolderOpen",
-      color: category.color || "#3b82f6",
     })
     setIsDialogOpen(true)
   }
@@ -290,7 +288,6 @@ export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, o
       name: "",
       description: "",
       icon: "FolderOpen",
-      color: "#3b82f6",
     })
     setEditingCategory(null)
   }
@@ -341,17 +338,7 @@ export function LibraryCategoryManager({ entityId, userId, isSoloUser = false, o
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="color">Cor</Label>
-                  <Input
-                    id="color"
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  />
-                </div>
-              </div>
+
 
               <div className="flex justify-end gap-2">
                 <Button

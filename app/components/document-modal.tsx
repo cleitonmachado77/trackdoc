@@ -248,14 +248,26 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
   }
 
   const handleSave = (status = "draft") => {
+    // Verificar se aprovação é obrigatória baseada no tipo de documento
+    const selectedDocType = availableDocumentTypes.find(dt => dt.name === formData.type)
+    const isApprovalRequired = selectedDocType?.approvalRequired || false
+    const retentionPeriod = selectedDocType?.retentionPeriod ?? 0
+
+    // Se requer aprovação, usar o status passado (draft/pending)
+    // Se não requer aprovação e status é draft, mudar para approved
+    const finalStatus = (!isApprovalRequired && status === 'draft') ? 'approved' : status
+
     const saveData = {
       ...formData,
-      status,
+      status: finalStatus,
       fileType: selectedFileType,
       fileName: uploadedFile?.name || document?.fileName,
       fileSize: uploadedFile?.size || document?.fileSize,
       createdAt: document?.createdAt || new Date().toISOString().split("T")[0],
       updatedAt: new Date().toISOString().split("T")[0],
+      approval_required: isApprovalRequired,
+      retention_period: retentionPeriod,
+      retention_end_date: retentionPeriod > 0 ? new Date(Date.now() + retentionPeriod * 30 * 24 * 60 * 60 * 1000).toISOString() : null
     }
 
     onSave(saveData)
@@ -472,21 +484,7 @@ export default function DocumentModal({ open, onOpenChange, document, mode = "cr
                 }}
                 createFields={[
                   { name: 'name', label: 'Nome do Tipo', type: 'text', required: true, placeholder: 'Ex: Política de Segurança' },
-                  { name: 'prefix', label: 'Prefixo', type: 'text', required: true, placeholder: 'Ex: POL' },
-                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do tipo de documento' },
-                  { 
-                    name: 'color', 
-                    label: 'Cor', 
-                    type: 'select', 
-                    options: [
-                      { value: '#3B82F6', label: 'Azul' },
-                      { value: '#10B981', label: 'Verde' },
-                      { value: '#F59E0B', label: 'Amarelo' },
-                      { value: '#EF4444', label: 'Vermelho' },
-                      { value: '#8B5CF6', label: 'Roxo' },
-                      { value: '#EC4899', label: 'Rosa' }
-                    ]
-                  }
+                  { name: 'prefix', label: 'Prefixo', type: 'text', required: true, placeholder: 'Ex: POL' }
                 ]}
                 createTitle="Criar Novo Tipo de Documento"
               />

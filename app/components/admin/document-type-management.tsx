@@ -40,18 +40,8 @@ interface DocumentType {
 }
 
 /* ---------- CONSTANTES ---------- */
-// 🎨 Opções de cores baseadas no novo design
-const colorOptions = [
-  { value: "trackdoc-blue", label: "Azul Principal", class: "bg-trackdoc-blue/20 text-trackdoc-blue" },
-  { value: "trackdoc-blue-dark", label: "Azul Escuro", class: "bg-trackdoc-blue-dark/20 text-trackdoc-blue-dark" },
-  { value: "trackdoc-blue-light", label: "Azul Claro", class: "bg-trackdoc-blue-light/20 text-trackdoc-blue" },
-  { value: "trackdoc-black", label: "Preto", class: "bg-trackdoc-black/20 text-trackdoc-black" },
-  { value: "trackdoc-gray", label: "Cinza", class: "bg-trackdoc-gray/20 text-trackdoc-gray" },
-  { value: "trackdoc-gray-light", label: "Cinza Claro", class: "bg-trackdoc-gray-light/20 text-trackdoc-gray" },
-  { value: "success", label: "Sucesso", class: "bg-success/20 text-success" },
-  { value: "warning", label: "Aviso", class: "bg-warning/20 text-warning" },
-  { value: "destructive", label: "Erro", class: "bg-destructive/20 text-destructive" },
-]
+// Cor padrão para tipos de documento
+const DEFAULT_TYPE_COLOR_CLASS = "bg-blue-100 text-blue-800"
 
 const statusColors: Record<Status, string> = {
   active: "bg-success/20 text-success",
@@ -361,11 +351,7 @@ export default function DocumentTypeManagement({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        colorOptions.find((c) => c.value === type.color)?.class
-                      }`}
-                    >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${DEFAULT_TYPE_COLOR_CLASS}`}>
                       <FileText className="h-5 w-5" />
                     </div>
                     <div>
@@ -470,11 +456,7 @@ export default function DocumentTypeManagement({
                 <div key={type.id} className={`p-4 ${index !== filteredTypes.length - 1 ? "border-b" : ""}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          colorOptions.find((c) => c.value === type.color)?.class
-                        }`}
-                      >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${DEFAULT_TYPE_COLOR_CLASS}`}>
                         <FileText className="h-4 w-4" />
                       </div>
                       <div className="flex-1">

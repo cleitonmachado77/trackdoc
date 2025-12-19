@@ -192,6 +192,11 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
           ))
         }, 200)
 
+        // Verificar se aprovação é obrigatória baseada no tipo de documento
+        const selectedDocType = documentTypes.find(dt => dt.id === selectedDocumentType)
+        const isApprovalRequired = selectedDocType?.approvalRequired || false
+        const retentionPeriod = selectedDocType?.retentionPeriod ?? 0
+
         // Criar documento
         const documentData = {
           title: uploadFile.file.name.replace(/\.[^/.]+$/, ""), // Remove extensão
@@ -203,7 +208,13 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
           tags: tags,
           file_name: uploadFile.file.name,
           file_size: uploadFile.file.size,
-          file_type: uploadFile.file.type
+          file_type: uploadFile.file.type,
+          retention_period: retentionPeriod,
+          approval_required: isApprovalRequired,
+          retention_end_date: retentionPeriod > 0 ? new Date(Date.now() + retentionPeriod * 30 * 24 * 60 * 60 * 1000).toISOString() : null,
+          // Se requer aprovação, criar como draft e depois solicitar aprovação
+          // Se não requer aprovação, criar como approved
+          status: (isApprovalRequired ? 'draft' : 'approved') as 'draft' | 'pending_approval' | 'approved' | 'rejected'
         }
 
         console.log('Dados do documento:', documentData)
@@ -623,20 +634,7 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               createFields={[
                 { name: 'name', label: 'Nome do Tipo', type: 'text', required: true, placeholder: 'Ex: Política de Segurança' },
                 { name: 'prefix', label: 'Prefixo', type: 'text', required: true, placeholder: 'Ex: POL' },
-                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do tipo de documento' },
-                { 
-                  name: 'color', 
-                  label: 'Cor', 
-                  type: 'select', 
-                  options: [
-                    { value: '#3B82F6', label: 'Azul' },
-                    { value: '#10B981', label: 'Verde' },
-                    { value: '#F59E0B', label: 'Amarelo' },
-                    { value: '#EF4444', label: 'Vermelho' },
-                    { value: '#8B5CF6', label: 'Roxo' },
-                    { value: '#EC4899', label: 'Rosa' }
-                  ]
-                }
+                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do tipo de documento' }
               ]}
               createTitle="Criar Novo Tipo de Documento"
             />

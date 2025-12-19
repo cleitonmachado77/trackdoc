@@ -205,6 +205,7 @@ export default function ElectronicSignature() {
         file_size: fileSize,
         file_type: 'application/pdf',
         status: 'approved' as const,
+        approval_required: false, // Documentos assinados não requerem aprovação adicional
       }
 
       console.log('📋 [SAVE_SIGNED] Dados do documento:', documentData)

@@ -675,7 +675,6 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                 createFields={[
                   { name: 'name', label: 'Nome do Tipo', type: 'text', required: true, placeholder: 'Ex: Política de Segurança' },
                   { name: 'prefix', label: 'Prefixo', type: 'text', required: true, placeholder: 'Ex: POL' },
-                  { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição do tipo de documento' },
                   { 
                     name: 'approval_required', 
                     label: 'Requer Aprovação?', 
@@ -683,20 +682,6 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
                     options: [
                       { value: 'false', label: 'Não' },
                       { value: 'true', label: 'Sim' }
-                    ]
-                  },
-                  { name: 'retention_period', label: 'Período de Retenção (meses)', type: 'text', placeholder: '0' },
-                  { 
-                    name: 'color', 
-                    label: 'Cor', 
-                    type: 'select', 
-                    options: [
-                      { value: '#3B82F6', label: 'Azul' },
-                      { value: '#10B981', label: 'Verde' },
-                      { value: '#F59E0B', label: 'Amarelo' },
-                      { value: '#EF4444', label: 'Vermelho' },
-                      { value: '#8B5CF6', label: 'Roxo' },
-                      { value: '#EC4899', label: 'Rosa' }
                     ]
                   }
                 ]}

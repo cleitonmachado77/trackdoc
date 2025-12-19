@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Switch } from "@/components/ui/switch"
 
 /* ---------- TIPOS ---------- */
@@ -24,18 +24,7 @@ interface DocumentType {
 }
 
 /* ---------- CONSTANTES ---------- */
-const colorOptions = [
-  { value: "blue", label: "Azul", class: "bg-blue-100 text-blue-800" },
-  { value: "green", label: "Verde", class: "bg-green-100 text-green-800" },
-  { value: "yellow", label: "Amarelo", class: "bg-yellow-100 text-yellow-800" },
-  { value: "purple", label: "Roxo", class: "bg-purple-100 text-purple-800" },
-  { value: "red", label: "Vermelho", class: "bg-red-100 text-red-800" },
-  { value: "gray", label: "Cinza", class: "bg-gray-100 text-gray-800" },
-  { value: "orange", label: "Laranja", class: "bg-orange-100 text-orange-800" },
-  { value: "teal", label: "Verde-azulado", class: "bg-teal-100 text-teal-800" },
-  { value: "cyan", label: "Ciano", class: "bg-cyan-100 text-cyan-800" },
-  { value: "lime", label: "Verde-limão", class: "bg-lime-100 text-lime-800" },
-]
+const DEFAULT_COLOR = "blue"
 
 /* ---------- PROPS ---------- */
 interface DocumentTypeFormProps {
@@ -54,7 +43,6 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
   const [formData, setFormData] = useState<Partial<DocumentType>>({
     name: "",
     prefix: "",
-    color: "blue",
     requiredFields: ["title", "author", "version", "sector", "category"],
     approvalRequired: false,
     retentionPeriod: null,
@@ -71,7 +59,6 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
       setFormData({
         name: documentType.name || "",
         prefix: documentType.prefix || "",
-        color: documentType.color || "blue",
         requiredFields: documentType.requiredFields || ["title", "author", "version", "sector", "category"],
         approvalRequired: documentType.approvalRequired ?? false,
         retentionPeriod: hasRet ? documentType.retentionPeriod : null,
@@ -85,7 +72,6 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
       setFormData({
         name: "",
         prefix: "",
-        color: "blue",
         requiredFields: ["title", "author", "version", "sector", "category"],
         approvalRequired: false,
         retentionPeriod: null,
@@ -119,27 +105,7 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="color">Cor</Label>
-        <Select
-          value={formData.color || "blue"}
-          onValueChange={(value) => setFormData((prev) => ({ ...prev, color: value }))}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {colorOptions.map((color) => (
-              <SelectItem key={color.value} value={color.value}>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-4 h-4 rounded ${color.class}`}></div>
-                  <span>{color.label}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+
 
       {/* Switch para habilitar/desabilitar retenção */}
       <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
@@ -214,7 +180,7 @@ export default function DocumentTypeForm({ documentType, onSave, isLoading = fal
         <Button variant="outline" onClick={() => onSave({})} disabled={isLoading}>
           Cancelar
         </Button>
-        <Button onClick={() => onSave(formData)} disabled={isLoading}>
+        <Button onClick={() => onSave({...formData, color: DEFAULT_COLOR})} disabled={isLoading}>
           {isLoading ? "Salvando..." : "Salvar Tipo"}
         </Button>
       </div>

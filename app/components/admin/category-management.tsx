@@ -25,23 +25,12 @@ import {
   Grid3X3,
   List,
   Loader2,
-  Palette,
 } from "lucide-react"
 
 
 
-// 🎨 Opções de cores baseadas no novo design
-const colorOptions = [
-  { value: "hsl(var(--trackdoc-blue))", label: "Azul Principal", class: "bg-trackdoc-blue" },
-  { value: "hsl(var(--trackdoc-blue-dark))", label: "Azul Escuro", class: "bg-trackdoc-blue-dark" },
-  { value: "hsl(var(--trackdoc-blue-light))", label: "Azul Claro", class: "bg-trackdoc-blue-light" },
-  { value: "hsl(var(--trackdoc-black))", label: "Preto", class: "bg-trackdoc-black" },
-  { value: "hsl(var(--trackdoc-gray))", label: "Cinza", class: "bg-trackdoc-gray" },
-  { value: "hsl(var(--trackdoc-gray-light))", label: "Cinza Claro", class: "bg-trackdoc-gray-light" },
-  { value: "hsl(var(--success))", label: "Sucesso", class: "bg-success" },
-  { value: "hsl(var(--warning))", label: "Aviso", class: "bg-warning" },
-  { value: "hsl(var(--destructive))", label: "Erro", class: "bg-destructive" },
-]
+// Cor padrão para categorias
+const DEFAULT_CATEGORY_COLOR = "#3b82f6"
 
 const statusColors = {
   active: "bg-success/20 text-success",
@@ -86,7 +75,7 @@ export default function CategoryManagement() {
         await updateCategory(selectedCategory.id, {
           name: categoryData.name,
           description: categoryData.description,
-          color: categoryData.color,
+          color: DEFAULT_CATEGORY_COLOR,
           status: categoryData.status,
         })
         toast({
@@ -98,7 +87,7 @@ export default function CategoryManagement() {
         await createCategory({
           name: categoryData.name,
           description: categoryData.description,
-          color: categoryData.color,
+          color: DEFAULT_CATEGORY_COLOR,
           status: categoryData.status,
         })
         toast({
@@ -351,7 +340,7 @@ export default function CategoryManagement() {
                       <div className="flex items-center space-x-4">
                         <div
                           className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                          style={{ backgroundColor: category.color || "#3b82f6" }}
+                          style={{ backgroundColor: DEFAULT_CATEGORY_COLOR }}
                         >
                           {category.name.substring(0, 2).toUpperCase()}
                         </div>
@@ -368,10 +357,7 @@ export default function CategoryManagement() {
                               <FileText className="h-4 w-4" />
                               <span>{category.document_count || 0} documentos</span>
                             </div>
-                            <div className="flex items-center space-x-1">
-                              <Palette className="h-4 w-4" />
-                              <span>Cor: {colorOptions.find(c => c.value === category.color)?.label || 'Padrão'}</span>
-                            </div>
+
                           </div>
                         </div>
                       </div>
@@ -440,7 +426,7 @@ export default function CategoryManagement() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
-                        style={{ backgroundColor: category.color || "#3b82f6" }}
+                        style={{ backgroundColor: DEFAULT_CATEGORY_COLOR }}
                       >
                         {category.name.substring(0, 2).toUpperCase()}
                       </div>
@@ -497,11 +483,9 @@ export default function CategoryManagement() {
                         <div className="flex items-center justify-center space-x-2">
                           <div 
                             className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: category.color || "#3b82f6" }}
+                            style={{ backgroundColor: DEFAULT_CATEGORY_COLOR }}
                           />
-                          <p className="text-xs text-gray-500">
-                            {colorOptions.find(c => c.value === category.color)?.label || 'Padrão'}
-                          </p>
+                          <p className="text-xs text-gray-500">Padrão</p>
                         </div>
                       </div>
                     </div>
@@ -591,7 +575,6 @@ function CategoryForm({ category, onSave, onCancel, isSubmitting }: {
   const [formData, setFormData] = useState({
     name: category?.name || "",
     description: category?.description || "",
-    color: category?.color || "#3b82f6",
     status: category?.status || "active",
   })
 
@@ -601,14 +584,12 @@ function CategoryForm({ category, onSave, onCancel, isSubmitting }: {
       setFormData({
         name: category.name || "",
         description: category.description || "",
-        color: category.color || "#3b82f6",
         status: category.status || "active",
       })
     } else {
       setFormData({
         name: "",
         description: "",
-        color: "#3b82f6",
         status: "active",
       })
     }
@@ -641,25 +622,7 @@ function CategoryForm({ category, onSave, onCancel, isSubmitting }: {
           rows={3}
         />
       </div>
-      <div className="space-y-2">
-        <Label>Cor da Categoria</Label>
-        <div className="grid grid-cols-5 gap-2">
-          {colorOptions.map((color) => (
-            <button
-              key={color.value}
-              type="button"
-              onClick={() => setFormData((prev) => ({ ...prev, color: color.value }))}
-              className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                formData.color === color.value
-                  ? "border-gray-800 scale-110"
-                  : "border-gray-300 hover:border-gray-500"
-              }`}
-              style={{ backgroundColor: color.value }}
-              title={color.label}
-            />
-          ))}
-        </div>
-      </div>
+
       <div className="flex items-center space-x-2">
         <Switch
           id="category-status"

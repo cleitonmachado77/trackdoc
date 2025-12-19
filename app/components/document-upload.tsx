@@ -524,20 +524,7 @@ export default function DocumentUpload({ onSuccess }: DocumentUploadProps) {
               }}
               createFields={[
                 { name: 'name', label: 'Nome da Categoria', type: 'text', required: true, placeholder: 'Ex: Documentos Internos' },
-                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição da categoria' },
-                { 
-                  name: 'color', 
-                  label: 'Cor', 
-                  type: 'select', 
-                  options: [
-                    { value: '#3B82F6', label: 'Azul' },
-                    { value: '#10B981', label: 'Verde' },
-                    { value: '#F59E0B', label: 'Amarelo' },
-                    { value: '#EF4444', label: 'Vermelho' },
-                    { value: '#8B5CF6', label: 'Roxo' },
-                    { value: '#EC4899', label: 'Rosa' }
-                  ]
-                }
+                { name: 'description', label: 'Descrição', type: 'textarea', placeholder: 'Descrição da categoria' }
               ]}
               createTitle="Criar Nova Categoria"
             />

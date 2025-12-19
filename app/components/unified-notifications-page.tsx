@@ -662,15 +662,17 @@ export default function UnifiedNotificationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <PageTitle
-        title="Central de Notificações"
-        subtitle="Todas as suas notificações importantes em um só lugar"
-            {selectedNotifications.length > 0 && (
-              <span className="ml-2 text-primary font-medium">
-                ({selectedNotifications.length} selecionada{selectedNotifications.length > 1 ? 's' : ''})
-              </span>
-            )}
-          </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <PageTitle
+            title="Central de Notificações"
+            subtitle="Todas as suas notificações importantes em um só lugar"
+          />
+          {selectedNotifications.length > 0 && (
+            <span className="ml-2 text-primary font-medium">
+              ({selectedNotifications.length} selecionada{selectedNotifications.length > 1 ? 's' : ''})
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
           <Button 

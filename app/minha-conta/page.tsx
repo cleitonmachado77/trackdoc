@@ -589,21 +589,21 @@ export default function MinhaContaPage({ onBack }: MinhaContaPageProps = {}) {
         <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
           <TabsTrigger 
             value="profile" 
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             <User className="h-4 w-4" />
             Informações Pessoais
           </TabsTrigger>
           <TabsTrigger 
             value="plan" 
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             <CreditCard className="h-4 w-4" />
             Plano
           </TabsTrigger>
           <TabsTrigger 
             value="security" 
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:focus:!bg-blue-600"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
             <Lock className="h-4 w-4" />
             Segurança

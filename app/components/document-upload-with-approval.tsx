@@ -461,24 +461,26 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
       {/* Área de Drop */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded p-2 text-center cursor-pointer transition-colors ${isDragActive
-          ? "border-primary bg-primary/5"
-          : "border-gray-300 hover:border-primary/50"
+        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-300 ${isDragActive
+          ? "border-blue-500 bg-blue-200 scale-[1.02]"
+          : "border-blue-300 bg-blue-50 hover:bg-blue-100 hover:border-blue-400"
           }`}
       >
         <input {...getInputProps()} />
-        <Upload className="mx-auto h-4 w-4 text-gray-400 mb-1" />
+        <div className={`mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${isDragActive ? 'bg-blue-200' : 'bg-blue-100'}`}>
+          <Upload className={`h-6 w-6 transition-colors ${isDragActive ? 'text-blue-700' : 'text-blue-600'}`} />
+        </div>
         {isDragActive ? (
-          <p className="text-xs font-medium text-primary">Solte os arquivos aqui...</p>
+          <p className="text-base font-semibold text-blue-900">Solte os arquivos aqui...</p>
         ) : (
           <div>
-            <p className="text-xs font-medium">Arraste arquivos ou clique</p>
-            <Button variant="outline" size="sm" className="mt-1 h-6 text-xs px-2">
+            <p className="text-base font-semibold text-blue-800">Arraste arquivos ou clique</p>
+            <Button variant="outline" size="sm" className="mt-2 h-8 text-sm px-4 border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400">
               Selecionar
             </Button>
           </div>
         )}
-        <p className="text-xs text-gray-400 mt-1">
+        <p className="text-xs text-blue-600 mt-3">
           PDF, DOC, XLS, PPT, TXT, JPG, PNG | Max: 50MB
         </p>
       </div>

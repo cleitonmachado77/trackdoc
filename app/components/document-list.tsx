@@ -1280,17 +1280,19 @@ export default function DocumentList() {
 
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>Upload de Documento</DialogTitle>
             <DialogDescription>
               Faça upload de um novo documento para o sistema
             </DialogDescription>
           </DialogHeader>
-          <DocumentUploadWithApproval onSuccess={() => {
-            setShowUpload(false)
-            handleRefresh() // Recarregar a lista de documentos após upload
-          }} />
+          <div className="overflow-y-auto flex-1">
+            <DocumentUploadWithApproval onSuccess={() => {
+              setShowUpload(false)
+              handleRefresh() // Recarregar a lista de documentos após upload
+            }} />
+          </div>
         </DialogContent>
       </Dialog>
 

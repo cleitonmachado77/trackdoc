@@ -32,18 +32,6 @@ interface LibraryItem {
   category_id: string | null
   created_at: string
   document_id: string | null
-  // Dados do documento relacionado
-  document?: {
-    version: string | null
-    status: string | null
-    approved_at: string | null
-    author: {
-      full_name: string | null
-    } | null
-    department: {
-      name: string | null
-    } | null
-  } | null
 }
 
 interface Category {
@@ -205,19 +193,10 @@ export default function BibliotecaPublicaPage() {
       const { data: categoriesData } = await categoriesQuery
       setCategories(categoriesData || [])
 
-      // Buscar todos os documentos ativos com dados relacionados
+      // Buscar todos os documentos ativos (sem relacionamentos complexos para evitar erro 400)
       let libraryQuery = supabase
         .from("public_library")
-        .select(`
-          *,
-          document:documents(
-            version,
-            status,
-            approved_at,
-            author:profiles!documents_author_id_fkey(full_name),
-            department:departments(name)
-          )
-        `)
+        .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true })
 
@@ -521,34 +500,12 @@ export default function BibliotecaPublicaPage() {
                                       {item.description}
                                     </p>
                                   )}
-                                  {/* Informações adicionais do documento */}
-                                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
-                                    {item.document?.author?.full_name && (
-                                      <span>
-                                        <span className="font-medium">Autor:</span> {item.document.author.full_name}
-                                      </span>
-                                    )}
-                                    {item.document?.department?.name && (
-                                      <span>
-                                        <span className="font-medium">Departamento:</span> {item.document.department.name}
-                                      </span>
-                                    )}
-                                    {item.document?.version && (
-                                      <span>
-                                        <span className="font-medium">Versão:</span> {item.document.version}
-                                      </span>
-                                    )}
-                                    {item.created_at && (
-                                      <span>
-                                        <span className="font-medium">Publicado em:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                                      </span>
-                                    )}
-                                    {item.document?.approved_at && (
-                                      <span>
-                                        <span className="font-medium">Aprovado em:</span> {new Date(item.document.approved_at).toLocaleDateString('pt-BR')}
-                                      </span>
-                                    )}
-                                  </div>
+                                  {/* Data de publicação */}
+                                  {item.created_at && (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      <span className="font-medium">Publicado em:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -598,34 +555,12 @@ export default function BibliotecaPublicaPage() {
                               </CardDescription>
                             )}
                           </div>
-                          {/* Informações adicionais do documento */}
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            {item.document?.author?.full_name && (
-                              <p>
-                                <span className="font-medium">Autor:</span> {item.document.author.full_name}
-                              </p>
-                            )}
-                            {item.document?.department?.name && (
-                              <p>
-                                <span className="font-medium">Depto:</span> {item.document.department.name}
-                              </p>
-                            )}
-                            {item.document?.version && (
-                              <p>
-                                <span className="font-medium">Versão:</span> {item.document.version}
-                              </p>
-                            )}
-                            {item.created_at && (
-                              <p>
-                                <span className="font-medium">Publicado:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                              </p>
-                            )}
-                            {item.document?.approved_at && (
-                              <p>
-                                <span className="font-medium">Aprovado:</span> {new Date(item.document.approved_at).toLocaleDateString('pt-BR')}
-                              </p>
-                            )}
-                          </div>
+                          {/* Data de publicação */}
+                          {item.created_at && (
+                            <p className="text-xs text-muted-foreground">
+                              <span className="font-medium">Publicado:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                            </p>
+                          )}
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="flex flex-col gap-2">

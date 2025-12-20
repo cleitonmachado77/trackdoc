@@ -376,6 +376,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
 
       const documentToCreate: Partial<Document> & {
         author_id?: string
+        created_by?: string
         file_path: string
         file_name: string
         file_size: number
@@ -383,6 +384,7 @@ export function useDocuments(filters: DocumentFilters = {}) {
       } = {
         ...documentData,
         author_id: user?.id,
+        created_by: user?.id, // Importante para usuários solo - usado pelo trigger de numeração
         file_path: filePath,
         file_name: fileName,
         file_size: fileSize,

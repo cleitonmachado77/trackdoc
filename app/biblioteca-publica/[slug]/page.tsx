@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { createBrowserClient } from "@supabase/ssr"
-import { FileText, Download, ExternalLink, Building2, FolderOpen, Eye, X, Search, LayoutGrid, List } from "lucide-react"
+import { FileText, Download, Building2, FolderOpen, Eye, Search, LayoutGrid, List } from "lucide-react"
 import UniversalDocumentViewer from "@/app/components/universal-document-viewer"
 import {
   Dialog,
@@ -31,6 +31,19 @@ interface LibraryItem {
   file_type: string | null
   category_id: string | null
   created_at: string
+  document_id: string | null
+  // Dados do documento relacionado
+  document?: {
+    version: string | null
+    status: string | null
+    approved_at: string | null
+    author: {
+      full_name: string | null
+    } | null
+    department: {
+      name: string | null
+    } | null
+  } | null
 }
 
 interface Category {
@@ -192,10 +205,19 @@ export default function BibliotecaPublicaPage() {
       const { data: categoriesData } = await categoriesQuery
       setCategories(categoriesData || [])
 
-      // Buscar todos os documentos ativos
+      // Buscar todos os documentos ativos com dados relacionados
       let libraryQuery = supabase
         .from("public_library")
-        .select("*")
+        .select(`
+          *,
+          document:documents(
+            version,
+            status,
+            approved_at,
+            author:profiles!documents_author_id_fkey(full_name),
+            department:departments(name)
+          )
+        `)
         .eq("is_active", true)
         .order("display_order", { ascending: true })
 
@@ -251,17 +273,6 @@ export default function BibliotecaPublicaPage() {
   const handleZoomIn = () => setScale(prev => Math.min(prev + 0.25, 3))
   const handleZoomOut = () => setScale(prev => Math.max(prev - 0.25, 0.25))
   const handleRotate = () => setRotation(prev => (prev + 90) % 360)
-
-  const getFileIcon = (fileType: string | null) => {
-    if (!fileType) return <FileText className="h-8 w-8 text-primary" />
-    
-    if (fileType.includes("pdf")) return <FileText className="h-8 w-8 text-red-500" />
-    if (fileType.includes("word") || fileType.includes("doc")) return <FileText className="h-8 w-8 text-blue-500" />
-    if (fileType.includes("excel") || fileType.includes("sheet")) return <FileText className="h-8 w-8 text-green-500" />
-    if (fileType.includes("powerpoint") || fileType.includes("presentation")) return <FileText className="h-8 w-8 text-orange-500" />
-    
-    return <FileText className="h-8 w-8 text-primary" />
-  }
 
   if (loading) {
     return (
@@ -377,19 +388,19 @@ export default function BibliotecaPublicaPage() {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={viewMode === "list" ? "default" : "outline"}
+                variant="outline"
                 size="icon"
                 onClick={() => setViewMode("list")}
-                className={`h-12 w-12 ${viewMode === "list" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+                className={`h-12 w-12 transition-colors ${viewMode === "list" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
                 title="Visualização em lista"
               >
                 <List className="h-5 w-5" />
               </Button>
               <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
+                variant="outline"
                 size="icon"
                 onClick={() => setViewMode("grid")}
-                className={`h-12 w-12 ${viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+                className={`h-12 w-12 transition-colors ${viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
                 title="Visualização em grade"
               >
                 <LayoutGrid className="h-5 w-5" />
@@ -401,33 +412,33 @@ export default function BibliotecaPublicaPage() {
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <Button
-                variant={selectedCategoryId === null ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedCategoryId(null)}
-                className={selectedCategoryId === null ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                className={`transition-colors ${selectedCategoryId === null ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
               >
                 Todas
               </Button>
               {categories.map((category) => (
                 <Button
                   key={category.id}
-                  variant={selectedCategoryId === category.id ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
                   onClick={() => setSelectedCategoryId(category.id)}
-                  className={`flex items-center gap-2 ${selectedCategoryId === category.id ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}`}
+                  className={`flex items-center gap-2 transition-colors ${selectedCategoryId === category.id ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
                 >
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className={`w-3 h-3 rounded-full ${selectedCategoryId === category.id ? "border border-white" : ""}`}
                     style={{ backgroundColor: category.color || "#3b82f6" }}
                   />
                   {category.name}
                 </Button>
               ))}
               <Button
-                variant={selectedCategoryId === "uncategorized" ? "default" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => setSelectedCategoryId("uncategorized")}
-                className={selectedCategoryId === "uncategorized" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+                className={`transition-colors ${selectedCategoryId === "uncategorized" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
               >
                 Sem Categoria
               </Button>
@@ -498,30 +509,47 @@ export default function BibliotecaPublicaPage() {
                         className="group hover:shadow-md transition-all duration-200 bg-white"
                       >
                         <CardContent className="p-4">
-                          <div className="flex items-center gap-4">
-                            <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors flex-shrink-0">
-                              {getFileIcon(item.file_type)}
-                            </div>
+                          <div className="flex items-start gap-4">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors truncate">
+                                  <h3 className="font-semibold text-lg group-hover:text-primary transition-colors">
                                     {item.title}
                                   </h3>
                                   {item.description && (
-                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                       {item.description}
                                     </p>
                                   )}
+                                  {/* Informações adicionais do documento */}
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                    {item.document?.author?.full_name && (
+                                      <span>
+                                        <span className="font-medium">Autor:</span> {item.document.author.full_name}
+                                      </span>
+                                    )}
+                                    {item.document?.department?.name && (
+                                      <span>
+                                        <span className="font-medium">Departamento:</span> {item.document.department.name}
+                                      </span>
+                                    )}
+                                    {item.document?.version && (
+                                      <span>
+                                        <span className="font-medium">Versão:</span> {item.document.version}
+                                      </span>
+                                    )}
+                                    {item.created_at && (
+                                      <span>
+                                        <span className="font-medium">Publicado em:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                                      </span>
+                                    )}
+                                    {item.document?.approved_at && (
+                                      <span>
+                                        <span className="font-medium">Aprovado em:</span> {new Date(item.document.approved_at).toLocaleDateString('pt-BR')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                {item.file_type && (
-                                  <Badge 
-                                    variant="secondary" 
-                                    className="font-mono text-xs flex-shrink-0"
-                                  >
-                                    {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
-                                  </Badge>
-                                )}
                               </div>
                             </div>
                             <div className="flex gap-2 flex-shrink-0">
@@ -560,19 +588,6 @@ export default function BibliotecaPublicaPage() {
                         className="group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 bg-white"
                       >
                         <CardHeader className="space-y-3 pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-gray-200 transition-colors">
-                              {getFileIcon(item.file_type)}
-                            </div>
-                            {item.file_type && (
-                              <Badge 
-                                variant="secondary" 
-                                className="font-mono text-xs"
-                              >
-                                {item.file_type.split('/').pop()?.toUpperCase().substring(0, 4)}
-                              </Badge>
-                            )}
-                          </div>
                           <div>
                             <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors line-clamp-2">
                               {item.title}
@@ -581,6 +596,34 @@ export default function BibliotecaPublicaPage() {
                               <CardDescription className="mt-1 text-xs line-clamp-2">
                                 {item.description}
                               </CardDescription>
+                            )}
+                          </div>
+                          {/* Informações adicionais do documento */}
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            {item.document?.author?.full_name && (
+                              <p>
+                                <span className="font-medium">Autor:</span> {item.document.author.full_name}
+                              </p>
+                            )}
+                            {item.document?.department?.name && (
+                              <p>
+                                <span className="font-medium">Depto:</span> {item.document.department.name}
+                              </p>
+                            )}
+                            {item.document?.version && (
+                              <p>
+                                <span className="font-medium">Versão:</span> {item.document.version}
+                              </p>
+                            )}
+                            {item.created_at && (
+                              <p>
+                                <span className="font-medium">Publicado:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                              </p>
+                            )}
+                            {item.document?.approved_at && (
+                              <p>
+                                <span className="font-medium">Aprovado:</span> {new Date(item.document.approved_at).toLocaleDateString('pt-BR')}
+                              </p>
                             )}
                           </div>
                         </CardHeader>

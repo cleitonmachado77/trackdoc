@@ -159,14 +159,16 @@ export function DocumentViewer({ document: doc, onClose }: DocumentViewerProps) 
     const handleOpenInNewTab = async () => {
         if (doc.file_path) {
             try {
-                // Gerar URL de download do Supabase Storage
+                // Gerar URL assinada com opção de visualização inline (não download)
                 const { data, error } = await supabase.storage
                     .from('documents')
-                    .createSignedUrl(doc.file_path, 3600) // 1 hora de validade
+                    .createSignedUrl(doc.file_path, 3600, {
+                        download: false // Força visualização inline em vez de download
+                    })
 
                 if (error) throw error
 
-                window.open(data.signedUrl, '_blank')
+                window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
             } catch (error) {
                 console.error('Erro ao abrir arquivo:', error)
                 setError('Erro ao abrir arquivo')

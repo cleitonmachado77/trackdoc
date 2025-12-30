@@ -2109,14 +2109,14 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
       {/* Modal de Upload de Documento */}
       <Dialog open={showUploadModal} onOpenChange={setShowUploadModal}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Upload de Documento</DialogTitle>
             <DialogDescription>
               Faça upload de um novo documento para o sistema
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1">
+          <div className="flex-1 overflow-y-auto">
             <DocumentUploadWithApproval onSuccess={() => {
               setShowUploadModal(false)
               refetchApprovals()

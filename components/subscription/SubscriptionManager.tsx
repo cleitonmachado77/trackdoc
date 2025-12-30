@@ -77,10 +77,10 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
           </Alert>
           <div className="mt-4">
             <Button asChild variant="outline" className="gap-2">
-              <Link href="/support">
+              <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">
                 <AlertCircle className="h-4 w-4" />
                 Falar com Suporte
-              </Link>
+              </a>
             </Button>
           </div>
         </CardContent>
@@ -152,7 +152,7 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                 <Link href="/choose-plan">Escolher um Plano</Link>
               </Button>
               <Button asChild variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
-                <Link href="/support">Falar com Suporte</Link>
+                <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">Falar com Suporte</a>
               </Button>
             </div>
           </AlertDescription>
@@ -486,7 +486,7 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                     <Link href="/choose-plan">Ver Planos Disponíveis</Link>
                   </Button>
                   <Button asChild variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
-                    <Link href="/support">Falar com Suporte</Link>
+                    <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">Falar com Suporte</a>
                   </Button>
                 </div>
               </div>
@@ -510,7 +510,7 @@ export function SubscriptionManager({ userId }: SubscriptionManagerProps) {
                 </p>
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" size="sm" asChild className="bg-white">
-                    <Link href="/support">Falar com Suporte</Link>
+                    <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">Falar com Suporte</a>
                   </Button>
                 </div>
               </div>

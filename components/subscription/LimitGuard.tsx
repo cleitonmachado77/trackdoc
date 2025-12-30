@@ -67,7 +67,7 @@ export function LimitGuard({
           Você precisa de um plano ativo para realizar esta ação.
           <div className="mt-3">
             <Button asChild size="sm" variant="outline">
-              <Link href="/support">Contatar Administrador</Link>
+              <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">Contatar Administrador</a>
             </Button>
           </div>
         </AlertDescription>
@@ -154,7 +154,7 @@ export function LimitGuard({
           
           <div className="flex gap-3">
             <Button asChild variant="outline" size="sm">
-              <Link href="/support">Contatar Administrador</Link>
+              <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">Contatar Administrador</a>
             </Button>
             {limitType === 'storage' && (
               <Button asChild variant="outline" size="sm">

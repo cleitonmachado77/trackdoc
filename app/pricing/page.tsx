@@ -183,10 +183,10 @@ export default function PricingPage() {
           </p>
           <div className="flex gap-4 justify-center">
             <Button size="lg" className="gap-2" asChild>
-              <Link href="/support">
+              <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">
                 <Mail className="h-4 w-4" />
                 Contatar Administrador
-              </Link>
+              </a>
             </Button>
             <Button size="lg" variant="outline" className="gap-2" asChild>
               <a href="https://wa.me/551151926440" target="_blank" rel="noopener noreferrer">

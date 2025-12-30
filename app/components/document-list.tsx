@@ -144,6 +144,8 @@ export default function DocumentList() {
   const [selectedDocumentForEdit, setSelectedDocumentForEdit] = useState<Document | null>(null)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [selectedDocumentForPermissions, setSelectedDocumentForPermissions] = useState<Document | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null)
 
   // Carregar preferência de visualização do localStorage
   useEffect(() => {
@@ -252,16 +254,32 @@ export default function DocumentList() {
     setSearchTerm(value)
   }, [])
 
-
-
-  const handleDelete = async (documentId: string) => {
-    if (confirm('Tem certeza que deseja deletar este documento?')) {
+  // Função para confirmar exclusão
+  const handleConfirmDelete = async () => {
+    if (documentToDelete) {
       try {
-        await deleteDocument(documentId)
+        await deleteDocument(documentToDelete.id)
+        toast({
+          title: "Documento excluído",
+          description: "O documento foi excluído com sucesso.",
+        })
       } catch (error) {
         console.error('Erro ao deletar documento:', error)
+        toast({
+          title: "Erro ao excluir",
+          description: "Não foi possível excluir o documento.",
+          variant: "destructive",
+        })
+      } finally {
+        setShowDeleteDialog(false)
+        setDocumentToDelete(null)
       }
     }
+  }
+
+  const handleDelete = (document: Document) => {
+    setDocumentToDelete(document)
+    setShowDeleteDialog(true)
   }
 
   const handleEditDocument = (document: Document) => {
@@ -626,9 +644,8 @@ export default function DocumentList() {
                                     <DropdownMenuItem
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
-                                          deleteDocument(document.id)
-                                        }
+                                        setDocumentToDelete(document)
+                                        setShowDeleteDialog(true)
                                       }}
                                       className="text-destructive"
                                     >
@@ -703,9 +720,8 @@ export default function DocumentList() {
                                   <DropdownMenuItem
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                        deleteDocument(document.id)
-                                      }
+                                      setDocumentToDelete(document)
+                                      setShowDeleteDialog(true)
                                     }}
                                     className="text-destructive"
                                   >
@@ -849,9 +865,8 @@ export default function DocumentList() {
                                   <DropdownMenuItem
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
-                                        deleteDocument(document.id)
-                                      }
+                                      setDocumentToDelete(document)
+                                      setShowDeleteDialog(true)
                                     }}
                                     className="text-destructive"
                                   >
@@ -924,9 +939,8 @@ export default function DocumentList() {
                                 <DropdownMenuItem
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                      deleteDocument(document.id)
-                                    }
+                                    setDocumentToDelete(document)
+                                    setShowDeleteDialog(true)
                                   }}
                                   className="text-destructive"
                                 >
@@ -992,9 +1006,8 @@ export default function DocumentList() {
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (confirm('Tem certeza que deseja excluir este documento rejeitado?')) {
-                                  deleteDocument(document.id)
-                                }
+                                setDocumentToDelete(document)
+                                setShowDeleteDialog(true)
                               }}
                               className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
@@ -1049,9 +1062,8 @@ export default function DocumentList() {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation()
-                              if (confirm('Tem certeza que deseja excluir este documento?')) {
-                                deleteDocument(document.id)
-                              }
+                              setDocumentToDelete(document)
+                              setShowDeleteDialog(true)
                             }}
                             className="flex-1 h-7 text-xs px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
@@ -1280,14 +1292,14 @@ export default function DocumentList() {
 
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[85vh] max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[85vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>Upload de Documento</DialogTitle>
             <DialogDescription>
               Faça upload de um novo documento para o sistema
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1">
+          <div className="flex-1 overflow-y-auto">
             <DocumentUploadWithApproval onSuccess={() => {
               setShowUpload(false)
               handleRefresh() // Recarregar a lista de documentos após upload
@@ -1353,6 +1365,61 @@ export default function DocumentList() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowDeleteDialog(false)
+          setDocumentToDelete(null)
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir o documento "{documentToDelete?.title}"? 
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowDeleteDialog(false)
+                setDocumentToDelete(null)
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (documentToDelete) {
+                  try {
+                    await deleteDocument(documentToDelete.id)
+                    toast({
+                      title: "Documento excluído",
+                      description: "O documento foi excluído com sucesso.",
+                    })
+                  } catch (error) {
+                    console.error('Erro ao deletar documento:', error)
+                    toast({
+                      title: "Erro ao excluir",
+                      description: "Não foi possível excluir o documento.",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setShowDeleteDialog(false)
+                    setDocumentToDelete(null)
+                  }
+                }
+              }}
+            >
+              Excluir
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   )

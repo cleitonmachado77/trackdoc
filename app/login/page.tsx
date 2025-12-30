@@ -29,10 +29,11 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
-  // Verificar se há mensagem de sucesso na URL
+  // Verificar se há mensagem de sucesso ou erro na URL
   useEffect(() => {
     const message = searchParams.get('message')
     const confirmed = searchParams.get('confirmed')
+    const errorParam = searchParams.get('error')
     
     if (message === 'password_updated') {
       setSuccess("Senha redefinida com sucesso! Faça login com sua nova senha.")
@@ -40,6 +41,15 @@ export default function LoginPage() {
       setSuccess(decodeURIComponent(message))
     } else if (confirmed === 'true') {
       setSuccess("Email confirmado com sucesso! Você já pode fazer login.")
+    }
+    
+    // Tratar erros de conta bloqueada/excluída vindos do middleware
+    if (errorParam === 'account_deleted') {
+      setError("Esta conta foi removida do sistema. Entre em contato com o administrador para mais informações.")
+    } else if (errorParam === 'account_inactive') {
+      setError("Sua conta está inativa. Entre em contato com o administrador do sistema para reativá-la.")
+    } else if (errorParam === 'account_suspended') {
+      setError("Sua conta foi suspensa. Entre em contato com o administrador do sistema para mais informações.")
     }
   }, [searchParams])
 
@@ -164,6 +174,14 @@ export default function LoginPage() {
           if (profile.status === 'suspended') {
             await supabase.auth.signOut()
             setError("Sua conta foi suspensa. Entre em contato com o administrador do sistema para mais informações.")
+            setIsLoading(false)
+            return
+          }
+          
+          // Verificar se usuário foi excluído (soft delete)
+          if (profile.status === 'deleted') {
+            await supabase.auth.signOut()
+            setError("Esta conta foi removida do sistema. Entre em contato com o administrador para mais informações.")
             setIsLoading(false)
             return
           }

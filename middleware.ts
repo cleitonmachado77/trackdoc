@@ -87,9 +87,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Se estiver autenticado, verificar subscription
+  // Se estiver autenticado, verificar status do perfil e subscription
   if (user && !isPublicRoute) {
     try {
+      // Verificar se o usuário foi excluído ou desativado
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('status, deleted_at')
+        .eq('id', user.id)
+        .single()
+
+      // Se o perfil não existe ou foi excluído, fazer logout
+      if (profileError || !profile || profile.status === 'deleted' || profile.deleted_at) {
+        console.warn('🚫 [Middleware] Usuário excluído tentando acessar:', user.id)
+        // Redirecionar para login com mensagem
+        const redirectUrl = new URL('/login', request.url)
+        redirectUrl.searchParams.set('error', 'account_deleted')
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // Se o usuário está inativo ou suspenso, bloquear acesso
+      if (profile.status === 'inactive' || profile.status === 'suspended') {
+        console.warn('🚫 [Middleware] Usuário inativo/suspenso tentando acessar:', user.id, profile.status)
+        const redirectUrl = new URL('/login', request.url)
+        redirectUrl.searchParams.set('error', profile.status === 'inactive' ? 'account_inactive' : 'account_suspended')
+        return NextResponse.redirect(redirectUrl)
+      }
+
       // Buscar subscription ativa
       const { data: subscription, error } = await supabase
         .rpc('get_user_active_subscription', { p_user_id: user.id })

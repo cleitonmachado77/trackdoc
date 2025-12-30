@@ -242,6 +242,36 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
             } 
           }
         }
+
+        // Verificar se usuário foi excluído (soft delete)
+        if (profile?.status === 'deleted') {
+          console.log('🚫 [Auth] Usuário excluído detectado, fazendo logout...')
+          // Fazer logout completo e limpar storage
+          await supabase.auth.signOut({ scope: 'global' })
+          
+          // Limpar estado local
+          setSession(null)
+          setUser(null)
+          
+          // Limpar storage local
+          if (typeof window !== 'undefined') {
+            localStorage.clear()
+            sessionStorage.clear()
+            
+            // Limpar cookies
+            document.cookie.split(";").forEach((c) => {
+              document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+            })
+          }
+          
+          return { 
+            error: { 
+              message: 'Esta conta foi removida do sistema. Entre em contato com o administrador para mais informações.' 
+            } 
+          }
+        }
       }
 
       return { error }

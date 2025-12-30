@@ -140,10 +140,10 @@ export default function SubscriptionStatusCard() {
         <div className="flex gap-2">
           {(isTrial || isExpired) && (
             <Button asChild variant="outline" className="flex-1">
-              <Link href="/support">
+              <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">
                 Contatar Administrador
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
+              </a>
             </Button>
           )}
           

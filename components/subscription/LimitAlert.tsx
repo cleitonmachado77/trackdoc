@@ -146,10 +146,10 @@ export function LimitAlert({
           )}
           {isCritical && (
             <Button asChild variant="outline" size="sm" className="gap-2">
-              <Link href="/support">
+              <a href="https://www.trackdoc.com.br/suporte" target="_blank" rel="noopener noreferrer">
                 <Sparkles className="h-4 w-4" />
                 Contatar Administrador
-              </Link>
+              </a>
             </Button>
           )}
         </div>

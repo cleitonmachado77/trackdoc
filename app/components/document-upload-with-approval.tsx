@@ -454,7 +454,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {/* Alerta de Limite de Armazenamento */}
       <LimitAlert userId={user?.id} limitType="storage" showAt={[80, 90]} />
 
@@ -487,7 +487,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
       {/* Lista de Arquivos */}
       {uploadFiles.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h3 className="text-sm font-medium">Arquivos Selecionados</h3>
           {uploadFiles.map((uploadFile) => (
             <div
@@ -545,7 +545,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
 
       {/* Configurações do Documento */}
       {uploadFiles.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium">Configurações do Documento</h3>
             <span className="text-xs text-gray-500">
@@ -553,8 +553,8 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
               <InlineCreateSelect
                 value={selectedCategory}
                 onValueChange={setSelectedCategory}
@@ -600,7 +600,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <InlineCreateSelect
                 value={selectedDepartment}
                 onValueChange={setSelectedDepartment}
@@ -653,7 +653,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <InlineCreateSelect
                 value={selectedDocumentType}
                 onValueChange={setSelectedDocumentType}
@@ -822,7 +822,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             </div>
           )}
 
-          <div>
+          <div className="space-y-1">
             <Label htmlFor="description" className="text-xs">Descrição</Label>
             <Textarea
               id="description"
@@ -834,7 +834,7 @@ export default function DocumentUploadWithApproval({ onSuccess }: DocumentUpload
             />
           </div>
 
-          <div>
+          <div className="space-y-1">
             <Label htmlFor="tags" className="text-xs">Tags</Label>
             <div className="space-y-1">
               <div className="flex space-x-1">

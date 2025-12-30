@@ -32,6 +32,14 @@ interface LibraryItem {
   category_id: string | null
   created_at: string
   document_id: string | null
+  // Campos adicionais do documento relacionado
+  document?: {
+    version: number
+    status: string
+    approved_at: string | null
+    author?: { full_name: string }
+    department?: { name: string }
+  } | null
 }
 
 interface Category {
@@ -40,11 +48,6 @@ interface Category {
   description: string | null
   color: string | null
   icon: string | null
-}
-
-interface Entity {
-  name: string
-  logo_url: string | null
 }
 
 interface OwnerInfo {
@@ -210,7 +213,41 @@ export default function BibliotecaPublicaPage() {
 
       if (libraryError) throw libraryError
 
-      setItems(libraryData || [])
+      // Buscar informações adicionais dos documentos relacionados
+      const documentIds = (libraryData || [])
+        .filter(item => item.document_id)
+        .map(item => item.document_id)
+
+      let documentsMap: Record<string, any> = {}
+      
+      if (documentIds.length > 0) {
+        const { data: documentsData } = await supabase
+          .from("documents")
+          .select(`
+            id,
+            version,
+            status,
+            approved_at,
+            author:profiles!documents_author_id_fkey(full_name),
+            department:departments!documents_department_id_fkey(name)
+          `)
+          .in("id", documentIds)
+
+        if (documentsData) {
+          documentsMap = documentsData.reduce((acc, doc) => {
+            acc[doc.id] = doc
+            return acc
+          }, {} as Record<string, any>)
+        }
+      }
+
+      // Combinar dados da biblioteca com informações dos documentos
+      const enrichedItems = (libraryData || []).map(item => ({
+        ...item,
+        document: item.document_id ? documentsMap[item.document_id] || null : null
+      }))
+
+      setItems(enrichedItems)
       setOwner(ownerInfo)
     } catch (error: any) {
       console.error("Erro ao carregar biblioteca:", error)
@@ -367,19 +404,19 @@ export default function BibliotecaPublicaPage() {
             </div>
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant={viewMode === "list" ? "default" : "outline"}
                 size="icon"
                 onClick={() => setViewMode("list")}
-                className={`h-12 w-12 transition-colors ${viewMode === "list" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
+                className={`h-12 w-12 transition-colors ${viewMode === "list" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "bg-white hover:bg-gray-100 text-gray-700"}`}
                 title="Visualização em lista"
               >
                 <List className="h-5 w-5" />
               </Button>
               <Button
-                variant="outline"
+                variant={viewMode === "grid" ? "default" : "outline"}
                 size="icon"
                 onClick={() => setViewMode("grid")}
-                className={`h-12 w-12 transition-colors ${viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
+                className={`h-12 w-12 transition-colors ${viewMode === "grid" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "bg-white hover:bg-gray-100 text-gray-700"}`}
                 title="Visualização em grade"
               >
                 <LayoutGrid className="h-5 w-5" />
@@ -391,20 +428,20 @@ export default function BibliotecaPublicaPage() {
           {categories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <Button
-                variant="outline"
+                variant={selectedCategoryId === null ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategoryId(null)}
-                className={`transition-colors ${selectedCategoryId === null ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
+                className={`transition-colors ${selectedCategoryId === null ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "bg-white hover:bg-gray-100 text-gray-700"}`}
               >
                 Todas
               </Button>
               {categories.map((category) => (
                 <Button
                   key={category.id}
-                  variant="outline"
+                  variant={selectedCategoryId === category.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedCategoryId(category.id)}
-                  className={`flex items-center gap-2 transition-colors ${selectedCategoryId === category.id ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
+                  className={`flex items-center gap-2 transition-colors ${selectedCategoryId === category.id ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "bg-white hover:bg-gray-100 text-gray-700"}`}
                 >
                   <div
                     className={`w-3 h-3 rounded-full ${selectedCategoryId === category.id ? "border border-white" : ""}`}
@@ -414,10 +451,10 @@ export default function BibliotecaPublicaPage() {
                 </Button>
               ))}
               <Button
-                variant="outline"
+                variant={selectedCategoryId === "uncategorized" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategoryId("uncategorized")}
-                className={`transition-colors ${selectedCategoryId === "uncategorized" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "hover:bg-gray-100"}`}
+                className={`transition-colors ${selectedCategoryId === "uncategorized" ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : "bg-white hover:bg-gray-100 text-gray-700"}`}
               >
                 Sem Categoria
               </Button>
@@ -500,12 +537,34 @@ export default function BibliotecaPublicaPage() {
                                       {item.description}
                                     </p>
                                   )}
-                                  {/* Data de publicação */}
-                                  {item.created_at && (
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                      <span className="font-medium">Publicado em:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                                    </p>
-                                  )}
+                                  {/* Informações adicionais do documento */}
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground">
+                                    {item.document?.author?.full_name && (
+                                      <span>
+                                        <span className="font-medium">Autor:</span> {item.document.author.full_name}
+                                      </span>
+                                    )}
+                                    {item.document?.version && (
+                                      <span>
+                                        <span className="font-medium">Versão:</span> {item.document.version}
+                                      </span>
+                                    )}
+                                    {item.document?.department?.name && (
+                                      <span>
+                                        <span className="font-medium">Departamento:</span> {item.document.department.name}
+                                      </span>
+                                    )}
+                                    {item.created_at && (
+                                      <span>
+                                        <span className="font-medium">Publicado em:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                                      </span>
+                                    )}
+                                    {item.document?.approved_at && (
+                                      <span>
+                                        <span className="font-medium">Aprovado em:</span> {new Date(item.document.approved_at).toLocaleDateString('pt-BR')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -555,12 +614,36 @@ export default function BibliotecaPublicaPage() {
                               </CardDescription>
                             )}
                           </div>
-                          {/* Data de publicação */}
-                          {item.created_at && (
-                            <p className="text-xs text-muted-foreground">
-                              <span className="font-medium">Publicado:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                            </p>
-                          )}
+                          {/* Informações adicionais do documento */}
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            {item.document?.author?.full_name && (
+                              <p>
+                                <span className="font-medium">Autor:</span> {item.document.author.full_name}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-3 gap-y-1">
+                              {item.document?.version && (
+                                <span>
+                                  <span className="font-medium">v</span>{item.document.version}
+                                </span>
+                              )}
+                              {item.document?.department?.name && (
+                                <span className="truncate max-w-[120px]" title={item.document.department.name}>
+                                  {item.document.department.name}
+                                </span>
+                              )}
+                            </div>
+                            {item.created_at && (
+                              <p>
+                                <span className="font-medium">Publicado:</span> {new Date(item.created_at).toLocaleDateString('pt-BR')}
+                              </p>
+                            )}
+                            {item.document?.approved_at && (
+                              <p>
+                                <span className="font-medium">Aprovado:</span> {new Date(item.document.approved_at).toLocaleDateString('pt-BR')}
+                              </p>
+                            )}
+                          </div>
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="flex flex-col gap-2">

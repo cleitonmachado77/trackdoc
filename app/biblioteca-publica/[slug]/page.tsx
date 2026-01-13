@@ -180,21 +180,31 @@ export default function BibliotecaPublicaPage() {
         return
       }
 
-      // Buscar categorias
-      let categoriesQuery = supabase
-        .from("library_categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true })
+      console.log('🔍 Debug - entityId:', entityId, 'userId:', userId, 'ownerInfo:', ownerInfo)
 
-      if (entityId) {
-        categoriesQuery = categoriesQuery.eq("entity_id", entityId)
-      } else if (userId) {
-        categoriesQuery = categoriesQuery.eq("created_by", userId)
+      // Buscar categorias - usar API pública que bypassa RLS
+      let categoriesData: Category[] = []
+      
+      try {
+        console.log('🔍 Buscando categorias via API pública...')
+        const categoriesResponse = await fetch(`/api/biblioteca-publica/categorias?slug=${encodeURIComponent(slug)}`)
+        
+        if (categoriesResponse.ok) {
+          const categoriesResult = await categoriesResponse.json()
+          if (categoriesResult.success) {
+            categoriesData = categoriesResult.categories || []
+            console.log('✅ Categorias encontradas via API:', categoriesData.length)
+          } else {
+            console.warn('⚠️ API retornou erro:', categoriesResult.error)
+          }
+        } else {
+          console.warn('⚠️ Erro na requisição de categorias:', categoriesResponse.status)
+        }
+      } catch (error) {
+        console.error('❌ Erro ao buscar categorias via API:', error)
       }
-
-      const { data: categoriesData } = await categoriesQuery
-      setCategories(categoriesData || [])
+      
+      setCategories(categoriesData)
 
       // Buscar todos os documentos ativos (sem relacionamentos complexos para evitar erro 400)
       let libraryQuery = supabase
@@ -249,6 +259,8 @@ export default function BibliotecaPublicaPage() {
 
       setItems(enrichedItems)
       setOwner(ownerInfo)
+      
+      console.log('📊 Resultado final - Items:', enrichedItems.length, 'Categorias:', categories.length)
     } catch (error: any) {
       console.error("Erro ao carregar biblioteca:", error)
       setError("Erro ao carregar biblioteca pública")

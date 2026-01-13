@@ -844,64 +844,69 @@ export default function ElectronicSignature() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Assinatura Digital</h1>
-        <p className="text-gray-600 mt-2">
+      <div className="mb-4 md:mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Assinatura Digital</h1>
+        <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
           Assine documentos PDF digitalmente de forma segura e rápida
         </p>
       </div>
 
-      <Tabs defaultValue="upload" className="flex-1 flex flex-col space-y-6">
-        <TabsList className="h-auto flex-wrap justify-start gap-2 p-2 bg-gray-100 dark:bg-gray-800">
+      <Tabs defaultValue="upload" className="flex-1 flex flex-col space-y-4 md:space-y-6">
+        <TabsList className="h-auto flex-wrap justify-start gap-1 md:gap-2 p-1 md:p-2 bg-gray-100 dark:bg-gray-800">
           <TabsTrigger
             value="upload"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
+            className="flex-1 min-w-[100px] sm:min-w-[140px] md:flex-none whitespace-normal text-center px-2 md:px-3 py-2 md:py-2.5 text-[10px] sm:text-xs md:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            Assinatura Simples
+            <span className="hidden sm:inline">Assinatura Simples</span>
+            <span className="sm:hidden">Simples</span>
           </TabsTrigger>
           <TabsTrigger
             value="multi-signature"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
+            className="flex-1 min-w-[100px] sm:min-w-[140px] md:flex-none whitespace-normal text-center px-2 md:px-3 py-2 md:py-2.5 text-[10px] sm:text-xs md:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            Assinatura Múltipla
+            <span className="hidden sm:inline">Assinatura Múltipla</span>
+            <span className="sm:hidden">Múltipla</span>
           </TabsTrigger>
           <TabsTrigger
             value="existing"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
+            className="flex-1 min-w-[100px] sm:min-w-[140px] md:flex-none whitespace-normal text-center px-2 md:px-3 py-2 md:py-2.5 text-[10px] sm:text-xs md:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            Documento Existente
+            <span className="hidden sm:inline">Documento Existente</span>
+            <span className="sm:hidden">Existente</span>
           </TabsTrigger>
           <TabsTrigger
             value="template"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
+            className="flex-1 min-w-[100px] sm:min-w-[140px] md:flex-none whitespace-normal text-center px-2 md:px-3 py-2 md:py-2.5 text-[10px] sm:text-xs md:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            Configurar Modelo
+            <span className="hidden sm:inline">Configurar Modelo</span>
+            <span className="sm:hidden">Modelo</span>
           </TabsTrigger>
           <TabsTrigger
             value="verify"
-            className="flex-1 min-w-[140px] sm:min-w-[160px] md:flex-none whitespace-normal text-center px-3 py-2.5 text-xs sm:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
+            className="flex-1 min-w-[100px] sm:min-w-[140px] md:flex-none whitespace-normal text-center px-2 md:px-3 py-2 md:py-2.5 text-[10px] sm:text-xs md:text-sm bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none [&[data-state=active]]:!bg-blue-600 [&[data-state=active]]:!text-white dark:[&[data-state=active]]:!bg-blue-600 dark:[&[data-state=active]]:!text-white [&[data-state=active]]:hover:!bg-blue-600 [&[data-state=active]]:hover:!text-white [&[data-state=active]]:focus:!bg-blue-600 [&[data-state=active]]:focus:!text-white transition-all duration-200"
           >
-            Verificar Assinatura
+            <span className="hidden sm:inline">Verificar Assinatura</span>
+            <span className="sm:hidden">Verificar</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="upload" className="flex-1 space-y-6">
+        <TabsContent value="upload" className="flex-1 space-y-4 md:space-y-6">
           {/* Layout em blocos: 1 acima e 1 abaixo */}
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4 md:gap-6">
             {/* Bloco 1: Upload de PDF para Assinatura */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="h-5 w-5" />
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Upload className="h-4 w-4 md:h-5 md:w-5" />
                   Upload de PDF para Assinatura
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs md:text-sm">
                   Faça upload de um arquivo PDF e assine-o digitalmente no rodapé
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <Label className="text-base font-medium text-gray-700">Arquivo PDF para Assinatura</Label>
+              <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6 pt-0 md:pt-0">
+                <div className="space-y-2 md:space-y-3">
+                  <Label className="text-sm md:text-base font-medium text-gray-700">Arquivo PDF para Assinatura</Label>
 
                   {/* Input oculto */}
                   <input
@@ -913,7 +918,7 @@ export default function ElectronicSignature() {
                     className="hidden"
                   />
 
-                  {/* Botão customizado para escolher arquivo */}
+                  {/* Botão customizado para escolher arquivo - Responsivo */}
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     onDragOver={handleDragOver}
@@ -921,41 +926,41 @@ export default function ElectronicSignature() {
                     onDrop={handleDrop}
                     className="relative cursor-pointer group"
                   >
-                    <div className={`flex items-center justify-center w-full p-4 border-2 border-dashed rounded-xl transition-all duration-300 ${isDragOver
+                    <div className={`flex items-center justify-center w-full p-3 md:p-4 border-2 border-dashed rounded-xl transition-all duration-300 ${isDragOver
                       ? 'border-blue-500 bg-blue-200 scale-105'
                       : selectedFile
                         ? 'border-green-300 bg-green-50 hover:bg-green-100 group-hover:border-green-400'
                         : 'border-blue-300 bg-blue-50 hover:bg-blue-100 group-hover:border-blue-400'
                       }`}>
                       {selectedFile ? (
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-green-100 rounded-lg">
-                            <FileCheck className="h-6 w-6 text-green-600" />
+                        <div className="flex items-center space-x-2 md:space-x-3">
+                          <div className="p-1.5 md:p-2 bg-green-100 rounded-lg">
+                            <FileCheck className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
                           </div>
-                          <div className="text-left">
-                            <p className="font-semibold text-green-800">{selectedFile.name}</p>
-                            <p className="text-sm text-green-600">Clique para escolher outro arquivo</p>
+                          <div className="text-left min-w-0">
+                            <p className="font-semibold text-green-800 text-sm md:text-base truncate max-w-[200px] md:max-w-none">{selectedFile.name}</p>
+                            <p className="text-xs md:text-sm text-green-600">Clique para escolher outro arquivo</p>
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-center space-y-3">
-                          <div className={`p-3 rounded-full transition-colors ${isDragOver
+                        <div className="flex flex-col items-center space-y-2 md:space-y-3">
+                          <div className={`p-2 md:p-3 rounded-full transition-colors ${isDragOver
                             ? 'bg-blue-200 scale-110'
                             : 'bg-blue-100 group-hover:bg-blue-200'
                             }`}>
-                            <Upload className={`h-8 w-8 transition-colors ${isDragOver ? 'text-blue-700' : 'text-blue-600'
+                            <Upload className={`h-6 w-6 md:h-8 md:w-8 transition-colors ${isDragOver ? 'text-blue-700' : 'text-blue-600'
                               }`} />
                           </div>
                           <div className="text-center">
-                            <p className={`font-semibold text-lg transition-colors ${isDragOver ? 'text-blue-900' : 'text-blue-800'
+                            <p className={`font-semibold text-base md:text-lg transition-colors ${isDragOver ? 'text-blue-900' : 'text-blue-800'
                               }`}>
                               {isDragOver ? 'Solte o arquivo aqui!' : 'Escolher Arquivo PDF'}
                             </p>
-                            <p className={`text-sm mt-1 transition-colors ${isDragOver ? 'text-blue-700' : 'text-blue-600'
+                            <p className={`text-xs md:text-sm mt-1 transition-colors ${isDragOver ? 'text-blue-700' : 'text-blue-600'
                               }`}>
-                              {isDragOver ? 'Solte para fazer upload' : 'Clique aqui ou arraste e solte seu documento'}
+                              {isDragOver ? 'Solte para fazer upload' : 'Clique aqui ou arraste e solte'}
                             </p>
-                            <p className="text-xs text-gray-500 mt-2">Apenas arquivos PDF são aceitos</p>
+                            <p className="text-xs text-gray-500 mt-1 md:mt-2">Apenas arquivos PDF são aceitos</p>
                           </div>
                         </div>
                       )}
@@ -963,32 +968,33 @@ export default function ElectronicSignature() {
                   </div>
                 </div>
 
-                {/* Informação sobre assinatura simples */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                {/* Informação sobre assinatura simples - Responsivo */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-3">
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-blue-600" />
-                    <p className="text-sm text-blue-800 font-medium">
+                    <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-600 flex-shrink-0" />
+                    <p className="text-xs md:text-sm text-blue-800 font-medium">
                       Assinatura Simples
                     </p>
                   </div>
-                  <p className="text-xs text-blue-700 mt-1">
+                  <p className="text-[10px] md:text-xs text-blue-700 mt-1">
                     Este documento será assinado imediatamente por você. Para assinatura múltipla, use a aba "Assinatura Múltipla".
                   </p>
                 </div>
 
-                {/* Checkbox para salvar após assinado */}
-                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                {/* Checkbox para salvar após assinado - Responsivo */}
+                <div className="flex items-start space-x-2 p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <Checkbox
                     id="saveAfterSigned"
                     checked={saveAfterSigned}
                     onCheckedChange={(checked) => setSaveAfterSigned(checked as boolean)}
+                    className="mt-0.5"
                   />
                   <Label 
                     htmlFor="saveAfterSigned" 
-                    className="text-sm font-medium cursor-pointer flex-1"
+                    className="text-xs md:text-sm font-medium cursor-pointer flex-1"
                   >
                     Salvar após Assinado
-                    <span className="block text-xs text-gray-500 font-normal mt-0.5">
+                    <span className="block text-[10px] md:text-xs text-gray-500 font-normal mt-0.5">
                       O documento assinado será automaticamente salvo na página Documentos
                     </span>
                   </Label>
@@ -997,17 +1003,17 @@ export default function ElectronicSignature() {
                 <Button
                   onClick={handleUploadSignature}
                   disabled={!selectedFile || isProcessing}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 md:py-4 px-4 md:px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm md:text-base"
                 >
                   {isProcessing ? (
                     <>
                       <Clock className="h-4 w-4 mr-2 animate-spin" />
-                      Processando Assinatura...
+                      Processando...
                     </>
                   ) : (
                     <>
                       <FileCheck className="h-4 w-4 mr-2" />
-                      Assinar Documento Digitalmente
+                      Assinar Documento
                     </>
                   )}
                 </Button>
@@ -1018,16 +1024,16 @@ export default function ElectronicSignature() {
 
           {/* Bloco 3: Histórico de Assinaturas (abaixo) */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <History className="h-4 w-4 md:h-5 md:w-5" />
                 Histórico de Assinaturas
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs md:text-sm">
                 Visualize e baixe seus documentos assinados
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
               <SignedDocumentsDisplay />
             </CardContent>
           </Card>

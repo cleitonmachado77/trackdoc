@@ -1092,14 +1092,14 @@ export default function DocumentList() {
   )
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      {/* Header - Responsivo para mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-trackdoc-black">Documentos</h2>
-          <p className="text-trackdoc-gray">Gerencie todos os documentos do sistema</p>
+          <h2 className="text-xl md:text-2xl font-bold text-trackdoc-black">Documentos</h2>
+          <p className="text-sm md:text-base text-trackdoc-gray">Gerencie todos os documentos do sistema</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Toggle de Visualização */}
           <div className="flex items-center border rounded-lg p-1">
             <Button
@@ -1109,7 +1109,7 @@ export default function DocumentList() {
                 e.currentTarget.blur()
                 handleViewModeChange('grid')
               }}
-              className="h-8 px-3 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
+              className="h-8 px-2 md:px-3 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
               style={viewMode === 'grid' ? {
                 backgroundColor: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))'
@@ -1124,7 +1124,7 @@ export default function DocumentList() {
                 e.currentTarget.blur()
                 handleViewModeChange('list')
               }}
-              className="h-8 px-3 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
+              className="h-8 px-2 md:px-3 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
               style={viewMode === 'list' ? {
                 backgroundColor: 'hsl(var(--primary))',
                 color: 'hsl(var(--primary-foreground))'
@@ -1137,27 +1137,29 @@ export default function DocumentList() {
           <Button
             onClick={handleRefresh}
             variant="outline"
-            className="flex items-center gap-2"
+            size="sm"
+            className="flex items-center gap-1 md:gap-2 h-9"
             disabled={loading}
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
-          <Button onClick={() => setShowUpload(true)} className="flex items-center gap-2">
+          <Button onClick={() => setShowUpload(true)} size="sm" className="flex items-center gap-1 md:gap-2 h-9">
             <Plus className="h-4 w-4" />
-            Novo Documento
+            <span className="hidden sm:inline">Novo Documento</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
         </div>
       </div>
 
-      {/* Campo de Pesquisa Principal */}
+      {/* Campo de Pesquisa Principal - Responsivo */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Pesquisar documentos por nome..."
+          placeholder="Pesquisar documentos..."
           value={searchTerm}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="pl-10 h-12 text-base"
+          className="pl-10 h-10 md:h-12 text-sm md:text-base"
         />
         {searchTerm && (
           <Button
@@ -1171,21 +1173,21 @@ export default function DocumentList() {
         )}
       </div>
 
-      {/* Filters */}
+      {/* Filters - Responsivo para mobile */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+        <CardHeader className="p-3 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+            <Filter className="h-4 w-4 md:h-5 md:w-5" />
             Filtros
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+        <CardContent className="p-3 md:p-6 pt-0 md:pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+            <div className="space-y-1 md:space-y-2">
+              <label className="text-xs md:text-sm font-medium">Status</label>
               <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os status" />
+                <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm">
+                  <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os status</SelectItem>
@@ -1196,11 +1198,11 @@ export default function DocumentList() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Categoria</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="text-xs md:text-sm font-medium">Categoria</label>
               <Select value={filters.category_id || 'all'} onValueChange={(value) => handleFilterChange('category_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as categorias" />
+                <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm">
+                  <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as categorias</SelectItem>
@@ -1212,11 +1214,11 @@ export default function DocumentList() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Documento</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="text-xs md:text-sm font-medium">Tipo</label>
               <Select value={filters.document_type_id || 'all'} onValueChange={(value) => handleFilterChange('document_type_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os tipos" />
+                <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm">
+                  <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os tipos</SelectItem>
@@ -1228,11 +1230,11 @@ export default function DocumentList() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Departamento</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="text-xs md:text-sm font-medium">Departamento</label>
               <Select value={filters.department_id || 'all'} onValueChange={(value) => handleFilterChange('department_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os departamentos" />
+                <SelectTrigger className="h-9 md:h-10 text-xs md:text-sm">
+                  <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os departamentos</SelectItem>

@@ -150,9 +150,14 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <Button variant="ghost" size="sm" className="fixed top-4 left-4 z-50 md:hidden" onClick={toggleMobileSidebar}>
-        {isMobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+      {/* Mobile Menu Button - Melhorado para touch */}
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="fixed top-3 left-3 z-50 md:hidden h-10 w-10 p-0 bg-background/80 backdrop-blur-sm border shadow-sm" 
+        onClick={toggleMobileSidebar}
+      >
+        {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
 
       {/* Mobile Overlay */}
@@ -160,19 +165,20 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={toggleMobileSidebar} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Melhorado para mobile */}
       <div
         className={cn(
           "bg-sidebar/95 backdrop-blur-sm border-r border-border flex flex-col transition-all duration-300 z-50 h-screen shadow-lg relative",
           "fixed md:relative",
-          isExpanded ? "w-64" : "w-16",
+          "w-[280px] sm:w-64", // Largura fixa em mobile para melhor usabilidade
+          isExpanded ? "md:w-64" : "md:w-16",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
-        {/* 🎨 Header - Novo Design */}
-        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10", isExpanded ? "p-4" : "p-2")}>
+        {/* 🎨 Header - Novo Design - Melhorado para mobile */}
+        <div className={cn("border-b border-border bg-gradient-to-r from-sidebar to-sidebar-accent/10", isExpanded || isMobileOpen ? "p-3 md:p-4" : "p-2")}>
           <div className="flex items-center justify-between">
-            {isExpanded ? (
+            {(isExpanded || isMobileOpen) ? (
               <div className="flex items-center space-x-3">
                 <div
                   className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
@@ -182,7 +188,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   <img
                     src="/logo-horizontal-preto.png"
                     alt="TrackDoc Logo"
-                    className="h-12 w-auto object-contain dark:invert"
+                    className="h-10 md:h-12 w-auto object-contain dark:invert"
                   />
                 </div>
               </div>
@@ -201,7 +207,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 </div>
               </div>
             )}
-            <div className={cn("flex items-center space-x-2", !isExpanded && "hidden")}>
+            <div className={cn("flex items-center space-x-2", !(isExpanded || isMobileOpen) && "hidden")}>
               <SimpleThemeToggle />
             </div>
           </div>
@@ -223,25 +229,28 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
           {isExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
 
-        {/* User Profile - ✅ Usa displayProfile com fallback imediato */}
-        <div className={cn("border-b border-border", isExpanded ? "p-4" : "p-2")}>
+        {/* User Profile - ✅ Usa displayProfile com fallback imediato - Melhorado para mobile */}
+        <div className={cn("border-b border-border", (isExpanded || isMobileOpen) ? "p-3 md:p-4" : "p-2")}>
           <div 
             className={cn(
               "flex items-center cursor-pointer hover:bg-sidebar-accent rounded-lg p-2 -m-2 transition-colors",
-              isExpanded ? "space-x-3" : "justify-center"
+              (isExpanded || isMobileOpen) ? "space-x-3" : "justify-center"
             )}
-            onClick={() => onViewChange("minha-conta")}
-            title={!isExpanded ? `${displayProfile?.full_name || "Usuário"} - Clique para acessar Minha Conta` : "Clique para acessar Minha Conta"}
+            onClick={() => {
+              onViewChange("minha-conta")
+              if (isMobileOpen) setIsMobileOpen(false)
+            }}
+            title={!(isExpanded || isMobileOpen) ? `${displayProfile?.full_name || "Usuário"} - Clique para acessar Minha Conta` : "Clique para acessar Minha Conta"}
           >
             <Avatar
-              className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent transition-all"
+              className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-accent transition-all flex-shrink-0"
             >
               <AvatarImage src={displayProfile?.avatar_url} />
               <AvatarFallback>
                 {displayProfile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
               </AvatarFallback>
             </Avatar>
-            {isExpanded && (
+            {(isExpanded || isMobileOpen) && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
                   {displayProfile?.full_name || "Usuário"}
@@ -252,9 +261,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className={cn("flex-1 overflow-y-auto", isExpanded ? "p-4" : "p-2")}>
-          <div className="space-y-2">
+        {/* Navigation - Melhorado para touch em mobile */}
+        <nav className={cn("flex-1 overflow-y-auto", isExpanded ? "p-4" : "p-2", "md:p-4")}>
+          <div className="space-y-1 md:space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon
               const isActive = activeView === item.id
@@ -266,8 +275,9 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   className={cn(
                     "w-full transition-all duration-200 relative border-l-4 border-transparent",
                     "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none",
-                    isExpanded ? "justify-start px-3" : "justify-center px-2",
-                    !isExpanded && "min-h-[44px]",
+                    "min-h-[48px] md:min-h-[44px]", // Altura mínima maior em mobile para touch
+                    isExpanded || isMobileOpen ? "justify-start px-3" : "justify-center px-2",
+                    !isExpanded && !isMobileOpen && "md:min-h-[44px]",
                     isActive
                       ? "!bg-primary dark:!text-white !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary dark:focus:!text-white focus:!text-primary-foreground active:!bg-primary dark:active:!text-white focus-visible:!bg-primary dark:focus-visible:!text-white focus-visible:!text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:border-l-sidebar-accent-foreground/30"
@@ -284,13 +294,17 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     } else {
                       onViewChange(item.id)
                     }
+                    // Fecha o menu mobile após clicar
+                    if (isMobileOpen) {
+                      setIsMobileOpen(false)
+                    }
                   }}
-                  title={!isExpanded ? item.label : undefined}
+                  title={!isExpanded && !isMobileOpen ? item.label : undefined}
                 >
-                  <Icon className={cn("h-5 w-5", isExpanded && "mr-3")} />
-                  {isExpanded && (
+                  <Icon className={cn("h-5 w-5", (isExpanded || isMobileOpen) && "mr-3")} />
+                  {(isExpanded || isMobileOpen) && (
                     <>
-                      <span className="flex-1 text-left">{item.label}</span>
+                      <span className="flex-1 text-left text-sm md:text-base">{item.label}</span>
                       {item.badge && (
                         <span className="ml-2 text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded">
                           {item.badge}
@@ -299,7 +313,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                     </>
                   )}
                   {/* Badge para sidebar recolhida */}
-                  {!isExpanded && item.badge && (
+                  {!isExpanded && !isMobileOpen && item.badge && (
                     <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                       {item.badge}
                     </div>
@@ -310,16 +324,19 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
           </div>
         </nav>
 
-        {/* Footer */}
-        <div className={cn("border-t border-border flex-shrink-0", isExpanded ? "p-4" : "p-2")}>
-          {isExpanded ? (
+        {/* Footer - Melhorado para mobile */}
+        <div className={cn("border-t border-border flex-shrink-0", (isExpanded || isMobileOpen) ? "p-3 md:p-4" : "p-2")}>
+          {(isExpanded || isMobileOpen) ? (
             <div className="mb-4">
               <h3 className="text-xs font-semibold text-sidebar-foreground/70 uppercase tracking-wider mb-3">Ações Rápidas</h3>
               <div className="space-y-1 p-2 bg-sidebar-accent rounded-lg border border-border">
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar"
-                  onClick={() => setShowQuickSearch(true)}
+                  className="w-full justify-start text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar min-h-[44px]"
+                  onClick={() => {
+                    setShowQuickSearch(true)
+                    if (isMobileOpen) setIsMobileOpen(false)
+                  }}
                 >
                   <Search className="h-4 w-4 mr-3" />
                   Busca Rápida
@@ -327,7 +344,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent",
+                    "w-full justify-start transition-all duration-200 border-l-4 border-transparent min-h-[44px]",
                     "focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:outline-none",
                     activeView === "help"
                       ? "!bg-primary !text-primary-foreground hover:!bg-primary/90 !border-l-primary-foreground shadow-md focus:!bg-primary focus:!text-primary-foreground active:!bg-primary focus-visible:!bg-primary focus-visible:!text-primary-foreground"
@@ -341,6 +358,7 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
                   onClick={(e) => {
                     e.currentTarget.blur()
                     onViewChange("help")
+                    if (isMobileOpen) setIsMobileOpen(false)
                   }}
                 >
                   <HelpCircle className="h-4 w-4 mr-3" />
@@ -386,16 +404,19 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
           <div className="pt-3 border-t border-border">
             <Button
               className={cn(
-                "w-full text-destructive hover:text-destructive hover:bg-destructive/10",
-                isExpanded ? "justify-start" : "justify-center",
+                "w-full text-destructive hover:text-destructive hover:bg-destructive/10 min-h-[44px]",
+                (isExpanded || isMobileOpen) ? "justify-start" : "justify-center",
               )}
               variant="ghost"
               size="sm"
-              onClick={signOut}
-              title={!isExpanded ? "Sair" : undefined}
+              onClick={() => {
+                signOut()
+                if (isMobileOpen) setIsMobileOpen(false)
+              }}
+              title={!(isExpanded || isMobileOpen) ? "Sair" : undefined}
             >
               <LogOut className="h-4 w-4" />
-              {isExpanded && <span className="ml-3">Sair</span>}
+              {(isExpanded || isMobileOpen) && <span className="ml-3">Sair</span>}
             </Button>
           </div>
         </div>

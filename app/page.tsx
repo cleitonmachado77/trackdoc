@@ -660,199 +660,191 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
     const signaturesTrend = calculateTrend(recentSignatures, previousPeriodSignatures)
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
         <PageTitle
           title="Dashboard"
           subtitle="Visão geral do sistema"
         />
 
-        {/* KPIs Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* KPIs Principais - Responsivo para mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {/* Card 1: Total de Documentos */}
-          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl md:rounded-2xl cursor-pointer"
             onClick={() => handleCardClick('all')}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <CardHeader className="relative pb-3">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors duration-300">
-                  <FileText className="h-6 w-6 text-blue-600" />
+            <CardHeader className="relative pb-2 md:pb-3 p-3 md:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors duration-300">
+                  <FileText className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{totalDocuments}</div>
-                  <div className="text-sm text-gray-500 font-medium">Total de Documentos</div>
+                <div className="text-left sm:text-right w-full sm:w-auto">
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">{totalDocuments}</div>
+                  <div className="text-xs md:text-sm text-gray-500 font-medium">Total de Documentos</div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="relative pt-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${documentsTrend >= 0 ? 'bg-green-50' : 'bg-red-50'
+            <CardContent className="relative pt-0 p-3 md:p-6 md:pt-0">
+              <div className="flex items-center flex-wrap gap-1">
+                <div className={`flex items-center space-x-1 px-2 py-1 rounded-full ${documentsTrend >= 0 ? 'bg-green-50' : 'bg-red-50'
+                  }`}>
+                  {documentsTrend >= 0 ? (
+                    <ArrowUpRight className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 text-red-600" />
+                  )}
+                  <span className={`text-xs font-semibold ${documentsTrend >= 0 ? 'text-green-700' : 'text-red-700'
                     }`}>
-                    {documentsTrend >= 0 ? (
-                      <ArrowUpRight className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 text-red-600" />
-                    )}
-                    <span className={`text-xs font-semibold ${documentsTrend >= 0 ? 'text-green-700' : 'text-red-700'
-                      }`}>
-                      {Math.abs(documentsTrend).toFixed(1)}%
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-500">vs período anterior</span>
+                    {Math.abs(documentsTrend).toFixed(1)}%
+                  </span>
                 </div>
+                <span className="text-xs text-gray-500 hidden sm:inline">vs período anterior</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Card 2: Aprovações Pendentes */}
-          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl md:rounded-2xl cursor-pointer"
             onClick={() => setActiveView('approvals')}>
             <div className="absolute inset-0 bg-gradient-to-br from-warning/5 to-warning/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <CardHeader className="relative pb-3">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-xl bg-amber-50 group-hover:bg-amber-100 transition-colors duration-300">
-                  <Clock className="h-6 w-6 text-amber-600" />
+            <CardHeader className="relative pb-2 md:pb-3 p-3 md:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-amber-50 group-hover:bg-amber-100 transition-colors duration-300">
+                  <Clock className="h-5 w-5 md:h-6 md:w-6 text-amber-600" />
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{pendingApprovalsCount}</div>
-                  <div className="text-sm text-gray-500 font-medium">Aprovações Pendentes</div>
+                <div className="text-left sm:text-right w-full sm:w-auto">
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">{pendingApprovalsCount}</div>
+                  <div className="text-xs md:text-sm text-gray-500 font-medium">Aprovações Pendentes</div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="relative pt-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
-                    <Target className="h-3 w-3 text-gray-600" />
-                    <span className="text-xs font-semibold text-gray-700">{totalApprovals}</span>
-                  </div>
-                  <span className="text-xs text-gray-500">total</span>
+            <CardContent className="relative pt-0 p-3 md:p-6 md:pt-0">
+              <div className="flex items-center flex-wrap gap-1">
+                <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
+                  <Target className="h-3 w-3 text-gray-600" />
+                  <span className="text-xs font-semibold text-gray-700">{totalApprovals}</span>
                 </div>
+                <span className="text-xs text-gray-500 hidden sm:inline">total</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Card 3: Assinaturas Digitais */}
-          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+          <Card className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl md:rounded-2xl cursor-pointer"
             onClick={() => setActiveView('electronic-signature')}>
             <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <CardHeader className="relative pb-3">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-xl bg-purple-50 group-hover:bg-purple-100 transition-colors duration-300">
-                  <PenTool className="h-6 w-6 text-purple-600" />
+            <CardHeader className="relative pb-2 md:pb-3 p-3 md:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-purple-50 group-hover:bg-purple-100 transition-colors duration-300">
+                  <PenTool className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{completedSignatures}</div>
-                  <div className="text-sm text-gray-500 font-medium">Assinaturas Concluídas</div>
+                <div className="text-left sm:text-right w-full sm:w-auto">
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">{completedSignatures}</div>
+                  <div className="text-xs md:text-sm text-gray-500 font-medium">Assinaturas Concluídas</div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="relative pt-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
-                    <Timer className="h-3 w-3 text-gray-600" />
-                    <span className="text-xs font-semibold text-gray-700">{pendingSignatures}</span>
-                  </div>
-                  <span className="text-xs text-gray-500">pendentes</span>
+            <CardContent className="relative pt-0 p-3 md:p-6 md:pt-0">
+              <div className="flex items-center flex-wrap gap-1">
+                <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
+                  <Timer className="h-3 w-3 text-gray-600" />
+                  <span className="text-xs font-semibold text-gray-700">{pendingSignatures}</span>
                 </div>
+                <span className="text-xs text-gray-500 hidden sm:inline">pendentes</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Card 4: Usuários Ativos */}
           <Card 
-            className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-2xl cursor-pointer"
+            className="group relative overflow-hidden bg-card backdrop-blur-sm border shadow-sm hover:shadow-xl transition-all duration-300 hover:scale-[1.02] rounded-xl md:rounded-2xl cursor-pointer"
             onClick={() => {
               setActiveView("admin")
               setAdminView("entity-users")
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-success/5 to-success/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            <CardHeader className="relative pb-3">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-xl bg-green-50 group-hover:bg-green-100 transition-colors duration-300">
-                  <Users className="h-6 w-6 text-green-600" />
+            <CardHeader className="relative pb-2 md:pb-3 p-3 md:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-green-50 group-hover:bg-green-100 transition-colors duration-300">
+                  <Users className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-gray-900 tracking-tight">{activeUsers}</div>
-                  <div className="text-sm text-gray-500 font-medium">Usuários Ativos</div>
+                <div className="text-left sm:text-right w-full sm:w-auto">
+                  <div className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">{activeUsers}</div>
+                  <div className="text-xs md:text-sm text-gray-500 font-medium">Usuários Ativos</div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="relative pt-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
-                    <User className="h-3 w-3 text-gray-600" />
-                    <span className="text-xs font-semibold text-gray-700">{totalUsers}</span>
-                  </div>
-                  <span className="text-xs text-gray-500">total</span>
+            <CardContent className="relative pt-0 p-3 md:p-6 md:pt-0">
+              <div className="flex items-center flex-wrap gap-1">
+                <div className="flex items-center space-x-1 px-2 py-1 rounded-full bg-gray-50">
+                  <User className="h-3 w-3 text-gray-600" />
+                  <span className="text-xs font-semibold text-gray-700">{totalUsers}</span>
                 </div>
+                <span className="text-xs text-gray-500 hidden sm:inline">total</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Ações Rápidas */}
-        <Card className="p-4">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium flex items-center">
+        {/* Ações Rápidas - Responsivo para mobile */}
+        <Card className="p-3 md:p-4">
+          <CardHeader className="pb-2 md:pb-3 p-0 md:p-6 md:pb-3">
+            <CardTitle className="text-sm md:text-base font-medium flex items-center">
               <Zap className="h-4 w-4 mr-2 text-yellow-600" />
               Ações Rápidas
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 md:p-6 md:pt-0">
             <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               <Button
-                className="h-12 flex flex-col items-center justify-center space-y-1"
+                className="h-14 md:h-12 flex flex-col items-center justify-center space-y-1 text-xs"
                 variant="outline"
                 size="sm"
                 onClick={() => setShowUploadModal(true)}
               >
                 <Plus className="h-4 w-4" />
-                <span className="text-xs">Novo Doc</span>
+                <span className="text-[10px] md:text-xs">Novo Doc</span>
               </Button>
 
               <Button
-                className="h-12 flex flex-col items-center justify-center space-y-1"
+                className="h-14 md:h-12 flex flex-col items-center justify-center space-y-1 text-xs"
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveView('electronic-signature')}
               >
                 <PenTool className="h-4 w-4" />
-                <span className="text-xs">Assinar</span>
+                <span className="text-[10px] md:text-xs">Assinar</span>
               </Button>
 
               <Button
-                className="h-12 flex flex-col items-center justify-center space-y-1"
+                className="h-14 md:h-12 flex flex-col items-center justify-center space-y-1 text-xs"
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveView('approvals')}
               >
                 <CheckCircle className="h-4 w-4" />
-                <span className="text-xs">Aprovações</span>
+                <span className="text-[10px] md:text-xs">Aprovações</span>
               </Button>
 
               <Button
-                className="h-12 flex flex-col items-center justify-center space-y-1"
+                className="h-14 md:h-12 flex flex-col items-center justify-center space-y-1 text-xs"
                 variant="outline"
                 size="sm"
                 onClick={() => setShowQuickSearch(true)}
               >
                 <Search className="h-4 w-4" />
-                <span className="text-xs">Buscar</span>
+                <span className="text-[10px] md:text-xs">Buscar</span>
               </Button>
 
               <Button
-                className="h-12 flex flex-col items-center justify-center space-y-1 relative"
+                className="h-14 md:h-12 flex flex-col items-center justify-center space-y-1 relative text-xs"
                 variant="outline"
                 size="sm"
                 onClick={() => setActiveView('notifications')}
               >
                 <Bell className="h-4 w-4" />
-                <span className="text-xs">Notificações</span>
+                <span className="text-[10px] md:text-xs">Notificações</span>
                 {unreadNotificationsCount > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-destructive text-destructive-foreground">
                     {unreadNotificationsCount}
@@ -861,43 +853,43 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
               </Button>
 
               <Button
-                className="h-12 flex flex-col items-center justify-center space-y-1"
+                className="h-14 md:h-12 flex flex-col items-center justify-center space-y-1 text-xs"
                 variant="outline"
                 size="sm"
                 onClick={() => { setActiveView('admin'); setAdminView('overview') }}
               >
                 <Settings className="h-4 w-4" />
-                <span className="text-xs">Admin</span>
+                <span className="text-[10px] md:text-xs">Admin</span>
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Seção de Estatísticas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Seção de Estatísticas Rápidas - Responsivo para mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {/* Estatísticas de Status */}
-          <Card className="p-6">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg font-semibold flex items-center">
-                <BarChart3 className="h-5 w-5 mr-2 text-blue-600" />
+          <Card className="p-4 md:p-6">
+            <CardHeader className="pb-3 md:pb-4 p-0">
+              <CardTitle className="text-base md:text-lg font-semibold flex items-center">
+                <BarChart3 className="h-4 w-4 md:h-5 md:w-5 mr-2 text-blue-600" />
                 Status dos Documentos
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4 p-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-green-600"></div>
-                  <span className="text-sm text-gray-600">Aprovados</span>
+                  <span className="text-xs md:text-sm text-gray-600">Aprovados</span>
                 </div>
                 <div className="text-right">
-                  <div className="font-semibold">{approvedDocuments}</div>
+                  <div className="font-semibold text-sm md:text-base">{approvedDocuments}</div>
                   <div className="text-xs text-gray-500">{approvalRate}%</div>
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-amber-600"></div>
-                  <span className="text-sm text-gray-600">Pendentes</span>
+                  <span className="text-xs md:text-sm text-gray-600">Pendentes</span>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">{pendingDocuments}</div>
@@ -1314,111 +1306,111 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return <DocumentList />
       case "approvals":
         return (
-          <div className="space-y-6">
-            {/* Header */}
+          <div className="space-y-4 md:space-y-6">
+            {/* Header - Responsivo */}
             <PageTitle
               title="Aprovações"
-              subtitle="Gerencie documentos pendentes de aprovação e acompanhe o status das solicitações"
+              subtitle="Gerencie documentos pendentes de aprovação"
             >
               <Button variant="outline" size="sm" onClick={() => refetchApprovals()}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar
+                <RefreshCw className="h-4 w-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">Atualizar</span>
               </Button>
             </PageTitle>
 
-            {/* Estatísticas de Aprovação */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Estatísticas de Aprovação - Responsivo */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total de Aprovações</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+                  <CardTitle className="text-xs md:text-sm font-medium">Total</CardTitle>
+                  <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{myApprovals?.length || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Documentos para aprovar
+                <CardContent className="p-3 md:p-6 pt-0">
+                  <div className="text-xl md:text-2xl font-bold">{myApprovals?.length || 0}</div>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
+                    Para aprovar
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+                  <CardTitle className="text-xs md:text-sm font-medium">Pendentes</CardTitle>
+                  <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
+                <CardContent className="p-3 md:p-6 pt-0">
+                  <div className="text-xl md:text-2xl font-bold">
                     {myApprovals?.filter(a => a.status === 'pending').length || 0}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Aguardando sua ação
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
+                    Aguardando
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Aprovados</CardTitle>
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+                  <CardTitle className="text-xs md:text-sm font-medium">Aprovados</CardTitle>
+                  <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
+                <CardContent className="p-3 md:p-6 pt-0">
+                  <div className="text-xl md:text-2xl font-bold text-green-600">
                     {myApprovals?.filter(a => a.status === 'approved').length || 0}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Documentos aprovados por você
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
+                    Por você
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Rejeitados</CardTitle>
-                  <XCircle className="h-4 w-4 text-red-600" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-3 md:p-6">
+                  <CardTitle className="text-xs md:text-sm font-medium">Rejeitados</CardTitle>
+                  <XCircle className="h-3 w-3 md:h-4 md:w-4 text-red-600" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
+                <CardContent className="p-3 md:p-6 pt-0">
+                  <div className="text-xl md:text-2xl font-bold text-red-600">
                     {myApprovals?.filter(a => a.status === 'rejected').length || 0}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Documentos rejeitados por você
+                  <p className="text-[10px] md:text-xs text-muted-foreground">
+                    Por você
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Seções de Aprovação */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Seções de Aprovação - Responsivo */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {/* Documentos Pendentes de Aprovação */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-amber-600" />
+                <CardHeader className="p-3 md:p-6">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                    <Clock className="h-4 w-4 md:h-5 md:w-5 text-amber-600" />
                     Documentos Pendentes
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs md:text-sm">
                     Documentos aguardando sua aprovação
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 md:p-6 pt-0">
                   {approvalsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : myApprovals && myApprovals.filter(a => a.status === 'pending').length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 md:space-y-3">
                       {myApprovals
                         .filter(approval => approval.status === 'pending')
                         .slice(0, 5)
                         .map((approval) => (
-                          <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
-                            <div className="flex-1">
-                              <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
-                              <p className="text-sm text-gray-500">
+                          <div key={approval.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 md:p-3 border rounded-lg hover:shadow-sm transition-shadow gap-2">
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-medium text-sm md:text-base truncate">{approval.document_title || 'Documento sem título'}</h5>
+                              <p className="text-xs md:text-sm text-gray-500 truncate">
                                 Autor: {approval.document_author_name || 'N/A'}
                               </p>
-                              <p className="text-sm text-gray-500">
-                                Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}
+                              <p className="text-xs md:text-sm text-gray-500">
+                                {new Date(approval.created_at).toLocaleDateString('pt-BR')}
                               </p>
                             </div>
                             <Button
@@ -1428,18 +1420,18 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                                 setSelectedApproval(approval)
                                 setShowApprovalReviewModal(true)
                               }}
-                              className="text-blue-600 hover:text-blue-700"
+                              className="text-blue-600 hover:text-blue-700 w-full sm:w-auto"
                             >
-                              <Eye className="h-4 w-4 mr-2" />
+                              <Eye className="h-4 w-4 mr-1 md:mr-2" />
                               Revisar
                             </Button>
                           </div>
                         ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Nenhum documento pendente de aprovação.</p>
+                    <div className="text-center py-6 md:py-8 text-gray-500">
+                      <CheckCircle className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs md:text-sm">Nenhum documento pendente.</p>
                     </div>
                   )}
                 </CardContent>
@@ -1447,18 +1439,18 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
 
               {/* Documentos Enviados para Aprovação */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="h-5 w-5 text-blue-600" />
+                <CardHeader className="p-3 md:p-6">
+                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                    <Send className="h-4 w-4 md:h-5 md:w-5 text-blue-600" />
                     Documentos Enviados
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-xs md:text-sm">
                     Documentos que você enviou para aprovação
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-3 md:p-6 pt-0">
                   {sentApprovals && sentApprovals.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 md:space-y-3">
                       {sentApprovals.slice(0, 5).map((approval) => {
                         // Debug: verificar dados da aprovação
                         console.log('📋 [SENT_APPROVAL_DISPLAY]', {
@@ -1468,48 +1460,51 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                         })
                         
                         return (
-                        <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
-                          <div className="flex-1">
-                            <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
-                            <p className="text-sm text-gray-500">
+                        <div key={approval.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 md:p-3 border rounded-lg hover:shadow-sm transition-shadow gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-sm md:text-base truncate">{approval.document_title || 'Documento sem título'}</h5>
+                            <p className="text-xs md:text-sm text-gray-500">
                               Status: {(approval.status === 'pending' || approval.status === 'pending_approval') ? 'Em aprovação' :
                                 approval.status === 'approved' ? 'Aprovado' :
                                   approval.status === 'rejected' ? 'Rejeitado' : 'Em aprovação'}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs md:text-sm text-gray-500">
                               {(approval.status === 'pending' || approval.status === 'pending_approval') ? (
-                                <>Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
+                                <>{new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
                               ) : approval.status === 'approved' ? (
-                                <>Aprovado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
+                                <>{approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR') : 'N/A'}</>
                               ) : approval.status === 'rejected' ? (
-                                <>Rejeitado em: {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Data não disponível'}</>
+                                <>{approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR') : 'N/A'}</>
                               ) : (
-                                <>Enviado em: {new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
+                                <>{new Date(approval.created_at).toLocaleDateString('pt-BR')}</>
                               )}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                             <Badge
                               variant={approval.status === 'approved' ? 'default' :
                                 approval.status === 'rejected' ? 'destructive' : 'secondary'}
-                              className={approval.status === 'approved' ? 'bg-green-100 text-green-800' :
+                              className={`text-xs ${approval.status === 'approved' ? 'bg-green-100 text-green-800' :
                                 approval.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'}
+                                  'bg-yellow-100 text-yellow-800'}`}
                             >
                               {approval.status === 'approved' ? (
                                 <>
                                   <CheckCircle className="h-3 w-3 mr-1" />
-                                  Aprovado
+                                  <span className="hidden sm:inline">Aprovado</span>
+                                  <span className="sm:hidden">OK</span>
                                 </>
                               ) : approval.status === 'rejected' ? (
                                 <>
                                   <XCircle className="h-3 w-3 mr-1" />
-                                  Rejeitado
+                                  <span className="hidden sm:inline">Rejeitado</span>
+                                  <span className="sm:hidden">Rej</span>
                                 </>
                               ) : (
                                 <>
                                   <Clock className="h-3 w-3 mr-1" />
-                                  Pendente
+                                  <span className="hidden sm:inline">Pendente</span>
+                                  <span className="sm:hidden">Pend</span>
                                 </>
                               )}
                             </Badge>
@@ -1522,8 +1517,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                               }}
                               className="text-blue-600 hover:text-blue-700"
                             >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Detalhes
+                              <Eye className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">Detalhes</span>
                             </Button>
                           </div>
                         </div>
@@ -1531,58 +1526,60 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Nenhum documento enviado para aprovação.</p>
+                    <div className="text-center py-6 md:py-8 text-gray-500">
+                      <FileText className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs md:text-sm">Nenhum documento enviado.</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
 
-            {/* Histórico de Aprovações */}
+            {/* Histórico de Aprovações - Responsivo */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+              <CardHeader className="p-3 md:p-6">
+                <CardTitle className="flex items-center gap-2 text-sm md:text-base">
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-600" />
                   Histórico de Aprovações
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs md:text-sm">
                   Decisões de aprovação que você tomou
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 md:p-6 pt-0">
                 {myApprovals && myApprovals.filter(a => a.status !== 'pending').length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 md:space-y-3">
                     {myApprovals
                       .filter(approval => approval.status !== 'pending')
                       .slice(0, 10)
                       .map((approval) => (
-                        <div key={approval.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-sm transition-shadow">
-                          <div className="flex-1">
-                            <h5 className="font-medium">{approval.document_title || 'Documento sem título'}</h5>
-                            <p className="text-sm text-gray-500">
+                        <div key={approval.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-2 md:p-3 border rounded-lg hover:shadow-sm transition-shadow gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-medium text-sm md:text-base truncate">{approval.document_title || 'Documento sem título'}</h5>
+                            <p className="text-xs md:text-sm text-gray-500">
                               {approval.status === 'approved' ? 'Aprovado' : 'Rejeitado'} em{' '}
-                              {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR') : 'Data não disponível'}
+                              {approval.approved_at ? new Date(approval.approved_at).toLocaleDateString('pt-BR') : 'N/A'}
                             </p>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-xs md:text-sm text-gray-500 truncate">
                               Autor: {approval.document_author_name || 'N/A'}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                             <Badge
                               variant={approval.status === 'approved' ? 'default' : 'destructive'}
-                              className={approval.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                              className={`text-xs ${approval.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                             >
                               {approval.status === 'approved' ? (
                                 <>
                                   <CheckCircle className="h-3 w-3 mr-1" />
-                                  Aprovado
+                                  <span className="hidden sm:inline">Aprovado</span>
+                                  <span className="sm:hidden">OK</span>
                                 </>
                               ) : (
                                 <>
                                   <XCircle className="h-3 w-3 mr-1" />
-                                  Rejeitado
+                                  <span className="hidden sm:inline">Rejeitado</span>
+                                  <span className="sm:hidden">Rej</span>
                                 </>
                               )}
                             </Badge>
@@ -1595,17 +1592,17 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
                               }}
                               className="text-blue-600 hover:text-blue-700"
                             >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Detalhes
+                              <Eye className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">Detalhes</span>
                             </Button>
                           </div>
                         </div>
                       ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p>Nenhuma decisão de aprovação tomada ainda.</p>
+                  <div className="text-center py-6 md:py-8 text-gray-500">
+                    <CheckCircle className="h-6 w-6 md:h-8 md:w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-xs md:text-sm">Nenhuma decisão tomada ainda.</p>
                   </div>
                 )}
               </CardContent>
@@ -2021,7 +2018,9 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
       />
 
       <main className="flex-1 overflow-auto">
-        <div className="p-6">
+        {/* Padding responsivo: menor em mobile, maior em desktop */}
+        {/* pt-14 em mobile para compensar o botão do menu */}
+        <div className="p-3 pt-14 md:p-6 md:pt-6">
           {renderContent()}
         </div>
       </main>

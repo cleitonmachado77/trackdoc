@@ -80,7 +80,7 @@ export default function ElectronicSignature() {
     textColor: "#1e293b",
     fontSize: "6",
     includeLogo: false,
-    customText: "Este documento foi assinado digitalmente com certificado válido.",
+    customText: "Este documento foi assinado digitalmente e pode ser verificado em www.trackdoc.com.br.",
   })
 
   const [previewMode, setPreviewMode] = useState(false)
@@ -116,7 +116,7 @@ export default function ElectronicSignature() {
           textColor: data.text_color || "#000000", // Preto por padrão
           fontSize: data.font_size || "6",
           includeLogo: data.include_logo ?? false,
-          customText: data.custom_text || "Este documento foi assinado digitalmente com certificado válido.",
+          customText: data.custom_text || "Este documento foi assinado digitalmente e pode ser verificado em www.trackdoc.com.br.",
         })
         console.log('Template carregado com sucesso:', data)
       } else {
@@ -372,7 +372,7 @@ export default function ElectronicSignature() {
         textColor: "#1e293b",
         fontSize: "6",
         includeLogo: false,
-        customText: "Este documento foi assinado digitalmente com certificado válido.",
+        customText: "Este documento foi assinado digitalmente e pode ser verificado em www.trackdoc.com.br.",
       })
 
       // Deletar template do banco para forçar uso do padrão

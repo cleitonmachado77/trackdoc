@@ -423,7 +423,7 @@ export class DigitalSignatureService {
     
     // Rodapé com informações de segurança
     const footerY = 40
-    page.drawText("Este documento foi assinado digitalmente. Todas as assinaturas são verificáveis em www.trackdock.com.br.", {
+    page.drawText("Este documento foi assinado digitalmente e pode ser verificado em www.trackdoc.com.br.", {
       x: margin,
       y: footerY,
       size: 8,
@@ -824,7 +824,7 @@ export class DigitalSignatureService {
       border_color: "#000000", // Preto
       text_color: "#000000", // Preto
       font_size: "6",
-      custom_text: "Este documento foi assinado digitalmente com certificado válido."
+      custom_text: "Este documento foi assinado digitalmente e pode ser verificado em www.trackdoc.com.br."
     }
 
     // Converter cores hex para RGB

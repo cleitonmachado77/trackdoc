@@ -76,6 +76,8 @@ export async function middleware(request: NextRequest) {
     '/trial-expired',
     '/auth',
     '/api',
+    '/verify-signature',
+    '/biblioteca-publica',
   ]
 
   const isPublicRoute = publicRoutes.some(route => path.startsWith(route))

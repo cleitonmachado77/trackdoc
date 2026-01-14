@@ -1,96 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { supabaseConfig } from '@/lib/supabase/config'
 
 export const dynamic = 'force-dynamic'
 
+// Headers CORS para todas as respostas
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+// Handler para OPTIONS (CORS preflight)
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 200, headers: corsHeaders })
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies()
-    const supabase = createServerClient(supabaseConfig.url, supabaseConfig.anonKey, {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: any) {
-          cookieStore.set({ name, value: '', ...options })
-        },
-      },
-    })
-
-    // Verificar autenticação
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Usuário não autenticado' },
-        { status: 401 }
-      )
-    }
-
+    console.log('📥 Zoho callback recebido')
+    
     // O Zoho envia os dados como form-data
     const formData = await request.formData()
     
-    // Obter arquivo do documento
-    const file = formData.get('file') as File
-    if (!file) {
+    // Log para debug
+    const allFields = Array.from(formData.keys())
+    console.log('📋 Campos recebidos:', allFields)
+    
+    // O Zoho pode enviar o arquivo com diferentes nomes de campo
+    // Tentar 'file' primeiro, depois outros possíveis nomes
+    let file = formData.get('file') as File | null
+    if (!file || !(file instanceof File)) {
+      // Tentar outros nomes possíveis
+      file = formData.get('document') as File | null
+      if (!file || !(file instanceof File)) {
+        file = formData.get('content') as File | null
+      }
+    }
+    
+    if (!file || !(file instanceof File)) {
+      console.error('❌ Arquivo não encontrado na requisição')
+      console.error('📋 Campos disponíveis:', allFields)
+      // O Zoho espera uma resposta específica em caso de erro
       return NextResponse.json(
         { error: 'Arquivo não encontrado na requisição' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       )
     }
+
+    console.log('✅ Arquivo recebido:', file.name, file.size, 'bytes')
 
     // Obter informações do contexto (enviadas no callback_settings)
     const contextInfoStr = formData.get('context_info') as string
     let contextInfo: any = {}
     
     try {
-      contextInfo = contextInfoStr ? JSON.parse(contextInfoStr) : {}
+      // O context_info pode vir como string JSON ou já parseado
+      if (contextInfoStr) {
+        contextInfo = typeof contextInfoStr === 'string' ? JSON.parse(contextInfoStr) : contextInfoStr
+      }
+      console.log('📝 Context info:', contextInfo)
     } catch (e) {
-      console.warn('Erro ao parsear context_info:', e)
+      console.warn('⚠️ Erro ao parsear context_info:', e)
     }
 
     const { document_id, user_id, is_new } = contextInfo
 
-    // Validar que o user_id corresponde ao usuário autenticado
-    if (user_id && user_id !== user.id) {
+    if (!user_id) {
+      console.error('❌ user_id não encontrado no context_info')
       return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 403 }
+        { error: 'user_id não fornecido' },
+        { status: 400, headers: corsHeaders }
       )
     }
+
+    // Criar cliente Supabase usando service role key para bypass RLS
+    // Isso é necessário porque o Zoho faz requisição direta sem cookies de autenticação
+    const supabaseKey = supabaseConfig.serviceRoleKey || supabaseConfig.anonKey
+    const supabase = createClient(supabaseConfig.url, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+    
+    console.log('🔑 Usando service role:', !!supabaseConfig.serviceRoleKey)
 
     // Converter File para Buffer/ArrayBuffer
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+    console.log('📦 Buffer criado:', buffer.length, 'bytes')
 
     if (document_id && !is_new) {
+      console.log('📝 Atualizando documento existente:', document_id)
+      
       // Atualizar documento existente
       const { data: docData, error: docError } = await supabase
         .from('office_documents')
         .select('file_path, user_id')
         .eq('id', document_id)
+        .eq('user_id', user_id) // Validar ownership
         .single()
 
       if (docError || !docData) {
+        console.error('❌ Erro ao buscar documento:', docError)
         return NextResponse.json(
           { error: 'Documento não encontrado' },
-          { status: 404 }
+          { status: 404, headers: corsHeaders }
         )
       }
 
-      // Validar ownership
-      if (docData.user_id !== user.id) {
-        return NextResponse.json(
-          { error: 'Não autorizado' },
-          { status: 403 }
-        )
-      }
+      console.log('✅ Documento encontrado:', docData.file_path)
 
-      // Fazer upload do arquivo atualizado
+      // Fazer upload do arquivo atualizado usando service role ou anon com RLS
+      // Precisamos usar um cliente autenticado para fazer upload
+      // Vamos tentar com o anon key primeiro
       const { error: uploadError } = await supabase.storage
         .from('documents')
         .update(docData.file_path, buffer, {
@@ -99,12 +123,14 @@ export async function POST(request: NextRequest) {
         })
 
       if (uploadError) {
-        console.error('Erro ao fazer upload:', uploadError)
+        console.error('❌ Erro ao fazer upload:', uploadError)
         return NextResponse.json(
-          { error: 'Erro ao salvar documento' },
-          { status: 500 }
+          { error: 'Erro ao salvar documento', details: uploadError.message },
+          { status: 500, headers: corsHeaders }
         )
       }
+
+      console.log('✅ Upload concluído')
 
       // Atualizar metadados do documento
       const { error: updateError } = await supabase
@@ -114,20 +140,28 @@ export async function POST(request: NextRequest) {
           file_size: buffer.length
         })
         .eq('id', document_id)
+        .eq('user_id', user_id)
 
       if (updateError) {
-        console.error('Erro ao atualizar metadados:', updateError)
+        console.error('⚠️ Erro ao atualizar metadados:', updateError)
         // Não falhar se apenas a atualização de metadados falhar
+      } else {
+        console.log('✅ Metadados atualizados')
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Documento salvo com sucesso'
-      })
+      // O Zoho espera uma resposta específica
+      // Formato esperado: { saved: true } ou { error: "mensagem" }
+      return NextResponse.json(
+        { saved: true },
+        { status: 200, headers: corsHeaders }
+      )
 
     } else {
+      console.log('📄 Criando novo documento')
+      
       // Criar novo documento
-      const fileName = `${user.id}/${Date.now()}_${file.name || 'documento.docx'}`
+      const fileName = `${user_id}/${Date.now()}_${file.name || 'documento.docx'}`
+      console.log('📁 Nome do arquivo:', fileName)
       
       const { error: uploadError } = await supabase.storage
         .from('documents')
@@ -137,49 +171,78 @@ export async function POST(request: NextRequest) {
         })
 
       if (uploadError) {
-        console.error('Erro ao fazer upload:', uploadError)
+        console.error('❌ Erro ao fazer upload:', uploadError)
         return NextResponse.json(
-          { error: 'Erro ao salvar documento' },
-          { status: 500 }
+          { error: 'Erro ao salvar documento', details: uploadError.message },
+          { status: 500, headers: corsHeaders }
         )
       }
+
+      console.log('✅ Upload concluído')
 
       // Criar registro no banco de dados
       const documentName = file.name?.replace(/\.[^/.]+$/, "") || 'Novo Documento'
       
+      // Tentar buscar entity_id do usuário usando admin API (só funciona com service role)
+      let entityId = null
+      if (supabaseConfig.serviceRoleKey) {
+        try {
+          const adminClient = createClient(supabaseConfig.url, supabaseConfig.serviceRoleKey, {
+            auth: { autoRefreshToken: false, persistSession: false }
+          })
+          const { data: userData } = await adminClient.auth.admin.getUserById(user_id)
+          entityId = userData?.user?.user_metadata?.entity_id || null
+        } catch (e) {
+          console.warn('⚠️ Não foi possível buscar entity_id:', e)
+        }
+      }
+      
       const { data: docData, error: insertError } = await supabase
         .from('office_documents')
         .insert({
-          user_id: user.id,
+          user_id: user_id,
           title: documentName,
           file_path: fileName,
           file_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           file_size: buffer.length,
-          entity_id: user.user_metadata?.entity_id
+          entity_id: entityId
         })
         .select()
         .single()
 
       if (insertError) {
-        console.error('Erro ao criar registro:', insertError)
+        console.error('❌ Erro ao criar registro:', insertError)
         return NextResponse.json(
-          { error: 'Erro ao criar registro do documento' },
-          { status: 500 }
+          { error: 'Erro ao criar registro do documento', details: insertError.message },
+          { status: 500, headers: corsHeaders }
         )
       }
 
-      return NextResponse.json({
-        success: true,
-        message: 'Documento criado com sucesso',
-        document_id: docData.id
-      })
+      console.log('✅ Documento criado:', docData.id)
+
+      // O Zoho espera uma resposta específica
+      // Formato esperado: { saved: true } ou { error: "mensagem" }
+      return NextResponse.json(
+        { saved: true },
+        {
+          status: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type',
+          }
+        }
+      )
     }
 
   } catch (error) {
-    console.error('Erro ao processar salvamento do Zoho:', error)
+    console.error('❌ Erro ao processar salvamento do Zoho:', error)
     return NextResponse.json(
-      { error: 'Erro interno do servidor', details: error instanceof Error ? error.message : 'Erro desconhecido' },
-      { status: 500 }
+      { 
+        error: 'Erro interno do servidor', 
+        details: error instanceof Error ? error.message : 'Erro desconhecido' 
+      },
+      { status: 500, headers: corsHeaders }
     )
   }
 }

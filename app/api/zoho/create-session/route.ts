@@ -81,10 +81,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Construir URL base da aplicação para o callback
-    const origin = request.headers.get('origin') || request.headers.get('host')
-    const protocol = origin?.includes('localhost') ? 'http' : 'https'
-    const baseUrl = origin?.includes('http') ? origin : `${protocol}://${origin}`
+    // Priorizar variáveis de ambiente, depois headers da requisição
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL
+    
+    if (!baseUrl) {
+      const origin = request.headers.get('origin') || request.headers.get('host')
+      const protocol = origin?.includes('localhost') ? 'http' : 'https'
+      baseUrl = origin?.includes('http') ? origin : `${protocol}://${origin}`
+    }
+    
     const saveUrl = `${baseUrl}/api/zoho/save`
+    
+    // Aviso se estiver em localhost (Zoho não consegue acessar)
+    if (baseUrl.includes('localhost')) {
+      console.warn('⚠️ ATENÇÃO: URL de callback é localhost. O Zoho não conseguirá acessar em desenvolvimento local.')
+      console.warn('💡 Use ngrok ou teste em um ambiente de staging/produção.')
+    }
+    
+    console.log('🔗 URL de callback:', saveUrl)
 
     // Preparar dados para o Zoho
     const formData = new FormData()

@@ -109,6 +109,12 @@ const Sidebar = memo(function Sidebar({ activeView, onViewChange, pendingApprova
         badge: null,
       },
       {
+        id: "office",
+        label: "Office",
+        icon: Edit,
+        badge: null,
+      },
+      {
         id: "approvals",
         label: "Aprovações",
         icon: CheckCircle,

@@ -92,6 +92,7 @@ import PerformanceMonitor from "./components/performance-monitor"
 import ChatPage from "./chat/page"
 import MinhaContaPage from "./minha-conta/page"
 import BibliotecaPage from "./biblioteca/page"
+import OfficePage from "./office/page"
 import { useDocuments } from "@/hooks/use-documents"
 import { useApprovals } from "@/hooks/use-approvals"
 import { useProfile } from "./components/profile-context"
@@ -1613,6 +1614,8 @@ const DocumentManagementPlatformContent = memo(function DocumentManagementPlatfo
         return <AIDocumentCreator />
       case "electronic-signature":
         return <ElectronicSignatureProtected />
+      case "office":
+        return <OfficePage />
       case "notifications":
         return <UnifiedNotificationsPage />
       case "biblioteca":

@@ -122,14 +122,17 @@ export async function POST(request: NextRequest) {
     }))
 
     // Configurações de callback (salvamento)
+    // O context_info precisa ser uma string JSON, não um objeto aninhado
+    const contextInfo = {
+      document_id: documentId || null,
+      user_id: user.id,
+      is_new: isNewDocument || false
+    }
+    
     formData.append('callback_settings', JSON.stringify({
       save_format: 'docx',
       save_url: saveUrl,
-      context_info: JSON.stringify({
-        document_id: documentId || null,
-        user_id: user.id,
-        is_new: isNewDocument || false
-      })
+      context_info: JSON.stringify(contextInfo)
     }))
 
     // Informações do documento

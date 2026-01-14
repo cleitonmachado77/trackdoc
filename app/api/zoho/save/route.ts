@@ -151,9 +151,16 @@ export async function POST(request: NextRequest) {
 
       // O Zoho espera uma resposta específica
       // Formato esperado: { saved: true } ou { error: "mensagem" }
-      return NextResponse.json(
-        { saved: true },
-        { status: 200, headers: corsHeaders }
+      // Garantir que a resposta seja uma string JSON válida
+      return new NextResponse(
+        JSON.stringify({ saved: true }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          }
+        }
       )
 
     } else {
@@ -222,14 +229,14 @@ export async function POST(request: NextRequest) {
 
       // O Zoho espera uma resposta específica
       // Formato esperado: { saved: true } ou { error: "mensagem" }
-      return NextResponse.json(
-        { saved: true },
+      // Garantir que a resposta seja uma string JSON válida
+      return new NextResponse(
+        JSON.stringify({ saved: true }),
         {
           status: 200,
           headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type',
+            ...corsHeaders,
+            'Content-Type': 'application/json',
           }
         }
       )
@@ -237,12 +244,18 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Erro ao processar salvamento do Zoho:', error)
-    return NextResponse.json(
-      { 
+    return new NextResponse(
+      JSON.stringify({ 
         error: 'Erro interno do servidor', 
         details: error instanceof Error ? error.message : 'Erro desconhecido' 
-      },
-      { status: 500, headers: corsHeaders }
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        }
+      }
     )
   }
 }

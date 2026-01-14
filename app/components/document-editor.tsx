@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -16,20 +16,6 @@ import {
 import { createBrowserClient } from "@supabase/ssr"
 import { useAuth } from "@/lib/hooks/use-auth-final"
 import { useToast } from "@/hooks/use-toast"
-import dynamic from 'next/dynamic'
-
-// Importação dinâmica do OnlyOffice para evitar problemas de SSR
-const DocumentEditorComponent = dynamic(
-  () => import('@onlyoffice/document-editor-react').then(mod => mod.DocumentEditor),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-)
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,14 +40,16 @@ export default function DocumentEditor({ document, onClose }: DocumentEditorProp
   
   const [title, setTitle] = useState(document?.title || "Novo Documento")
   const [saving, setSaving] = useState(false)
-  const [documentUrl, setDocumentUrl] = useState<string>("")
-  const [documentKey, setDocumentKey] = useState<string>("")
+  const [editorUrl, setEditorUrl] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>("")
-  const editorRef = useRef<any>(null)
 
   useEffect(() => {
+    if (document) {
+      setTitle(document.title)
+    }
     initializeDocument()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [document])
 
   const initializeDocument = async () => {
@@ -69,28 +57,37 @@ export default function DocumentEditor({ document, onClose }: DocumentEditorProp
       setLoading(true)
       setError("")
 
-      if (document) {
-        // Carregar documento existente
-        const { data, error: downloadError } = await supabase.storage
-          .from('documents')
-          .createSignedUrl(document.file_path, 3600) // URL válida por 1 hora
+      // Criar sessão no Zoho Office Integrator
+      const response = await fetch('/api/zoho/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentId: document?.id || null,
+          documentName: title,
+          isNewDocument: !document
+        })
+      })
 
-        if (downloadError) throw downloadError
-
-        setDocumentUrl(data.signedUrl)
-        setDocumentKey(document.id)
-      } else {
-        // Criar novo documento
-        const newDocKey = `new_${Date.now()}`
-        setDocumentKey(newDocKey)
-        // Para novo documento, OnlyOffice criará um documento em branco
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Erro ao criar sessão do editor')
       }
+
+      const data = await response.json()
+      
+      if (!data.success || !data.editorUrl) {
+        throw new Error('Resposta inválida do servidor')
+      }
+
+      setEditorUrl(data.editorUrl)
     } catch (err) {
       console.error('Erro ao inicializar documento:', err)
-      setError('Não foi possível carregar o documento')
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar o documento')
       toast({
         title: "Erro",
-        description: "Não foi possível carregar o documento",
+        description: err instanceof Error ? err.message : "Não foi possível carregar o documento",
         variant: "destructive"
       })
     } finally {
@@ -102,12 +99,9 @@ export default function DocumentEditor({ document, onClose }: DocumentEditorProp
     try {
       setSaving(true)
 
-      // Obter conteúdo do editor
-      // Nota: A implementação real depende da configuração do OnlyOffice Document Server
-      // Este é um exemplo simplificado
-      
+      // O salvamento é feito automaticamente pelo Zoho através do callback
+      // Aqui apenas atualizamos o título se necessário
       if (document) {
-        // Atualizar documento existente
         const { error } = await supabase
           .from('office_documents')
           .update({
@@ -117,14 +111,6 @@ export default function DocumentEditor({ document, onClose }: DocumentEditorProp
           .eq('id', document.id)
 
         if (error) throw error
-      } else {
-        // Criar novo documento
-        // Aqui você precisaria salvar o conteúdo do editor
-        toast({
-          title: "Informação",
-          description: "Para salvar novos documentos, é necessário configurar o OnlyOffice Document Server",
-          variant: "default"
-        })
       }
 
       toast({
@@ -141,49 +127,6 @@ export default function DocumentEditor({ document, onClose }: DocumentEditorProp
     } finally {
       setSaving(false)
     }
-  }
-
-  const onDocumentReady = () => {
-    console.log('Documento pronto para edição')
-  }
-
-  // Configuração do OnlyOffice
-  const config = {
-    document: {
-      fileType: document?.file_type?.includes('word') ? 'docx' : 'docx',
-      key: documentKey,
-      title: title,
-      url: documentUrl || undefined,
-      permissions: {
-        edit: true,
-        download: true,
-        print: true,
-        review: true
-      }
-    },
-    documentType: 'word',
-    editorConfig: {
-      mode: 'edit',
-      lang: 'pt-BR',
-      user: {
-        id: user?.id,
-        name: user?.user_metadata?.full_name || user?.email
-      },
-      customization: {
-        autosave: true,
-        forcesave: true,
-        comments: true,
-        chat: false,
-        compactHeader: false,
-        compactToolbar: false,
-        help: true,
-        hideRightMenu: false,
-        toolbarNoTabs: false
-      },
-      callbackUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/api/onlyoffice/callback`
-    },
-    height: "100%",
-    width: "100%"
   }
 
   if (error) {
@@ -256,35 +199,31 @@ export default function DocumentEditor({ document, onClose }: DocumentEditorProp
               <p className="text-muted-foreground">Carregando editor...</p>
             </div>
           </div>
-        ) : (
+        ) : error ? (
           <Card className="h-full m-4 overflow-hidden">
-            <Alert className="m-4">
+            <Alert variant="destructive" className="m-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Configuração necessária:</strong> Para usar o editor OnlyOffice, você precisa configurar o OnlyOffice Document Server. 
-                Execute: <code className="bg-muted px-2 py-1 rounded">docker run -p 80:80 onlyoffice/documentserver</code>
+                <strong>Erro ao carregar editor:</strong> {error}
               </AlertDescription>
             </Alert>
-            
-            {/* Placeholder para o editor OnlyOffice */}
-            <div className="p-4 h-[calc(100%-100px)] border-t">
-              <div className="bg-muted rounded-lg h-full flex items-center justify-center">
-                <div className="text-center max-w-md">
-                  <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">Editor OnlyOffice</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    O editor será exibido aqui após a configuração do OnlyOffice Document Server
-                  </p>
-                  <div className="text-xs text-left bg-background p-4 rounded border">
-                    <p className="font-semibold mb-2">Passos para configurar:</p>
-                    <ol className="list-decimal list-inside space-y-1">
-                      <li>Instale o Docker</li>
-                      <li>Execute: docker run -p 80:80 onlyoffice/documentserver</li>
-                      <li>Configure a variável NEXT_PUBLIC_ONLYOFFICE_URL</li>
-                      <li>Reinicie a aplicação</li>
-                    </ol>
-                  </div>
-                </div>
+          </Card>
+        ) : editorUrl ? (
+          <div className="h-full w-full">
+            <iframe
+              src={editorUrl}
+              className="w-full h-full border-0"
+              title="Editor de Documentos Zoho"
+              allow="clipboard-read; clipboard-write"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
+        ) : (
+          <Card className="h-full m-4 overflow-hidden">
+            <div className="p-4 h-full flex items-center justify-center">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Preparando editor...</p>
               </div>
             </div>
           </Card>
